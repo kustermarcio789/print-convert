@@ -52,6 +52,7 @@ export default function AdminProdutosSite() {
   const [newSpec, setNewSpec] = useState({ key: '', value: '' });
   const [newTag, setNewTag] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [modelo3DFile, setModelo3DFile] = useState<File | null>(null);
 
   // Carregar produtos
   useEffect(() => {
@@ -185,6 +186,37 @@ export default function AdminProdutosSite() {
         images: [...(formData.images || []), imageUrl]
       });
       setImageUrl('');
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFormData({
+            ...formData,
+            images: [...(formData.images || []), reader.result as string]
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const handleModelo3DUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({
+          ...formData,
+          modelo3D: reader.result as string
+        });
+        setModelo3DFile(file);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -465,21 +497,40 @@ export default function AdminProdutosSite() {
                   <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Imagens</h3>
                     <div className="space-y-4">
-                      <div className="flex gap-2">
-                        <input
-                          type="url"
-                          value={imageUrl}
-                          onChange={(e) => setImageUrl(e.target.value)}
-                          placeholder="URL da imagem"
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                        />
-                        <button
-                          type="button"
-                          onClick={addImage}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                        >
-                          <Plus className="h-5 w-5" />
-                        </button>
+                      <div className="flex flex-col gap-4">
+                        {/* Upload de Arquivo */}
+                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors bg-gray-50">
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <Upload className="w-8 h-8 mb-2 text-gray-400" />
+                            <p className="text-sm text-gray-500 font-medium">Clique para fazer upload de imagens</p>
+                            <p className="text-xs text-gray-400">PNG, JPG, WEBP (Máx. 5MB cada)</p>
+                          </div>
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            multiple
+                            onChange={handleImageUpload}
+                          />
+                        </label>
+
+                        {/* Ou adicionar por URL */}
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            value={imageUrl}
+                            onChange={(e) => setImageUrl(e.target.value)}
+                            placeholder="Ou cole a URL da imagem"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={addImage}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                          >
+                            <Plus className="h-5 w-5" />
+                          </button>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-4 gap-4">
@@ -500,6 +551,46 @@ export default function AdminProdutosSite() {
                           </div>
                         ))}
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Modelo 3D */}
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Modelo 3D (GLB/GLTF)</h3>
+                    <div className="space-y-4">
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors bg-gray-50">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <Package className="w-8 h-8 mb-2 text-gray-400" />
+                          <p className="text-sm text-gray-500 font-medium">Clique para fazer upload do modelo 3D</p>
+                          <p className="text-xs text-gray-400">GLB, GLTF (Máx. 50MB)</p>
+                        </div>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".glb,.gltf"
+                          onChange={handleModelo3DUpload}
+                        />
+                      </label>
+                      {formData.modelo3D && (
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Package className="w-5 h-5 text-green-600" />
+                            <span className="text-sm text-green-700 font-medium">
+                              {modelo3DFile?.name || 'Modelo 3D carregado'}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, modelo3D: undefined });
+                              setModelo3DFile(null);
+                            }}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <X className="h-5 w-5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 

@@ -31,6 +31,7 @@ export default function AdminOrcamentoDetalhes() {
   const [prazoEntrega, setPrazoEntrega] = useState<string>('');
   const [observacoes, setObservacoes] = useState<string>('');
   const [gerandoPDF, setGerandoPDF] = useState(false);
+  const [tipoImpressao, setTipoImpressao] = useState<'resina' | 'filamento'>('resina');
 
   useEffect(() => {
     if (id) {
@@ -64,8 +65,15 @@ export default function AdminOrcamentoDetalhes() {
           telefone: orcamento.telefone,
         },
         tipo: getTipoLabel(orcamento.tipo),
-        descricao: JSON.stringify(orcamento.detalhes, null, 2),
-        valorServico,
+        itens: [
+          {
+            descricao: getTipoLabel(orcamento.tipo),
+            quantidade: 1,
+            valorUnitario: valorServico,
+            valorTotal: valorServico,
+          }
+        ],
+        subtotal: valorServico,
         valorFrete,
         valorTotal: valorServico + valorFrete,
         data: new Date(orcamento.data).toLocaleDateString('pt-BR'),
@@ -198,17 +206,22 @@ export default function AdminOrcamentoDetalhes() {
                 <label className="block text-sm font-semibold text-muted-foreground mb-2">
                   Tipo de Impressão
                 </label>
-                <select className="w-full px-3 py-2 border rounded-lg">
+                <select 
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                  value={tipoImpressao}
+                  onChange={(e) => setTipoImpressao(e.target.value as 'resina' | 'filamento')}
+                >
                   <option value="resina">Resina</option>
                   <option value="filamento">Filamento</option>
                 </select>
               </div>
               
-              {/* Por padrão mostrando calculadora de resina */}
-              <CalculadoraResina onCalculoCompleto={handleCalculoResinaCompleto} />
-              
-              {/* Descomentar para usar calculadora de filamento */}
-              {/* <CalculadoraFilamento onCalculoCompleto={handleCalculoFilamentoCompleto} /> */}
+              {/* Alternar entre calculadoras baseado na seleção */}
+              {tipoImpressao === 'resina' ? (
+                <CalculadoraResina onCalculoCompleto={handleCalculoResinaCompleto} />
+              ) : (
+                <CalculadoraFilamento onCalculoCompleto={handleCalculoFilamentoCompleto} />
+              )}
             </CardContent>
           </Card>
         )}
