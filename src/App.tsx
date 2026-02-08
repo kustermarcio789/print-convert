@@ -17,6 +17,8 @@ import Brands from "./pages/Brands";
 import BrandDetail from "./pages/BrandDetail";
 import UploadFile from "./pages/UploadFile";
 import Providers from "./pages/Providers";
+import MyAccount from "./pages/MyAccount";
+import PaintQuote from "./pages/PaintQuote";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +35,7 @@ const App = () => (
           <Route path="/produtos/:id" element={<ProductDetail />} />
           <Route path="/servicos" element={<Services />} />
           <Route path="/orcamento" element={<Quote />} />
+          <Route path="/orcamento-pintura" element={<PaintQuote />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/login" element={<Login />} />
@@ -42,6 +45,7 @@ const App = () => (
           <Route path="/marcas/:brandId" element={<BrandDetail />} />
           <Route path="/enviar-arquivo" element={<UploadFile />} />
           <Route path="/prestadores" element={<Providers />} />
+          <Route path="/minha-conta" element={<MyAccount />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

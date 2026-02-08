@@ -163,7 +163,7 @@ export default function RegisterProvider() {
                         <Label htmlFor="phone">WhatsApp *</Label>
                         <div className="relative mt-1">
                           <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input id="phone" type="tel" placeholder="(43) 99999-9999" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="pl-10" required />
+                          <Input id="phone" type="tel" placeholder="(43) 9-9174-1518" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="pl-10" required />
                         </div>
                       </div>
                       <div>

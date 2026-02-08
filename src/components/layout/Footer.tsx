@@ -54,13 +54,13 @@ export function Footer() {
               com entrega rápida para todo o Brasil.
             </p>
             <div className="space-y-3">
-              <a href="mailto:contato@3dkprint.com.br" className="flex items-center text-primary-foreground/70 hover:text-accent transition-colors">
+              <a href="mailto:3dk.print.br@gmail.com" className="flex items-center text-primary-foreground/70 hover:text-accent transition-colors">
                 <Mail className="h-5 w-5 mr-3" />
-                contato@3dkprint.com.br
+                3dk.print.br@gmail.com
               </a>
-              <a href="tel:+554391741518" className="flex items-center text-primary-foreground/70 hover:text-accent transition-colors">
+              <a href="tel:+5543991741518" className="flex items-center text-primary-foreground/70 hover:text-accent transition-colors">
                 <Phone className="h-5 w-5 mr-3" />
-                (43) 9174-1518
+                (43) 9-9174-1518
               </a>
               <div className="flex items-start text-primary-foreground/70">
                 <MapPin className="h-5 w-5 mr-3 mt-0.5" />

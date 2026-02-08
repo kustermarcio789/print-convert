@@ -4,7 +4,7 @@ import { ArrowRight, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function CTASection() {
-  const whatsappUrl = "https://wa.me/554391741518?text=Olá! Gostaria de fazer um orçamento para impressão 3D.";
+  const whatsappUrl = "https://wa.me/5543991741518?text=Olá! Gostaria de fazer um orçamento para impressão 3D.";
 
   return (
     <section className="section-padding hero-gradient relative overflow-hidden">

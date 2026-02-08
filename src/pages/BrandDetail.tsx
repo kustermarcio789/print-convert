@@ -97,14 +97,15 @@ const brandsData: Record<string, {
       { id: '3', name: 'Mercury X Wash & Cure', category: 'Acessórios', price: 'R$ 599,90', rating: 4.9, reviews: 11, badge: 'Novo' },
     ],
   },
-  artillery: {
-    name: 'Artillery',
-    description: 'Impressoras FDM com boa relação custo-benefício',
-    longDescription: 'A Artillery oferece impressoras FDM robustas como Sidewinder e Genius. Peças de reposição e upgrades disponíveis.',
-    categories: ['Todos', 'Hotends', 'Motores', 'Correias', 'Peças'],
+  sovol: {
+    name: 'Sovol',
+    description: 'Impressoras FDM com excelente custo-beneficio e inovacao',
+    longDescription: 'A Sovol oferece impressoras FDM com excelente custo-beneficio como SV06, SV07 e SV08. Pecas de reposicao e upgrades disponiveis.',
+    categories: ['Todos', 'Hotends', 'Motores', 'Correias', 'Pecas', 'PEI'],
     products: [
-      { id: '1', name: 'Hotend Volcano Clone', category: 'Hotends', price: 'R$ 89,90', rating: 4.6, reviews: 15 },
-      { id: '2', name: 'Motor Extrusor Titan', category: 'Motores', price: 'R$ 69,90', rating: 4.5, reviews: 10 },
+      { id: '1', name: 'Hotend All Metal SV06', category: 'Hotends', price: 'R$ 99,90', rating: 4.7, reviews: 18 },
+      { id: '2', name: 'PEI Magnetica SV06 Plus', category: 'PEI', price: 'R$ 79,90', rating: 4.6, reviews: 12 },
+      { id: '3', name: 'Motor Nema 17 SV07', category: 'Motores', price: 'R$ 59,90', rating: 4.5, reviews: 8 },
     ],
   },
   flashforge: {

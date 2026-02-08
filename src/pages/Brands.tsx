@@ -2,13 +2,13 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Package } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
-import { Button } from '@/components/ui/button';
 
 const brands = [
   {
     id: 'creality',
     name: 'Creality',
-    description: 'Líder mundial em impressoras 3D acessíveis. Modelos como Ender 3, CR-10 e K1 são referência no mercado.',
+    logo: '/images/brands/creality.jpg',
+    description: 'Lider mundial em impressoras 3D acessiveis. Modelos como Ender 3, CR-10 e K1 sao referencia no mercado.',
     categories: ['Impressoras FDM', 'PEI', 'Hotends', 'Motores', 'Correias', 'Bicos'],
     productCount: 45,
     color: 'from-blue-500/20 to-blue-600/10',
@@ -16,15 +16,17 @@ const brands = [
   {
     id: 'bambu-lab',
     name: 'Bambu Lab',
-    description: 'Impressoras 3D de alta velocidade com tecnologia CoreXY. A série X1 e P1 revolucionaram o mercado.',
-    categories: ['Impressoras CoreXY', 'AMS', 'Hotends', 'Bicos', 'PEI', 'Peças'],
+    logo: '/images/brands/bambulab.jpeg',
+    description: 'Impressoras 3D de alta velocidade com tecnologia CoreXY. A serie X1 e P1 revolucionaram o mercado.',
+    categories: ['Impressoras CoreXY', 'AMS', 'Hotends', 'Bicos', 'PEI', 'Pecas'],
     productCount: 32,
     color: 'from-green-500/20 to-green-600/10',
   },
   {
     id: 'prusa',
     name: 'Prusa',
-    description: 'Impressoras open-source de alta qualidade. A Prusa MK4 e Mini são referência em confiabilidade.',
+    logo: '/images/brands/prusa.png',
+    description: 'Impressoras open-source de alta qualidade. A Prusa MK4 e Mini sao referencia em confiabilidade.',
     categories: ['Impressoras FDM', 'Impressoras SLA', 'Hotends', 'PEI', 'Extrusoras'],
     productCount: 28,
     color: 'from-orange-500/20 to-orange-600/10',
@@ -32,40 +34,45 @@ const brands = [
   {
     id: 'anycubic',
     name: 'Anycubic',
-    description: 'Especialista em impressoras de resina e FDM. Photon e Kobra são modelos populares.',
-    categories: ['Impressoras Resina', 'Impressoras FDM', 'Resinas', 'FEP', 'Peças'],
+    logo: '/images/brands/anycubic.png',
+    description: 'Especialista em impressoras de resina e FDM. Photon e Kobra sao modelos populares.',
+    categories: ['Impressoras Resina', 'Impressoras FDM', 'Resinas', 'FEP', 'Pecas'],
     productCount: 38,
     color: 'from-purple-500/20 to-purple-600/10',
   },
   {
     id: 'voron',
     name: 'Voron',
+    logo: '/images/brands/voron.png',
     description: 'Projeto open-source de impressoras CoreXY de alto desempenho. Voron 0, Trident e 2.4.',
-    categories: ['Kits CoreXY', 'Rails Lineares', 'Motores', 'Hotends', 'Eletrônica'],
+    categories: ['Kits CoreXY', 'Rails Lineares', 'Motores', 'Hotends', 'Eletronica'],
     productCount: 56,
     color: 'from-red-500/20 to-red-600/10',
   },
   {
     id: 'elegoo',
     name: 'Elegoo',
-    description: 'Impressoras de resina com excelente custo-benefício. Mars e Saturn são best-sellers.',
-    categories: ['Impressoras Resina', 'Resinas', 'FEP', 'Acessórios', 'Peças'],
+    logo: '/images/brands/elegoo.jpg',
+    description: 'Impressoras de resina com excelente custo-beneficio. Mars e Saturn sao best-sellers.',
+    categories: ['Impressoras Resina', 'Resinas', 'FEP', 'Acessorios', 'Pecas'],
     productCount: 24,
     color: 'from-cyan-500/20 to-cyan-600/10',
   },
   {
-    id: 'artillery',
-    name: 'Artillery',
-    description: 'Impressoras FDM com boa relação custo-benefício. Sidewinder e Genius são destaques.',
-    categories: ['Impressoras FDM', 'Hotends', 'Motores', 'Correias', 'Peças'],
-    productCount: 18,
-    color: 'from-yellow-500/20 to-yellow-600/10',
+    id: 'sovol',
+    name: 'Sovol',
+    logo: '/images/brands/sovol.png',
+    description: 'Impressoras FDM com excelente custo-beneficio e inovacao. SV06 e SV07 sao destaques da marca.',
+    categories: ['Impressoras FDM', 'Hotends', 'Motores', 'Correias', 'Pecas'],
+    productCount: 20,
+    color: 'from-teal-500/20 to-teal-600/10',
   },
   {
     id: 'flashforge',
     name: 'Flashforge',
-    description: 'Impressoras profissionais e educacionais. Adventurer e Creator são linhas populares.',
-    categories: ['Impressoras FDM', 'Filamentos', 'Hotends', 'Peças', 'Acessórios'],
+    logo: '/images/brands/flashforge.png',
+    description: 'Impressoras profissionais e educacionais. Adventurer e Creator sao linhas populares.',
+    categories: ['Impressoras FDM', 'Filamentos', 'Hotends', 'Pecas', 'Acessorios'],
     productCount: 22,
     color: 'from-indigo-500/20 to-indigo-600/10',
   },
@@ -86,10 +93,10 @@ export default function Brands() {
               Marcas
             </span>
             <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-6">
-              Peças e acessórios por marca
+              Pecas e acessorios por marca
             </h1>
             <p className="text-xl text-primary-foreground/80 mb-8">
-              Encontre peças de reposição, upgrades e acessórios para sua impressora 3D. 
+              Encontre pecas de reposicao, upgrades e acessorios para sua impressora 3D. 
               Trabalhamos com as melhores marcas do mercado.
             </p>
           </motion.div>
@@ -112,8 +119,12 @@ export default function Brands() {
                   to={`/marcas/${brand.id}`}
                   className="block card-elevated p-6 h-full group hover:border-accent/30 transition-all"
                 >
-                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${brand.color} flex items-center justify-center mb-4`}>
-                    <span className="text-xl font-bold text-foreground">{brand.name.charAt(0)}</span>
+                  <div className="w-full h-20 rounded-xl bg-white flex items-center justify-center mb-4 p-3 border border-border/50">
+                    <img 
+                      src={brand.logo} 
+                      alt={`Logo ${brand.name}`} 
+                      className="max-h-full max-w-full object-contain"
+                    />
                   </div>
                   <h3 className="text-xl font-bold text-foreground mb-2 group-hover:text-accent transition-colors">
                     {brand.name}
@@ -162,7 +173,7 @@ export default function Brands() {
             </p>
           </motion.div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {['PEI / Mesa', 'Hotends', 'Bicos / Nozzle', 'Motores', 'Correias', 'Extrusoras', 'Rails Lineares', 'Eletrônica', 'Filamentos', 'Resinas', 'FEP', 'Acessórios'].map((cat, i) => (
+            {['PEI / Mesa', 'Hotends', 'Bicos / Nozzle', 'Motores', 'Correias', 'Extrusoras', 'Rails Lineares', 'Eletronica', 'Filamentos', 'Resinas', 'FEP', 'Acessorios'].map((cat, i) => (
               <motion.div
                 key={cat}
                 initial={{ opacity: 0, y: 10 }}
