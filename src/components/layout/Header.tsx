@@ -20,6 +20,7 @@ const serviceItems = [
   { name: 'Modelagem 3D', href: '/servicos#modelagem', icon: PenTool, desc: 'Fusion 360, Blender' },
   { name: 'Pintura Premium', href: '/servicos#pintura', icon: Paintbrush, desc: 'Acabamento profissional' },
   { name: 'Manutenção', href: '/servicos#manutencao', icon: Wrench, desc: 'Conserto e calibração' },
+  { name: 'Orçamento de Modelagem', href: '/orcamento-modelagem', icon: PenTool, desc: 'Orgânica ou paramétrica' },
   { name: 'Orçamento de Pintura', href: '/orcamento-pintura', icon: Paintbrush, desc: 'Envie fotos da peça' },
   { name: 'Enviar Arquivo', href: '/enviar-arquivo', icon: Upload, desc: 'STL, OBJ, 3MF...' },
   { name: 'Encontrar Prestador', href: '/prestadores', icon: Users, desc: 'Marketplace de serviços' },

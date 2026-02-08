@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Printer, PenTool, Paintbrush, Wrench, ArrowRight, Check } from 'lucide-react';
+import { Printer, PenTool, Paintbrush, Wrench, ArrowRight, Check, Shield } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 
@@ -17,29 +17,33 @@ const services = [
       'Produção em pequena e grande escala',
       'Prazo a partir de 24h',
     ],
-    materials: ['PLA', 'PETG', 'ABS', 'ASA', 'Nylon', 'TPU', 'Resina'],
+    tags: ['PLA', 'PETG', 'ABS', 'ASA', 'Nylon', 'TPU', 'Resina'],
     image: '/images/impressao-3d-servico.jpg',
+    ctaText: 'Solicitar Orçamento de Impressão',
+    ctaLink: '/orcamento',
   },
   {
     id: 'modelagem',
     icon: PenTool,
     title: 'Modelagem 3D',
-    description: 'Criamos o modelo 3D do seu projeto a partir de desenhos, fotos, ou descrições. Arquivos otimizados para impressão.',
+    description: 'Criamos o modelo 3D do seu projeto a partir de desenhos, fotos, ou descrições. Modelagem paramétrica, orgânica ou mista — arquivos otimizados para impressão.',
     features: [
-      'Modelagem do zero',
+      'Modelagem paramétrica (peças técnicas)',
+      'Modelagem orgânica (figuras, esculturas)',
       'Digitalização de objetos',
       'Otimização para impressão',
-      'Revisões inclusas',
-      'Entrega do arquivo final',
+      'Entrega do arquivo final (STL, OBJ, STEP)',
     ],
-    softwares: ['Fusion 360', 'Blender', 'ZBrush', 'SolidWorks'],
+    tags: ['Fusion 360', 'Blender', 'ZBrush', 'SolidWorks'],
     image: '/images/modelagem-3d-servico.jpg',
+    ctaText: 'Solicitar Orçamento de Modelagem',
+    ctaLink: '/orcamento-modelagem',
   },
   {
     id: 'pintura',
     icon: Paintbrush,
     title: 'Pintura Premium',
-    description: 'Acabamento profissional com técnicas de pintura automotiva e aerografia. Transforme sua peça bruta em produto final.',
+    description: 'Acabamento profissional com técnicas de pintura automotiva e aerografia. Transforme sua peça bruta em produto final. Envie fotos da sua peça e receba propostas.',
     features: [
       'Pintura automotiva',
       'Aerografia artística',
@@ -47,14 +51,16 @@ const services = [
       'Cores personalizadas',
       'Acabamento premium',
     ],
-    finishes: ['Fosco', 'Brilhante', 'Metálico', 'Texturizado'],
+    tags: ['Fosco', 'Brilhante', 'Metálico', 'Texturizado'],
     image: '/images/pintura-premium-servico.jpg',
+    ctaText: 'Solicitar Orçamento de Pintura',
+    ctaLink: '/orcamento-pintura',
   },
   {
     id: 'manutencao',
     icon: Wrench,
     title: 'Manutenção de Impressoras',
-    description: 'Conserto, calibração e upgrades para impressoras 3D. Suporte técnico especializado para todas as marcas.',
+    description: 'Conserto, calibração e upgrades para impressoras 3D. Suporte técnico especializado para todas as marcas. Serviço exclusivo realizado pela equipe técnica da 3DKPRINT.',
     features: [
       'Diagnóstico gratuito',
       'Calibração profissional',
@@ -62,8 +68,12 @@ const services = [
       'Upgrades e melhorias',
       'Garantia no serviço',
     ],
-    brands: ['Ender', 'Prusa', 'Anycubic', 'Creality', 'Bambu Lab'],
+    tags: ['Ender', 'Prusa', 'Anycubic', 'Creality', 'Bambu Lab'],
     image: '/images/manutencao-servico.jpg',
+    ctaText: 'Solicitar Manutenção (WhatsApp)',
+    ctaLink: 'https://wa.me/554391741518?text=Olá! Gostaria de solicitar manutenção para minha impressora 3D.',
+    isExternal: true,
+    isExclusive: true,
   },
 ];
 
@@ -123,6 +133,17 @@ export default function Services() {
                 <p className="text-lg text-muted-foreground mb-6">
                   {service.description}
                 </p>
+
+                {/* Exclusive badge for maintenance */}
+                {service.isExclusive && (
+                  <div className="flex items-center gap-2 mb-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+                    <Shield className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    <span className="text-sm text-blue-800 font-medium">
+                      Serviço exclusivo realizado pela equipe técnica da 3DKPRINT
+                    </span>
+                  </div>
+                )}
+
                 <ul className="space-y-3 mb-8">
                   {service.features.map((feature, i) => (
                     <li key={i} className="flex items-center gap-3">
@@ -134,7 +155,7 @@ export default function Services() {
 
                 {/* Tags */}
                 <div className="flex flex-wrap gap-2 mb-8">
-                  {(service.materials || service.softwares || service.finishes || service.brands || []).map((tag) => (
+                  {service.tags.map((tag) => (
                     <span
                       key={tag}
                       className="px-3 py-1 bg-secondary text-secondary-foreground text-sm rounded-full"
@@ -144,12 +165,21 @@ export default function Services() {
                   ))}
                 </div>
 
-                <Link to="/orcamento">
-                  <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
-                    Solicitar Orçamento
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
+                {service.isExternal ? (
+                  <a href={service.ctaLink} target="_blank" rel="noopener noreferrer">
+                    <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
+                      {service.ctaText}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </a>
+                ) : (
+                  <Link to={service.ctaLink}>
+                    <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
+                      {service.ctaText}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                )}
               </div>
 
               {/* Image */}

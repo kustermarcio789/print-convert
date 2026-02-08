@@ -1,52 +1,60 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Upload, Camera, ArrowRight, Check, Info, Paintbrush, Bell, Shield, X } from 'lucide-react';
-import { Layout } from '@/components/layout/Layout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { Layout } from '../components/layout/Layout';
+import { Camera, ArrowRight, CheckCircle, Info, Shield, X, Ruler, Paintbrush, Bell, Check } from 'lucide-react';
+
+const objectTypes = [
+  { id: 'action-figure', name: 'Action Figure / Personagem', description: 'Figuras de ação, personagens de jogos, anime, filmes' },
+  { id: 'busto', name: 'Busto / Escultura', description: 'Bustos, esculturas artísticas, decoração' },
+  { id: 'miniatura', name: 'Miniatura / RPG', description: 'Miniaturas para jogos de mesa, RPG, wargames' },
+  { id: 'prototipo', name: 'Protótipo / Peça Funcional', description: 'Protótipos, peças industriais, cases, suportes' },
+  { id: 'cosplay', name: 'Cosplay / Prop', description: 'Armaduras, capacetes, armas, acessórios de cosplay' },
+  { id: 'decoracao', name: 'Decoração / Vaso / Luminária', description: 'Objetos decorativos, vasos, luminárias, porta-retratos' },
+  { id: 'maquete', name: 'Maquete / Arquitetura', description: 'Maquetes arquitetônicas, modelos em escala' },
+  { id: 'outro', name: 'Outro', description: 'Outro tipo de objeto não listado' },
+];
 
 const paintTypes = [
   { id: 'automotiva', name: 'Pintura Automotiva', description: 'Acabamento liso e brilhante, similar a pintura de carros' },
-  { id: 'aerografia', name: 'Aerografia Artistica', description: 'Pintura detalhada com aerografo, ideal para figuras e personagens' },
-  { id: 'verniz', name: 'Verniz de Protecao', description: 'Camada protetora transparente (fosco, brilhante ou acetinado)' },
+  { id: 'aerografia', name: 'Aerografia Artística', description: 'Pintura detalhada com aerógrafo, ideal para figuras e personagens' },
+  { id: 'verniz', name: 'Verniz de Proteção', description: 'Camada protetora transparente (fosco, brilhante ou acetinado)' },
   { id: 'texturizado', name: 'Texturizado', description: 'Acabamento com textura especial (soft-touch, emborrachado, etc.)' },
-  { id: 'metalico', name: 'Metalico / Cromado', description: 'Efeito metalizado, cromado ou dourado' },
+  { id: 'metalico', name: 'Metálico / Cromado', description: 'Efeito metalizado, cromado ou dourado' },
+  { id: 'pincel', name: 'Pintura a Pincel (Detalhamento)', description: 'Pintura manual detalhada para miniaturas e figuras pequenas' },
 ];
 
-const finishTypes = [
-  { id: 'fosco', name: 'Fosco' },
-  { id: 'brilhante', name: 'Brilhante' },
-  { id: 'acetinado', name: 'Acetinado' },
-  { id: 'metalico', name: 'Metalico' },
-];
+const finishTypes = ['Fosco', 'Brilhante', 'Acetinado', 'Metálico', 'Semi-brilho'];
+
+const materialTypes = ['PLA', 'PETG', 'ABS', 'Resina (SLA/DLP)', 'Nylon', 'TPU', 'Não sei'];
 
 export default function PaintQuote() {
-  const { toast } = useToast();
-  const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
+  const [photos, setPhotos] = useState<{ name: string; url: string }[]>([]);
+  const [objectType, setObjectType] = useState('');
+  const [paintType, setPaintType] = useState('');
+  const [finish, setFinish] = useState('');
+  const [material, setMaterial] = useState('');
+  const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({
+    colors: '',
+    quantity: '1',
+    width: '',
+    height: '',
+    depth: '',
+    unit: 'cm',
+    description: '',
+    references: '',
     name: '',
     email: '',
-    phone: '',
-    paintType: '',
-    finishType: '',
-    colors: '',
-    quantity: 1,
-    dimensions: '',
-    description: '',
+    whatsapp: '',
   });
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newPhotos = Array.from(e.target.files).map((file) => ({
-        file,
-        preview: URL.createObjectURL(file),
-      }));
-      setPhotos((prev) => [...prev, ...newPhotos]);
-    }
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newPhotos = Array.from(files).map((file) => ({
+      name: file.name,
+      url: URL.createObjectURL(file),
+    }));
+    setPhotos((prev) => [...prev, ...newPhotos].slice(0, 10));
   };
 
   const removePhoto = (index: number) => {
@@ -55,170 +63,395 @@ export default function PaintQuote() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.paintType) {
-      toast({ title: "Campos obrigatorios", description: "Preencha nome, e-mail e tipo de pintura.", variant: "destructive" });
-      return;
-    }
-    if (photos.length === 0) {
-      toast({ title: "Fotos obrigatorias", description: "Envie pelo menos uma foto da peca para que os pintores possam avaliar.", variant: "destructive" });
-      return;
-    }
-    toast({
-      title: "Orcamento de pintura enviado!",
-      description: "Sua solicitacao foi enviada como proposta para os pintores cadastrados na plataforma. Voce recebera propostas em breve.",
-    });
+    if (!objectType) { alert('Selecione o que deseja pintar.'); return; }
+    if (!paintType) { alert('Selecione o tipo de pintura.'); return; }
+    if (photos.length === 0) { alert('Envie pelo menos uma foto da peça.'); return; }
+    if (!formData.name || !formData.email) { alert('Preencha nome e e-mail.'); return; }
+    setSubmitted(true);
+    setTimeout(() => setSubmitted(false), 5000);
   };
 
   return (
     <Layout>
-      <section className="bg-primary py-16">
-        <div className="container-custom">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl">
-            <span className="inline-block text-accent font-semibold text-sm uppercase tracking-wider mb-4">Pintura Premium</span>
-            <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-4">Orcamento de Pintura</h1>
-            <p className="text-xl text-primary-foreground/80">
-              Ja tem sua peca impressa em 3D? Envie fotos e receba propostas de pintores profissionais cadastrados na plataforma.
-            </p>
-          </motion.div>
+      {/* Hero */}
+      <section className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-purple-900 text-white py-20">
+        <div className="container mx-auto px-4">
+          <span className="text-purple-400 font-semibold tracking-wider uppercase text-sm">Pintura Premium</span>
+          <h1 className="text-4xl md:text-5xl font-bold mt-2 mb-4">Orçamento de Pintura</h1>
+          <p className="text-gray-300 text-lg max-w-2xl">
+            Já tem sua peça impressa em 3D? Envie fotos e receba propostas de pintores profissionais cadastrados na plataforma.
+          </p>
         </div>
       </section>
 
-      <section className="bg-accent/5 border-b border-accent/10 py-4">
-        <div className="container-custom flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2"><Camera className="w-4 h-4 text-accent" /><span>Envie fotos da peca</span></div>
-          <div className="flex items-center gap-2"><Bell className="w-4 h-4 text-accent" /><span>Pintores recebem como proposta</span></div>
-          <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-accent" /><span>Pagamento seguro com intermediacao</span></div>
+      {/* Steps info */}
+      <div className="bg-gray-50 border-b">
+        <div className="container mx-auto px-4 py-4 flex flex-wrap items-center justify-center gap-6 text-sm text-gray-600">
+          <div className="flex items-center gap-2"><Camera className="w-4 h-4 text-purple-600" /> Envie fotos da peça</div>
+          <div className="flex items-center gap-2"><Bell className="w-4 h-4 text-purple-600" /> Pintores recebem como proposta</div>
+          <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-purple-600" /> Pagamento seguro com intermediação</div>
         </div>
-      </section>
+      </div>
 
-      <section className="section-padding bg-background">
-        <div className="container-custom">
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-2">
+            {/* Form */}
+            <div className="lg:col-span-2">
               <form onSubmit={handleSubmit} className="space-y-8">
-                <div className="card-elevated p-6">
-                  <h2 className="text-xl font-semibold text-foreground mb-2">1. Fotos da peca impressa *</h2>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Envie fotos de todos os angulos da peca. Quanto mais fotos, melhor sera a avaliacao dos pintores.
-                    <strong className="text-foreground"> Minimo 1 foto obrigatoria.</strong>
-                  </p>
-                  <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent transition-colors cursor-pointer" onClick={() => document.getElementById('photo-upload')?.click()}>
-                    <Camera className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-foreground font-medium mb-2">Clique para enviar fotos da peca</p>
-                    <p className="text-muted-foreground text-sm">JPG, PNG ou WEBP - Maximo 10MB por foto</p>
-                    <input id="photo-upload" type="file" multiple accept="image/*" onChange={handlePhotoChange} className="hidden" />
+
+                {/* 1. O que deseja pintar */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-8">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <span className="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                    O que deseja pintar? *
+                  </h2>
+                  <p className="text-gray-500 mb-6 ml-10">Selecione o tipo de objeto que será pintado</p>
+
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {objectTypes.map((type) => (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => setObjectType(type.id)}
+                        className={`p-4 rounded-xl border-2 text-left transition-all ${
+                          objectType === type.id
+                            ? 'border-purple-600 bg-purple-50 shadow-md'
+                            : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <h3 className="font-bold text-gray-900 text-xs mb-1">{type.name}</h3>
+                        <p className="text-xs text-gray-500">{type.description}</p>
+                      </button>
+                    ))}
                   </div>
+                </div>
+
+                {/* 2. Fotos da peça */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-8">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <span className="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                    Fotos da peça impressa *
+                  </h2>
+                  <p className="text-gray-500 mb-6 ml-10">
+                    Envie fotos de todos os ângulos da peça. Quanto mais fotos, melhor será a avaliação dos pintores.
+                    <strong className="text-gray-700"> Mínimo 1 foto obrigatória.</strong>
+                  </p>
+
+                  <label className="block cursor-pointer">
+                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-purple-400 hover:bg-purple-50 transition-all">
+                      <Camera className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600 font-medium">Clique para enviar fotos da peça</p>
+                      <p className="text-gray-400 text-sm mt-1">JPG, PNG ou WEBP — Máximo 10MB por foto — Até 10 fotos</p>
+                    </div>
+                    <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+                  </label>
+
                   {photos.length > 0 && (
-                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                       {photos.map((photo, index) => (
-                        <div key={index} className="relative group rounded-lg overflow-hidden aspect-square">
-                          <img src={photo.preview} alt={`Foto ${index + 1}`} className="w-full h-full object-cover" />
-                          <button type="button" onClick={() => removePhoto(index)} className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <X className="w-4 h-4" />
+                        <div key={index} className="relative group">
+                          <img src={photo.url} alt={photo.name} className="w-full h-24 object-cover rounded-lg border" />
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(index)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
                           </button>
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center py-1">Foto {index + 1}</div>
+                          <p className="text-xs text-gray-500 mt-1 truncate">Foto {index + 1}</p>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
 
-                <div className="card-elevated p-6">
-                  <h2 className="text-xl font-semibold text-foreground mb-4">2. Tipo de pintura e acabamento</h2>
-                  <div className="space-y-4">
+                {/* 3. Tamanho do objeto */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-8">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <span className="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">3</span>
+                    Tamanho do Objeto
+                  </h2>
+                  <p className="text-gray-500 mb-6 ml-10">Informe as dimensões aproximadas da peça</p>
+
+                  <div className="grid sm:grid-cols-4 gap-4">
                     <div>
-                      <Label className="mb-3 block">Tipo de pintura *</Label>
-                      <Select value={formData.paintType} onValueChange={(value) => setFormData({ ...formData, paintType: value })}>
-                        <SelectTrigger><SelectValue placeholder="Selecione o tipo de pintura" /></SelectTrigger>
-                        <SelectContent>
-                          {paintTypes.map((type) => (
-                            <SelectItem key={type.id} value={type.id}>
-                              <div className="flex flex-col"><span>{type.name}</span><span className="text-xs text-muted-foreground">{type.description}</span></div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label className="mb-3 block">Acabamento</Label>
-                        <Select value={formData.finishType} onValueChange={(value) => setFormData({ ...formData, finishType: value })}>
-                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                          <SelectContent>
-                            {finishTypes.map((finish) => (<SelectItem key={finish.id} value={finish.id}>{finish.name}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label className="mb-3 block">Quantidade de pecas</Label>
-                        <Input type="number" min="1" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })} />
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Largura</label>
+                      <div className="flex">
+                        <input
+                          type="number"
+                          value={formData.width}
+                          onChange={(e) => setFormData({ ...formData, width: e.target.value })}
+                          placeholder="0"
+                          className="w-full px-3 py-2.5 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        />
+                        <span className="bg-gray-100 border border-l-0 border-gray-300 px-3 py-2.5 rounded-r-lg text-sm text-gray-500">{formData.unit}</span>
                       </div>
                     </div>
                     <div>
-                      <Label className="mb-3 block">Cores desejadas</Label>
-                      <Input placeholder="Ex: Vermelho metalico com detalhes em dourado" value={formData.colors} onChange={(e) => setFormData({ ...formData, colors: e.target.value })} />
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Altura</label>
+                      <div className="flex">
+                        <input
+                          type="number"
+                          value={formData.height}
+                          onChange={(e) => setFormData({ ...formData, height: e.target.value })}
+                          placeholder="0"
+                          className="w-full px-3 py-2.5 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        />
+                        <span className="bg-gray-100 border border-l-0 border-gray-300 px-3 py-2.5 rounded-r-lg text-sm text-gray-500">{formData.unit}</span>
+                      </div>
                     </div>
                     <div>
-                      <Label className="mb-3 block">Dimensoes da peca (opcional)</Label>
-                      <Input placeholder="Ex: 15cm x 10cm x 8cm" value={formData.dimensions} onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })} />
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Profundidade</label>
+                      <div className="flex">
+                        <input
+                          type="number"
+                          value={formData.depth}
+                          onChange={(e) => setFormData({ ...formData, depth: e.target.value })}
+                          placeholder="0"
+                          className="w-full px-3 py-2.5 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        />
+                        <span className="bg-gray-100 border border-l-0 border-gray-300 px-3 py-2.5 rounded-r-lg text-sm text-gray-500">{formData.unit}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Unidade</label>
+                      <select
+                        value={formData.unit}
+                        onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="cm">Centímetros (cm)</option>
+                        <option value="mm">Milímetros (mm)</option>
+                        <option value="pol">Polegadas (pol)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Material da peça</label>
+                      <select
+                        value={material}
+                        onChange={(e) => setMaterial(e.target.value)}
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="">Selecione o material...</option>
+                        {materialTypes.map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Quantidade de peças</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formData.quantity}
+                        onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
                     </div>
                   </div>
                 </div>
 
-                <div className="card-elevated p-6">
-                  <h2 className="text-xl font-semibold text-foreground mb-4">3. Detalhes adicionais</h2>
-                  <Textarea placeholder="Descreva detalhes sobre a pintura desejada: referencias, cores especificas, areas que precisam de atencao especial..." rows={4} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
-                </div>
+                {/* 4. Tipo de pintura e acabamento */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-8">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <span className="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">4</span>
+                    Tipo de Pintura e Acabamento *
+                  </h2>
 
-                <div className="card-elevated p-6">
-                  <h2 className="text-xl font-semibold text-foreground mb-4">4. Seus dados</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div><Label className="mb-3 block">Nome completo *</Label><Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required /></div>
-                    <div><Label className="mb-3 block">E-mail *</Label><Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required /></div>
-                    <div><Label className="mb-3 block">WhatsApp</Label><Input type="tel" placeholder="(43) 9-9174-1518" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} /></div>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+                    {paintTypes.map((type) => (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => setPaintType(type.id)}
+                        className={`p-4 rounded-xl border-2 text-left transition-all ${
+                          paintType === type.id
+                            ? 'border-purple-600 bg-purple-50 shadow-md'
+                            : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <h3 className="font-bold text-gray-900 text-sm mb-1">{type.name}</h3>
+                        <p className="text-xs text-gray-500">{type.description}</p>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Acabamento</label>
+                      <select
+                        value={finish}
+                        onChange={(e) => setFinish(e.target.value)}
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="">Selecione...</option>
+                        {finishTypes.map((f) => (
+                          <option key={f} value={f}>{f}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Cores desejadas</label>
+                      <input
+                        type="text"
+                        value={formData.colors}
+                        onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
+                        placeholder="Ex: Vermelho metálico com detalhes em dourado"
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                  <Paintbrush className="mr-2 h-5 w-5" /> Enviar para Pintores <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
+                {/* 5. Detalhes adicionais */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-8">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <span className="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">5</span>
+                    Detalhes Adicionais
+                  </h2>
+
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Descreva detalhes sobre a pintura desejada: referências visuais, cores específicas, áreas que precisam de atenção especial, efeitos desejados..."
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                    rows={4}
+                  />
+
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Links de referência visual (opcional)</label>
+                    <input
+                      type="text"
+                      value={formData.references}
+                      onChange={(e) => setFormData({ ...formData, references: e.target.value })}
+                      placeholder="Cole links de imagens com referências de como deseja a pintura..."
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                {/* 6. Dados pessoais */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-8">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <span className="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">6</span>
+                    Seus Dados
+                  </h2>
+
+                  <div className="grid sm:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo *</label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="Seu nome completo"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        placeholder="seu@email.com"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        required
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+                      <input
+                        type="tel"
+                        value={formData.whatsapp}
+                        onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                        placeholder="(43) 9-9174-1518"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submit */}
+                {submitted ? (
+                  <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center">
+                    <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                    <h3 className="text-xl font-bold text-green-800 mb-2">Orçamento enviado com sucesso!</h3>
+                    <p className="text-green-600">Sua solicitação foi enviada como proposta para os pintores cadastrados. Você receberá propostas em breve.</p>
+                  </div>
+                ) : (
+                  <button
+                    type="submit"
+                    className="w-full bg-purple-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Paintbrush className="w-5 h-5" />
+                    Enviar para Pintores
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                )}
               </form>
-            </motion.div>
+            </div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-1">
+            {/* Sidebar */}
+            <div className="lg:col-span-1">
               <div className="sticky top-24 space-y-6">
-                <div className="card-elevated p-6 bg-accent/5 border-accent/20">
-                  <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2"><Info className="w-5 h-5 text-accent" /> Como funciona</h3>
-                  <ul className="space-y-4 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-3"><div className="w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center flex-shrink-0 text-xs font-bold">1</div><span>Envie fotos da peca impressa e descreva a pintura desejada</span></li>
-                    <li className="flex items-start gap-3"><div className="w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center flex-shrink-0 text-xs font-bold">2</div><span>Sua solicitacao aparece como <strong>notificacao/proposta</strong> para todos os pintores cadastrados</span></li>
-                    <li className="flex items-start gap-3"><div className="w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center flex-shrink-0 text-xs font-bold">3</div><span>Pintores interessados enviam propostas com preco e prazo</span></li>
-                    <li className="flex items-start gap-3"><div className="w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center flex-shrink-0 text-xs font-bold">4</div><span>Voce escolhe a melhor proposta e realiza o pagamento seguro</span></li>
-                    <li className="flex items-start gap-3"><div className="w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center flex-shrink-0 text-xs font-bold">5</div><span>O pagamento fica retido ate voce confirmar o recebimento da peca pintada</span></li>
+                <div className="bg-purple-50 border border-purple-200 rounded-2xl p-6">
+                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Info className="w-5 h-5 text-purple-600" /> Como funciona
+                  </h3>
+                  <ul className="space-y-4 text-sm text-gray-600">
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center flex-shrink-0 text-xs font-bold">1</div>
+                      <span>Envie fotos da peça impressa e descreva a pintura desejada</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center flex-shrink-0 text-xs font-bold">2</div>
+                      <span>Sua solicitação aparece como <strong>notificação/proposta</strong> para todos os pintores cadastrados</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center flex-shrink-0 text-xs font-bold">3</div>
+                      <span>Pintores interessados enviam propostas com preço e prazo</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center flex-shrink-0 text-xs font-bold">4</div>
+                      <span>Você escolhe a melhor proposta e realiza o pagamento seguro</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center flex-shrink-0 text-xs font-bold">5</div>
+                      <span>O pagamento fica retido até você confirmar o recebimento da peça pintada</span>
+                    </li>
                   </ul>
                 </div>
 
-                <div className="card-elevated p-6">
-                  <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2"><Shield className="w-5 h-5 text-green-500" /> Seguranca garantida</h3>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-2"><Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" /><span>Intermediacao total pela 3DKPRINT</span></li>
-                    <li className="flex items-start gap-2"><Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" /><span>Pagamento retido ate confirmacao</span></li>
-                    <li className="flex items-start gap-2"><Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" /><span>Pintores verificados e avaliados</span></li>
-                    <li className="flex items-start gap-2"><Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" /><span>Suporte em caso de problemas</span></li>
+                <div className="bg-white border border-gray-200 rounded-2xl p-6">
+                  <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-green-500" /> Segurança garantida
+                  </h3>
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    <li className="flex items-start gap-2"><Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" /> Intermediação total pela 3DKPRINT</li>
+                    <li className="flex items-start gap-2"><Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" /> Pagamento retido até confirmação</li>
+                    <li className="flex items-start gap-2"><Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" /> Pintores verificados e avaliados</li>
+                    <li className="flex items-start gap-2"><Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" /> Suporte em caso de problemas</li>
                   </ul>
                 </div>
 
-                <div className="card-elevated p-6">
-                  <h3 className="font-semibold text-foreground mb-3">Dicas para melhores propostas</h3>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>Envie fotos de todos os angulos</li>
-                    <li>Indique referencias visuais (links ou imagens)</li>
-                    <li>Informe o material da peca (PLA, ABS, Resina)</li>
-                    <li>Descreva cores e detalhes com precisao</li>
+                <div className="bg-white border border-gray-200 rounded-2xl p-6">
+                  <h3 className="font-bold text-gray-900 mb-3">Dicas para melhores propostas</h3>
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    <li>• Envie fotos de todos os ângulos</li>
+                    <li>• Indique referências visuais (links ou imagens)</li>
+                    <li>• Informe o material da peça (PLA, ABS, Resina)</li>
+                    <li>• Descreva cores e detalhes com precisão</li>
+                    <li>• Informe as dimensões exatas da peça</li>
                   </ul>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>

@@ -18,7 +18,8 @@ import BrandDetail from "./pages/BrandDetail";
 import UploadFile from "./pages/UploadFile";
 import Providers from "./pages/Providers";
 import MyAccount from "./pages/MyAccount";
-import PaintQuote from "./pages/PaintQuote";
+import PaintQuote from './pages/PaintQuote';
+import ModelingQuote from './pages/ModelingQuote';
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/servicos" element={<Services />} />
           <Route path="/orcamento" element={<Quote />} />
           <Route path="/orcamento-pintura" element={<PaintQuote />} />
+          <Route path="/orcamento-modelagem" element={<ModelingQuote />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/login" element={<Login />} />
