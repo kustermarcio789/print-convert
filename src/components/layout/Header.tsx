@@ -22,6 +22,7 @@ const serviceItems = [
   { name: 'Manutenção', href: '/servicos#manutencao', icon: Wrench, desc: 'Conserto e calibração' },
   { name: 'Orçamento de Modelagem', href: '/orcamento-modelagem', icon: PenTool, desc: 'Orgânica ou paramétrica' },
   { name: 'Orçamento de Pintura', href: '/orcamento-pintura', icon: Paintbrush, desc: 'Envie fotos da peça' },
+  { name: 'Orçamento de Manutenção', href: '/orcamento-manutencao', icon: Wrench, desc: 'Exclusivo 3DKPRINT' },
   { name: 'Enviar Arquivo', href: '/enviar-arquivo', icon: Upload, desc: 'STL, OBJ, 3MF...' },
   { name: 'Encontrar Prestador', href: '/prestadores', icon: Users, desc: 'Marketplace de serviços' },
 ];
