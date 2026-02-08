@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, User, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,19 +7,39 @@ import { Input } from '@/components/ui/input';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Credenciais administrativas
+  const ADMIN_USERNAME = 'kuster789jose';
+  const ADMIN_PASSWORD = '1@9b8z5X';
+
+  // Auto-login se já estiver autenticado ou com query params
+  useEffect(() => {
+    // Verificar se já está autenticado
+    if (localStorage.getItem('admin_authenticated') === 'true') {
+      navigate('/admin/dashboard');
+      return;
+    }
+
+    // Auto-login com query parameters (para acesso direto)
+    const autoUser = searchParams.get('u');
+    const autoPass = searchParams.get('p');
+    
+    if (autoUser === ADMIN_USERNAME && autoPass === ADMIN_PASSWORD) {
+      localStorage.setItem('admin_authenticated', 'true');
+      localStorage.setItem('admin_user', autoUser);
+      navigate('/admin/dashboard');
+    }
+  }, [navigate, searchParams]);
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
-    // Credenciais administrativas
-    const ADMIN_USERNAME = 'kuster789jose';
-    const ADMIN_PASSWORD = '1@9b8z5X';
 
     setTimeout(() => {
       if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
