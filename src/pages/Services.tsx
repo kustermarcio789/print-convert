@@ -18,7 +18,7 @@ const services = [
       'Prazo a partir de 24h',
     ],
     materials: ['PLA', 'PETG', 'ABS', 'ASA', 'Nylon', 'TPU', 'Resina'],
-    image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&h=400&fit=crop',
+    image: '/images/impressao-3d-servico.jpg',
   },
   {
     id: 'modelagem',
@@ -33,7 +33,7 @@ const services = [
       'Entrega do arquivo final',
     ],
     softwares: ['Fusion 360', 'Blender', 'ZBrush', 'SolidWorks'],
-    image: 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=600&h=400&fit=crop',
+    image: '/images/modelagem-3d-servico.jpg',
   },
   {
     id: 'pintura',
@@ -48,7 +48,7 @@ const services = [
       'Acabamento premium',
     ],
     finishes: ['Fosco', 'Brilhante', 'Metálico', 'Texturizado'],
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=400&fit=crop',
+    image: '/images/pintura-premium-servico.jpg',
   },
   {
     id: 'manutencao',
@@ -63,7 +63,7 @@ const services = [
       'Garantia no serviço',
     ],
     brands: ['Ender', 'Prusa', 'Anycubic', 'Creality', 'Bambu Lab'],
-    image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=400&fit=crop',
+    image: '/images/manutencao-servico.jpg',
   },
 ];
 
