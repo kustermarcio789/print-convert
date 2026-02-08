@@ -12,6 +12,11 @@ import Portfolio from "./pages/Portfolio";
 import Blog from "./pages/Blog";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import RegisterProvider from "./pages/RegisterProvider";
+import Brands from "./pages/Brands";
+import BrandDetail from "./pages/BrandDetail";
+import UploadFile from "./pages/UploadFile";
+import Providers from "./pages/Providers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +37,11 @@ const App = () => (
           <Route path="/blog" element={<Blog />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Register />} />
+          <Route path="/cadastro-prestador" element={<RegisterProvider />} />
+          <Route path="/marcas" element={<Brands />} />
+          <Route path="/marcas/:brandId" element={<BrandDetail />} />
+          <Route path="/enviar-arquivo" element={<UploadFile />} />
+          <Route path="/prestadores" element={<Providers />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
