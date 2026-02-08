@@ -15,7 +15,9 @@ import {
   MapPin,
   Calendar,
   Eye,
+  Edit,
 } from 'lucide-react';
+import EditUserModal from '@/components/admin/EditUserModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,12 +42,27 @@ export default function AdminUsuarios() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [editingUser, setEditingUser] = useState<Usuario | null>(null);
 
   // Carregar usuários do localStorage
   useEffect(() => {
     inicializarDadosExemplo();
     setUsuarios(getUsuarios());
   }, []);
+
+  const handleSaveUser = (updatedUser: Usuario) => {
+    // Atualizar no localStorage
+    const allUsers = JSON.parse(localStorage.getItem('usuarios') || '[]');
+    const userIndex = allUsers.findIndex((u: Usuario) => u.id === updatedUser.id);
+    
+    if (userIndex !== -1) {
+      allUsers[userIndex] = updatedUser;
+      localStorage.setItem('usuarios', JSON.stringify(allUsers));
+      
+      // Atualizar estado local
+      setUsuarios(allUsers);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('admin_authenticated');
@@ -295,6 +312,14 @@ export default function AdminUsuarios() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => setEditingUser(user)}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Editar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => setSelectedUsuario(user)}
                         >
                           <Eye className="w-4 h-4 mr-2" />
@@ -379,6 +404,15 @@ export default function AdminUsuarios() {
             </div>
           </motion.div>
         </div>
+      )}
+
+      {/* Modal de Edição */}
+      {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onSave={handleSaveUser}
+        />
       )}
     </div>
   );

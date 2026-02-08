@@ -59,7 +59,12 @@ export default function AdminProdutos() {
     valorVenda: 0,
     estoque: 0,
     estoqueMinimo: 5,
+    imagens: [] as string[],
+    modelo3dUrl: '',
   });
+
+  const [imagemPreview, setImagemPreview] = useState<string[]>([]);
+  const [modelo3dPreview, setModelo3dPreview] = useState<string>('');
 
   useEffect(() => {
     inicializarDadosExemplo();
@@ -80,6 +85,44 @@ export default function AdminProdutos() {
     const data = produtoService.getAll();
     setProdutos(data);
     setFilteredProdutos(data);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newImages: string[] = [];
+      Array.from(files).forEach((file) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          newImages.push(result);
+          if (newImages.length === files.length) {
+            setImagemPreview([...imagemPreview, ...newImages]);
+            setFormData({ ...formData, imagens: [...formData.imagens, ...newImages] });
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const handleModelo3DUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setModelo3dPreview(result);
+        setFormData({ ...formData, modelo3dUrl: result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const newImages = imagemPreview.filter((_, i) => i !== index);
+    setImagemPreview(newImages);
+    setFormData({ ...formData, imagens: newImages });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -235,6 +278,77 @@ export default function AdminProdutos() {
                     required
                     placeholder="Ex: Filamento, Resina, Peças"
                   />
+                </div>
+
+                {/* Upload de Imagens */}
+                <div className="col-span-2">
+                  <Label>Imagens do Produto</Label>
+                  <div className="mt-2">
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <svg className="w-8 h-8 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p className="text-sm text-gray-500">Clique para fazer upload de imagens</p>
+                        <p className="text-xs text-gray-400">PNG, JPG, WEBP (Máx. 5MB cada)</p>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageUpload}
+                      />
+                    </label>
+                  </div>
+                  {imagemPreview.length > 0 && (
+                    <div className="mt-4 grid grid-cols-4 gap-4">
+                      {imagemPreview.map((img, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={img}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload de Modelo 3D */}
+                <div className="col-span-2">
+                  <Label>Modelo 3D (GLB/GLTF)</Label>
+                  <div className="mt-2">
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Package className="w-8 h-8 mb-2 text-gray-400" />
+                        <p className="text-sm text-gray-500">Clique para fazer upload do modelo 3D</p>
+                        <p className="text-xs text-gray-400">GLB, GLTF (Máx. 50MB)</p>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".glb,.gltf"
+                        onChange={handleModelo3DUpload}
+                      />
+                    </label>
+                  </div>
+                  {modelo3dPreview && (
+                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-sm text-green-700 flex items-center gap-2">
+                        <Package className="w-4 h-4" />
+                        Modelo 3D carregado com sucesso!
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div>
