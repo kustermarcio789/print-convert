@@ -191,9 +191,13 @@ export default function BrandDetail() {
                 transition={{ delay: index * 0.05 }}
                 className="card-elevated overflow-hidden group"
               >
-                {/* Image placeholder */}
-                <div className="aspect-square bg-gradient-to-br from-secondary to-secondary/50 flex items-center justify-center relative">
-                  <Package className="w-16 h-16 text-muted-foreground/30" />
+                {/* Product Image */}
+                <div className="aspect-square bg-gradient-to-br from-secondary to-secondary/50 flex items-center justify-center relative overflow-hidden">
+                  {product.image ? (
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <Package className="w-16 h-16 text-muted-foreground/30" />
+                  )}
                   {product.badge && (
                     <span className="absolute top-3 left-3 px-2.5 py-1 bg-accent text-accent-foreground text-xs font-semibold rounded-full">
                       {product.badge}
