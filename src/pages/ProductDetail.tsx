@@ -336,7 +336,7 @@ export default function ProductDetail() {
 
             {/* WhatsApp */}
             <a
-              href={`https://wa.me/5514999999999?text=Olá! Tenho interesse no produto: ${productData.name}`}
+              href={`https://wa.me/554391741518?text=Olá! Tenho interesse no produto: ${productData.name}`}
               target="_blank"
               rel="noopener noreferrer"
             >

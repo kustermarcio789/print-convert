@@ -6,7 +6,7 @@ interface WhatsAppButtonProps {
 }
 
 export function WhatsAppButton({ 
-  phoneNumber = "5514999999999", 
+  phoneNumber = "554391741518", 
   message = "Olá! Gostaria de saber mais sobre os serviços de impressão 3D." 
 }: WhatsAppButtonProps) {
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;

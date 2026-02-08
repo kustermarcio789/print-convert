@@ -333,7 +333,7 @@ export default function QuotePage() {
                       <Label className="mb-3 block">WhatsApp</Label>
                       <Input
                         type="tel"
-                        placeholder="(14) 99999-9999"
+                        placeholder="(43) 9174-1518"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       />

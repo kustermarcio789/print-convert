@@ -58,9 +58,9 @@ export function Footer() {
                 <Mail className="h-5 w-5 mr-3" />
                 contato@3dkprint.com.br
               </a>
-              <a href="tel:+5514999999999" className="flex items-center text-primary-foreground/70 hover:text-accent transition-colors">
+              <a href="tel:+554391741518" className="flex items-center text-primary-foreground/70 hover:text-accent transition-colors">
                 <Phone className="h-5 w-5 mr-3" />
-                (14) 99999-9999
+                (43) 9174-1518
               </a>
               <div className="flex items-start text-primary-foreground/70">
                 <MapPin className="h-5 w-5 mr-3 mt-0.5" />
