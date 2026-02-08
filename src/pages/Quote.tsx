@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { salvarOrcamento, incrementarOrcamentosUsuario } from '@/lib/dataStore';
 
 type PrintCategory = 'fdm' | 'resina';
 
@@ -220,7 +221,34 @@ export default function QuotePage() {
       toast({ title: "Campos obrigatórios", description: "Por favor, preencha todos os campos obrigatórios.", variant: "destructive" });
       return;
     }
-    toast({ title: "Orçamento enviado!", description: "Em breve entraremos em contato com o valor final." });
+    
+    // Salvar orçamento no sistema
+    const orcamentoId = salvarOrcamento({
+      tipo: 'impressao',
+      cliente: formData.name,
+      email: formData.email,
+      telefone: formData.phone || 'Não informado',
+      detalhes: {
+        categoria: category,
+        material: formData.material,
+        cor: formData.color,
+        quantidade: formData.quantity,
+        infill: formData.infill,
+        acabamento: formData.finish,
+        urgencia: formData.urgency,
+        observacoes: formData.notes,
+        arquivo: formData.file?.name,
+        estimativa: estimate,
+      },
+    });
+    
+    // Incrementar contador de orçamentos do usuário
+    incrementarOrcamentosUsuario(formData.email);
+    
+    toast({ 
+      title: "Orçamento enviado!", 
+      description: `Seu orçamento #${orcamentoId} foi registrado. Em breve entraremos em contato com o valor final.` 
+    });
   };
 
   return (

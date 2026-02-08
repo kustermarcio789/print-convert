@@ -21,6 +21,12 @@ import MyAccount from "./pages/MyAccount";
 import PaintQuote from './pages/PaintQuote';
 import ModelingQuote from './pages/ModelingQuote';
 import MaintenanceQuote from './pages/MaintenanceQuote';
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminOrcamentos from './pages/admin/AdminOrcamentos';
+import AdminPrestadores from './pages/admin/AdminPrestadores';
+import AdminUsuarios from './pages/admin/AdminUsuarios';
+import ProtectedRoute from './components/admin/ProtectedRoute';
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +56,14 @@ const App = () => (
           <Route path="/enviar-arquivo" element={<UploadFile />} />
           <Route path="/prestadores" element={<Providers />} />
           <Route path="/minha-conta" element={<MyAccount />} />
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/orcamentos" element={<ProtectedRoute><AdminOrcamentos /></ProtectedRoute>} />
+          <Route path="/admin/prestadores" element={<ProtectedRoute><AdminPrestadores /></ProtectedRoute>} />
+          <Route path="/admin/usuarios" element={<ProtectedRoute><AdminUsuarios /></ProtectedRoute>} />
+          <Route path="/admin/vendas" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/estoque" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

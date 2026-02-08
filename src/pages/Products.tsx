@@ -115,6 +115,60 @@ const products = [
     category: 'Colecionáveis',
     material: 'Resina',
   },
+  // Peças de Impressora 3D
+  {
+    id: '9',
+    name: 'PEI Magnética Ender 3',
+    price: 89.90,
+    originalPrice: 119.90,
+    image: '/images/products/pei-magnetico.jpg',
+    rating: 4.8,
+    reviews: 32,
+    badge: 'bestseller',
+    category: 'Peças de Impressora 3D',
+    material: 'PEI',
+  },
+  {
+    id: '10',
+    name: 'Hotend All Metal CR-10',
+    price: 149.90,
+    image: '/images/products/hotend-all-metal.png',
+    rating: 4.9,
+    reviews: 18,
+    category: 'Peças de Impressora 3D',
+    material: 'Metal',
+  },
+  {
+    id: '11',
+    name: 'Kit Correias GT2 6mm',
+    price: 29.90,
+    image: '/images/products/correia-gt2.jpg',
+    rating: 4.7,
+    reviews: 45,
+    category: 'Peças de Impressora 3D',
+    material: 'Borracha',
+  },
+  {
+    id: '12',
+    name: 'Motor Nema 17 42-40',
+    price: 59.90,
+    image: '/images/products/motor-nema17.jpg',
+    rating: 4.6,
+    reviews: 22,
+    category: 'Peças de Impressora 3D',
+    material: 'Metal',
+  },
+  {
+    id: '13',
+    name: 'Bico Hardened Steel 0.4mm',
+    price: 39.90,
+    image: '/images/products/bico-brass.jpg',
+    rating: 4.9,
+    reviews: 56,
+    badge: 'premium',
+    category: 'Peças de Impressora 3D',
+    material: 'Metal',
+  },
 ];
 
 const badgeStyles: Record<string, string> = {
@@ -138,7 +192,9 @@ export default function ProductsPage() {
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.category.toLowerCase() === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || 
+      (selectedCategory === 'pecas-impressora' && product.category === 'Peças de Impressora 3D') ||
+      (selectedCategory !== 'pecas-impressora' && product.category.toLowerCase() === selectedCategory);
     const matchesMaterial = selectedMaterials.length === 0 || selectedMaterials.includes(product.material.toLowerCase());
     return matchesSearch && matchesCategory && matchesMaterial;
   });

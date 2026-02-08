@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { salvarPrestador } from '@/lib/dataStore';
 
 const serviceOptions = [
   { id: 'impressao', label: 'Impressão 3D', desc: 'FDM, SLA, SLS' },
@@ -76,10 +77,28 @@ export default function RegisterProvider() {
   const handleSubmit = () => {
     setIsLoading(true);
     setTimeout(() => {
+      // Salvar prestador no sistema
+      const servicosNomes = selectedServices.map(id => {
+        const service = serviceOptions.find(s => s.id === id);
+        return service?.label || id;
+      });
+      
+      const prestadorId = salvarPrestador({
+        nome: formData.name,
+        apelido: formData.name.split(' ')[0] + Math.floor(Math.random() * 1000),
+        email: formData.email,
+        telefone: formData.phone,
+        cidade: formData.city,
+        estado: formData.state,
+        servicos: servicosNomes,
+        experiencia: formData.experience,
+        portfolio: formData.portfolio,
+      });
+      
       setIsLoading(false);
       toast({
         title: 'Cadastro enviado com sucesso!',
-        description: 'Analisaremos seu perfil e entraremos em contato em até 48 horas.',
+        description: `Seu cadastro #${prestadorId} foi registrado. Analisaremos seu perfil e entraremos em contato em até 48 horas.`,
       });
       navigate('/');
     }, 2000);
