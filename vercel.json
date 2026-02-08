@@ -40,6 +40,8 @@
     { "source": "/admin/produtos", "destination": "/index.html" },
     { "source": "/admin/vendas", "destination": "/index.html" },
     { "source": "/admin/estoque", "destination": "/index.html" },
+    { "source": "/admin/produtos-site", "destination": "/index.html" },
+    { "source": "/admin/orcamentos/:id", "destination": "/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
