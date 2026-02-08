@@ -15,6 +15,7 @@ interface SiteProduct {
   originalPrice?: number;
   stock: number;
   images: string[];
+  modelo3D?: string; // URL do arquivo GLB/GLTF
   specifications: { [key: string]: string };
   tags: string[];
   featured: boolean;

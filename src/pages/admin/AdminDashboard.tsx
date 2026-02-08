@@ -106,6 +106,12 @@ export default function AdminDashboard() {
       icon: Package,
       path: '/admin/estoque',
     },
+    {
+      id: 'produtos-site',
+      label: 'Produtos do Site',
+      icon: ShoppingCart,
+      path: '/admin/produtos-site',
+    },
   ];
 
   const orcamentosPorTipo = [

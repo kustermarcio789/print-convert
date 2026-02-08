@@ -345,7 +345,7 @@ export default function AdminOrcamentos() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setSelectedOrcamento(orc)}
+                            onClick={() => navigate(`/admin/orcamentos/${orc.id}`)}
                           >
                             <Eye className="w-4 h-4 mr-2" />
                             Ver Detalhes

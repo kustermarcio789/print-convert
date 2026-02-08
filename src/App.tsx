@@ -29,6 +29,7 @@ import AdminUsuarios from './pages/admin/AdminUsuarios';
 import AdminProdutos from './pages/admin/AdminProdutos';
 import AdminEstoque from './pages/admin/AdminEstoque';
 import AdminProdutosSite from './pages/admin/AdminProdutosSite';
+import AdminOrcamentoDetalhes from './pages/admin/AdminOrcamentoDetalhes';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 import About from './pages/About';
 import Contact from './pages/Contact';
@@ -70,6 +71,7 @@ const App = () => (
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/orcamentos" element={<ProtectedRoute><AdminOrcamentos /></ProtectedRoute>} />
+          <Route path="/admin/orcamentos/:id" element={<ProtectedRoute><AdminOrcamentoDetalhes /></ProtectedRoute>} />
           <Route path="/admin/prestadores" element={<ProtectedRoute><AdminPrestadores /></ProtectedRoute>} />
           <Route path="/admin/usuarios" element={<ProtectedRoute><AdminUsuarios /></ProtectedRoute>} />
           <Route path="/admin/produtos" element={<ProtectedRoute><AdminProdutos /></ProtectedRoute>} />
