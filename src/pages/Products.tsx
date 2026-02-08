@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 const categories = [
   { id: 'all', name: 'Todas', count: 48 },
+  { id: 'pecas-impressora', name: 'Peças de Impressora 3D', count: 24 },
   { id: 'prototipos', name: 'Protótipos', count: 12 },
   { id: 'decoracao', name: 'Decoração', count: 15 },
   { id: 'acessorios', name: 'Acessórios', count: 8 },
