@@ -41,12 +41,12 @@ const brandsData: Record<string, {
     longDescription: 'A Bambu Lab revolucionou o mercado com impressoras CoreXY de alta velocidade. Oferecemos peças originais e compatíveis para as séries X1, P1 e A1.',
     categories: ['Todos', 'AMS', 'Hotends', 'Bicos', 'PEI', 'Peças'],
     products: [
-      { id: '1', name: 'Hotend Completo X1C', category: 'Hotends', price: 'R$ 199,90', rating: 4.9, reviews: 15, badge: 'Original' },
-      { id: '2', name: 'PEI Texturizada P1S', category: 'PEI', price: 'R$ 129,90', rating: 4.8, reviews: 22 },
-      { id: '3', name: 'Bico Hardened 0.4mm', category: 'Bicos', price: 'R$ 49,90', rating: 4.7, reviews: 33 },
-      { id: '4', name: 'AMS Lite', category: 'AMS', price: 'R$ 899,90', rating: 4.9, reviews: 8, badge: 'Novo' },
-      { id: '5', name: 'Kit Manutenção X1', category: 'Peças', price: 'R$ 159,90', rating: 4.6, reviews: 12 },
-      { id: '6', name: 'PEI Lisa A1 Mini', category: 'PEI', price: 'R$ 89,90', oldPrice: 'R$ 109,90', rating: 4.8, reviews: 19 },
+      { id: '1', name: 'Hotend Completo X1C', category: 'Hotends', price: 'R$ 199,90', rating: 4.9, reviews: 15, badge: 'Original', image: '/images/products/hotend-all-metal.png' },
+      { id: '2', name: 'PEI Texturizada P1S', category: 'PEI', price: 'R$ 129,90', rating: 4.8, reviews: 22, image: '/images/products/pei-magnetico.jpg' },
+      { id: '3', name: 'Bico Hardened 0.4mm', category: 'Bicos', price: 'R$ 49,90', rating: 4.7, reviews: 33, image: '/images/products/bico-brass.jpg' },
+      { id: '4', name: 'AMS Lite', category: 'AMS', price: 'R$ 899,90', rating: 4.9, reviews: 8, badge: 'Novo', image: '/placeholder.svg' },
+      { id: '5', name: 'Kit Manutenção X1', category: 'Peças', price: 'R$ 159,90', rating: 4.6, reviews: 12, image: '/placeholder.svg' },
+      { id: '6', name: 'PEI Lisa A1 Mini', category: 'PEI', price: 'R$ 89,90', oldPrice: 'R$ 109,90', rating: 4.8, reviews: 19, image: '/images/products/pei-magnetico.jpg' },
     ],
   },
   prusa: {
@@ -55,10 +55,10 @@ const brandsData: Record<string, {
     longDescription: 'A Prusa Research é referência em qualidade e confiabilidade. Oferecemos peças originais e compatíveis para MK4, MK3S+, Mini e impressoras SLA.',
     categories: ['Todos', 'Hotends', 'PEI', 'Extrusoras', 'Peças', 'Eletrônica'],
     products: [
-      { id: '1', name: 'Hotend E3D Revo Prusa', category: 'Hotends', price: 'R$ 249,90', rating: 4.9, reviews: 11, badge: 'Original' },
-      { id: '2', name: 'PEI Dupla Face MK4', category: 'PEI', price: 'R$ 139,90', rating: 4.8, reviews: 25 },
-      { id: '3', name: 'Nextruder MK4', category: 'Extrusoras', price: 'R$ 349,90', rating: 5.0, reviews: 7 },
-      { id: '4', name: 'Placa Buddy MK4', category: 'Eletrônica', price: 'R$ 299,90', rating: 4.7, reviews: 5 },
+      { id: '1', name: 'Hotend E3D Revo Prusa', category: 'Hotends', price: 'R$ 249,90', rating: 4.9, reviews: 11, badge: 'Original', image: '/images/products/hotend-all-metal.png' },
+      { id: '2', name: 'PEI Dupla Face MK4', category: 'PEI', price: 'R$ 139,90', rating: 4.8, reviews: 25, image: '/images/products/pei-magnetico.jpg' },
+      { id: '3', name: 'Nextruder MK4', category: 'Extrusoras', price: 'R$ 349,90', rating: 5.0, reviews: 7, image: '/placeholder.svg' },
+      { id: '4', name: 'Placa Buddy MK4', category: 'Eletrônica', price: 'R$ 299,90', rating: 4.7, reviews: 5, image: '/placeholder.svg' },
     ],
   },
   anycubic: {
@@ -67,10 +67,10 @@ const brandsData: Record<string, {
     longDescription: 'A Anycubic é conhecida por suas impressoras de resina Photon e FDM Kobra. Oferecemos resinas, FEP e peças de reposição.',
     categories: ['Todos', 'Resinas', 'FEP', 'Peças', 'Acessórios'],
     products: [
-      { id: '1', name: 'Resina Standard Cinza 1kg', category: 'Resinas', price: 'R$ 119,90', rating: 4.7, reviews: 42, badge: 'Mais vendido' },
-      { id: '2', name: 'FEP Film Photon Mono', category: 'FEP', price: 'R$ 49,90', rating: 4.6, reviews: 38 },
-      { id: '3', name: 'Resina Water Washable', category: 'Resinas', price: 'R$ 149,90', rating: 4.8, reviews: 19 },
-      { id: '4', name: 'Tela LCD Photon Mono', category: 'Peças', price: 'R$ 199,90', rating: 4.5, reviews: 8 },
+      { id: '1', name: 'Resina Standard Cinza 1kg', category: 'Resinas', price: 'R$ 119,90', rating: 4.7, reviews: 42, badge: 'Mais vendido', image: '/placeholder.svg' },
+      { id: '2', name: 'FEP Film Photon Mono', category: 'FEP', price: 'R$ 49,90', rating: 4.6, reviews: 38, image: '/placeholder.svg' },
+      { id: '3', name: 'Resina Water Washable', category: 'Resinas', price: 'R$ 149,90', rating: 4.8, reviews: 19, image: '/placeholder.svg' },
+      { id: '4', name: 'Tela LCD Photon Mono', category: 'Peças', price: 'R$ 199,90', rating: 4.5, reviews: 8, image: '/placeholder.svg' },
     ],
   },
   voron: {
@@ -79,11 +79,11 @@ const brandsData: Record<string, {
     longDescription: 'O projeto Voron é referência em impressoras CoreXY de alto desempenho. Oferecemos kits completos e peças individuais para Voron 0, Trident e 2.4.',
     categories: ['Todos', 'Kits', 'Rails Lineares', 'Motores', 'Hotends', 'Eletrônica'],
     products: [
-      { id: '1', name: 'Kit Rails MGN12H 350mm', category: 'Rails Lineares', price: 'R$ 189,90', rating: 4.9, reviews: 14, badge: 'Premium' },
-      { id: '2', name: 'Motor Nema 17 High Torque', category: 'Motores', price: 'R$ 79,90', rating: 4.8, reviews: 21 },
-      { id: '3', name: 'Hotend Dragon HF', category: 'Hotends', price: 'R$ 199,90', rating: 4.9, reviews: 16 },
-      { id: '4', name: 'Placa Octopus v1.1', category: 'Eletrônica', price: 'R$ 349,90', rating: 4.8, reviews: 9 },
-      { id: '5', name: 'Kit Voron 2.4 350mm', category: 'Kits', price: 'R$ 2.499,90', rating: 5.0, reviews: 4, badge: 'Kit Completo' },
+      { id: '1', name: 'Kit Rails MGN12H 350mm', category: 'Rails Lineares', price: 'R$ 189,90', rating: 4.9, reviews: 14, badge: 'Premium', image: '/placeholder.svg' },
+      { id: '2', name: 'Motor Nema 17 High Torque', category: 'Motores', price: 'R$ 79,90', rating: 4.8, reviews: 21, image: '/images/products/motor-nema17.jpg' },
+      { id: '3', name: 'Hotend Dragon HF', category: 'Hotends', price: 'R$ 199,90', rating: 4.9, reviews: 16, image: '/images/products/hotend-all-metal.png' },
+      { id: '4', name: 'Placa Octopus v1.1', category: 'Eletrônica', price: 'R$ 349,90', rating: 4.8, reviews: 9, image: '/placeholder.svg' },
+      { id: '5', name: 'Kit Voron 2.4 350mm', category: 'Kits', price: 'R$ 2.499,90', rating: 5.0, reviews: 4, badge: 'Kit Completo', image: '/placeholder.svg' },
     ],
   },
   elegoo: {
@@ -92,9 +92,9 @@ const brandsData: Record<string, {
     longDescription: 'A Elegoo é conhecida por impressoras de resina acessíveis como Mars e Saturn. Oferecemos resinas, FEP e acessórios.',
     categories: ['Todos', 'Resinas', 'FEP', 'Acessórios', 'Peças'],
     products: [
-      { id: '1', name: 'Resina ABS-Like Cinza 1kg', category: 'Resinas', price: 'R$ 129,90', rating: 4.8, reviews: 35 },
-      { id: '2', name: 'FEP Film Saturn 2', category: 'FEP', price: 'R$ 59,90', rating: 4.7, reviews: 22 },
-      { id: '3', name: 'Mercury X Wash & Cure', category: 'Acessórios', price: 'R$ 599,90', rating: 4.9, reviews: 11, badge: 'Novo' },
+      { id: '1', name: 'Resina ABS-Like Cinza 1kg', category: 'Resinas', price: 'R$ 129,90', rating: 4.8, reviews: 35, image: '/placeholder.svg' },
+      { id: '2', name: 'FEP Film Saturn 2', category: 'FEP', price: 'R$ 59,90', rating: 4.7, reviews: 22, image: '/placeholder.svg' },
+      { id: '3', name: 'Mercury X Wash & Cure', category: 'Acessórios', price: 'R$ 599,90', rating: 4.9, reviews: 11, badge: 'Novo', image: '/placeholder.svg' },
     ],
   },
   sovol: {
@@ -103,9 +103,9 @@ const brandsData: Record<string, {
     longDescription: 'A Sovol oferece impressoras FDM com excelente custo-beneficio como SV06, SV07 e SV08. Pecas de reposicao e upgrades disponiveis.',
     categories: ['Todos', 'Hotends', 'Motores', 'Correias', 'Pecas', 'PEI'],
     products: [
-      { id: '1', name: 'Hotend All Metal SV06', category: 'Hotends', price: 'R$ 99,90', rating: 4.7, reviews: 18 },
-      { id: '2', name: 'PEI Magnetica SV06 Plus', category: 'PEI', price: 'R$ 79,90', rating: 4.6, reviews: 12 },
-      { id: '3', name: 'Motor Nema 17 SV07', category: 'Motores', price: 'R$ 59,90', rating: 4.5, reviews: 8 },
+      { id: '1', name: 'Hotend All Metal SV06', category: 'Hotends', price: 'R$ 99,90', rating: 4.7, reviews: 18, image: '/images/products/hotend-all-metal.png' },
+      { id: '2', name: 'PEI Magnética SV06 Plus', category: 'PEI', price: 'R$ 79,90', rating: 4.6, reviews: 12, image: '/images/products/pei-magnetico.jpg' },
+      { id: '3', name: 'Motor Nema 17 SV07', category: 'Motores', price: 'R$ 59,90', rating: 4.5, reviews: 8, image: '/images/products/motor-nema17.jpg' },
     ],
   },
   flashforge: {
@@ -114,8 +114,8 @@ const brandsData: Record<string, {
     longDescription: 'A Flashforge produz impressoras para uso profissional e educacional. Oferecemos filamentos e peças de reposição.',
     categories: ['Todos', 'Filamentos', 'Hotends', 'Peças', 'Acessórios'],
     products: [
-      { id: '1', name: 'Filamento PLA Premium 1kg', category: 'Filamentos', price: 'R$ 89,90', rating: 4.7, reviews: 28 },
-      { id: '2', name: 'Hotend Adventurer 4', category: 'Hotends', price: 'R$ 129,90', rating: 4.6, reviews: 9 },
+      { id: '1', name: 'Filamento PLA Premium 1kg', category: 'Filamentos', price: 'R$ 89,90', rating: 4.7, reviews: 28, image: '/placeholder.svg' },
+      { id: '2', name: 'Hotend Adventurer 4', category: 'Hotends', price: 'R$ 129,90', rating: 4.6, reviews: 9, image: '/images/products/hotend-all-metal.png' },
     ],
   },
 };

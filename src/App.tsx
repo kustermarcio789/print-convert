@@ -27,6 +27,12 @@ import AdminOrcamentos from './pages/admin/AdminOrcamentos';
 import AdminPrestadores from './pages/admin/AdminPrestadores';
 import AdminUsuarios from './pages/admin/AdminUsuarios';
 import ProtectedRoute from './components/admin/ProtectedRoute';
+import About from './pages/About';
+import Contact from './pages/Contact';
+import ReturnPolicy from './pages/ReturnPolicy';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+import Help from './pages/Help';
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +70,13 @@ const App = () => (
           <Route path="/admin/usuarios" element={<ProtectedRoute><AdminUsuarios /></ProtectedRoute>} />
           <Route path="/admin/vendas" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/estoque" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          {/* Institutional Pages */}
+          <Route path="/sobre" element={<About />} />
+          <Route path="/contato" element={<Contact />} />
+          <Route path="/devolucao" element={<ReturnPolicy />} />
+          <Route path="/termos" element={<Terms />} />
+          <Route path="/privacidade" element={<Privacy />} />
+          <Route path="/ajuda" element={<Help />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
