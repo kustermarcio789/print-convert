@@ -29,10 +29,9 @@ const footerLinks = {
 };
 
 const socialLinks = [
-  { name: 'Instagram', icon: Instagram, href: '#' },
-  { name: 'Facebook', icon: Facebook, href: '#' },
-  { name: 'LinkedIn', icon: Linkedin, href: '#' },
-  { name: 'YouTube', icon: Youtube, href: '#' },
+  { name: 'Instagram', icon: Instagram, href: 'https://www.instagram.com/3dk.print/' },
+  { name: 'Facebook', icon: Facebook, href: 'https://www.facebook.com/profile.php?id=61552286589701' },
+  { name: 'YouTube', icon: Youtube, href: 'https://www.youtube.com/@3DKPrint' },
 ];
 
 export function Footer() {

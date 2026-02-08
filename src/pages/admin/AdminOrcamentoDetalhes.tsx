@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Download, FileText, Calculator } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Calculator, Check, Mail, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getOrcamentos } from '@/lib/dataStore';
@@ -50,6 +50,70 @@ export default function AdminOrcamentoDetalhes() {
 
   const handleCalculoFilamentoCompleto = (resultado: ResultadoCalculoFilamento) => {
     setValorServico(resultado.precoVenda);
+  };
+
+  const handleAprovarOrcamento = () => {
+    if (!orcamento) return;
+    
+    const orcamentos = getOrcamentos();
+    const updated = orcamentos.map(o => 
+      o.id === orcamento.id ? { ...o, status: 'aprovado' as const } : o
+    );
+    localStorage.setItem('orcamentos', JSON.stringify(updated));
+    setOrcamento({ ...orcamento, status: 'aprovado' });
+    alert('Orçamento aprovado com sucesso!');
+  };
+
+  const handleEnviarEmail = async () => {
+    if (!orcamento) return;
+    
+    // Gerar PDF primeiro
+    try {
+      const pdfBlob = await gerarPDFOrcamento({
+        id: orcamento.id,
+        cliente: {
+          nome: orcamento.cliente,
+          email: orcamento.email,
+          telefone: orcamento.telefone,
+        },
+        tipo: getTipoLabel(orcamento.tipo),
+        itens: [
+          {
+            descricao: getTipoLabel(orcamento.tipo),
+            quantidade: 1,
+            valorUnitario: valorServico,
+            valorTotal: valorServico,
+          }
+        ],
+        subtotal: valorServico,
+        valorFrete,
+        valorTotal: valorServico + valorFrete,
+        data: new Date(orcamento.data).toLocaleDateString('pt-BR'),
+        prazoEntrega,
+        observacoes,
+      });
+      
+      // Simular envio de email (em produção, integrar com serviço de email)
+      alert(`Email enviado para ${orcamento.email} com o orçamento em anexo!\n\nEm produção, isso será integrado com um serviço de email real.`);
+    } catch (error) {
+      console.error('Erro ao enviar email:', error);
+      alert('Erro ao enviar email.');
+    }
+  };
+
+  const handleEnviarWhatsApp = () => {
+    if (!orcamento) return;
+    
+    const mensagem = `Olá ${orcamento.cliente}!\n\nSegue o orçamento ${orcamento.id}:\n\n` +
+      `Serviço: ${getTipoLabel(orcamento.tipo)}\n` +
+      `Valor: R$ ${(valorServico + valorFrete).toFixed(2)}\n` +
+      `Prazo: ${prazoEntrega || 'A definir'}\n\n` +
+      `Acesse o orçamento completo em:\nhttps://www.3dkprint.com.br/admin/orcamentos/${orcamento.id}\n\n` +
+      `Qualquer dúvida, estou à disposição!`;
+    
+    const telefone = orcamento.telefone.replace(/\D/g, '');
+    const whatsappUrl = `https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const handleGerarPDF = async () => {
@@ -144,14 +208,48 @@ export default function AdminOrcamentoDetalhes() {
               <p className="text-muted-foreground">ID: {orcamento.id}</p>
             </div>
           </div>
-          <Button
-            onClick={handleGerarPDF}
-            disabled={gerandoPDF}
-            className="gap-2"
-          >
-            <Download className="w-4 h-4" />
-            {gerandoPDF ? 'Gerando PDF...' : 'Gerar PDF'}
-          </Button>
+          <div className="flex gap-2">
+            {/* Botão Aprovar */}
+            <Button
+              onClick={handleAprovarOrcamento}
+              disabled={orcamento.status === 'aprovado'}
+              variant={orcamento.status === 'aprovado' ? 'default' : 'outline'}
+              className="gap-2"
+            >
+              <Check className="w-4 h-4" />
+              {orcamento.status === 'aprovado' ? 'Aprovado' : 'Aprovar Orçamento'}
+            </Button>
+            
+            {/* Botão Enviar Email */}
+            <Button
+              onClick={handleEnviarEmail}
+              variant="outline"
+              className="gap-2"
+            >
+              <Mail className="w-4 h-4" />
+              Enviar Email
+            </Button>
+            
+            {/* Botão WhatsApp */}
+            <Button
+              onClick={handleEnviarWhatsApp}
+              variant="outline"
+              className="gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+            >
+              <MessageCircle className="w-4 h-4" />
+              Enviar WhatsApp
+            </Button>
+            
+            {/* Botão Gerar/Salvar PDF */}
+            <Button
+              onClick={handleGerarPDF}
+              disabled={gerandoPDF}
+              className="gap-2"
+            >
+              <Download className="w-4 h-4" />
+              {gerandoPDF ? 'Gerando...' : 'Salvar PDF'}
+            </Button>
+          </div>
         </div>
 
         {/* Informações do Cliente */}
@@ -303,9 +401,81 @@ export default function AdminOrcamentoDetalhes() {
             <CardTitle>Detalhes Técnicos do Pedido</CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="bg-muted p-4 rounded-lg overflow-auto text-sm">
-              {JSON.stringify(orcamento.detalhes, null, 2)}
-            </pre>
+            <div className="space-y-4">
+              {/* Informações do Pedido */}
+              <div className="grid grid-cols-2 gap-4">
+                {orcamento.detalhes.material && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Material</label>
+                    <p className="text-gray-900">{orcamento.detalhes.material}</p>
+                  </div>
+                )}
+                {orcamento.detalhes.cor && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Cor</label>
+                    <p className="text-gray-900">{orcamento.detalhes.cor}</p>
+                  </div>
+                )}
+                {orcamento.detalhes.quantidade && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Quantidade</label>
+                    <p className="text-gray-900">{orcamento.detalhes.quantidade}</p>
+                  </div>
+                )}
+                {orcamento.detalhes.infill && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Preenchimento</label>
+                    <p className="text-gray-900">{orcamento.detalhes.infill}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Arquivo 3D */}
+              {orcamento.detalhes.arquivo && (
+                <div className="mt-6">
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Arquivo 3D</label>
+                  <div className="flex items-center gap-4">
+                    {/* Preview da imagem se for imagem */}
+                    {orcamento.detalhes.arquivo.startsWith('data:image') && (
+                      <img 
+                        src={orcamento.detalhes.arquivo} 
+                        alt="Preview" 
+                        className="w-48 h-48 object-contain border rounded-lg"
+                      />
+                    )}
+                    
+                    {/* Botão de download */}
+                    <Button
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = orcamento.detalhes.arquivo;
+                        link.download = `arquivo_${orcamento.id}.${orcamento.detalhes.arquivo.includes('stl') ? 'stl' : 'obj'}`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Baixar Arquivo
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Nome: {orcamento.detalhes.nomeArquivo || 'arquivo_3d'}
+                  </p>
+                </div>
+              )}
+
+              {/* Mostrar JSON completo em modo colapsado */}
+              <details className="mt-4">
+                <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
+                  Ver dados técnicos completos (JSON)
+                </summary>
+                <pre className="bg-muted p-4 rounded-lg overflow-auto text-sm mt-2">
+                  {JSON.stringify(orcamento.detalhes, null, 2)}
+                </pre>
+              </details>
+            </div>
           </CardContent>
         </Card>
       </div>
