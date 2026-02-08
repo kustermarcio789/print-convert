@@ -26,6 +26,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminOrcamentos from './pages/admin/AdminOrcamentos';
 import AdminPrestadores from './pages/admin/AdminPrestadores';
 import AdminUsuarios from './pages/admin/AdminUsuarios';
+import AdminProdutos from './pages/admin/AdminProdutos';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 import About from './pages/About';
 import Contact from './pages/Contact';
@@ -68,6 +69,7 @@ const App = () => (
           <Route path="/admin/orcamentos" element={<ProtectedRoute><AdminOrcamentos /></ProtectedRoute>} />
           <Route path="/admin/prestadores" element={<ProtectedRoute><AdminPrestadores /></ProtectedRoute>} />
           <Route path="/admin/usuarios" element={<ProtectedRoute><AdminUsuarios /></ProtectedRoute>} />
+          <Route path="/admin/produtos" element={<ProtectedRoute><AdminProdutos /></ProtectedRoute>} />
           <Route path="/admin/vendas" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/estoque" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
           {/* Institutional Pages */}

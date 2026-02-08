@@ -89,6 +89,12 @@ export default function AdminDashboard() {
       path: '/admin/usuarios',
     },
     {
+      id: 'produtos',
+      label: 'Produtos',
+      icon: Package,
+      path: '/admin/produtos',
+    },
+    {
       id: 'vendas',
       label: 'Vendas',
       icon: ShoppingCart,

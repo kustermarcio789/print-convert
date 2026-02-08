@@ -22,15 +22,35 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate login
+    // Credenciais administrativas
+    const ADMIN_EMAIL = '3dk.print.br@gmail.com';
+    const ADMIN_PASSWORD = '1A9B8Z5X';
+
     setTimeout(() => {
       setIsLoading(false);
-      toast({
-        title: "Login realizado!",
-        description: "Bem-vindo de volta!",
-      });
-      navigate('/minha-conta');
-    }, 1500);
+      
+      // Verificar se é admin
+      if (formData.email === ADMIN_EMAIL && formData.password === ADMIN_PASSWORD) {
+        // Login como admin
+        localStorage.setItem('admin_authenticated', 'true');
+        localStorage.setItem('admin_user', 'kuster789jose');
+        localStorage.setItem('user_email', formData.email);
+        toast({
+          title: "Bem-vindo, Administrador!",
+          description: "Acesso ao painel administrativo concedido.",
+        });
+        navigate('/admin/dashboard');
+      } else {
+        // Login normal (simular)
+        localStorage.setItem('user_authenticated', 'true');
+        localStorage.setItem('user_email', formData.email);
+        toast({
+          title: "Login realizado!",
+          description: "Bem-vindo de volta!",
+        });
+        navigate('/minha-conta');
+      }
+    }, 1000);
   };
 
   return (
