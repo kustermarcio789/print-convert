@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Star, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw, ChevronLeft, ChevronRight, Minus, Plus, MessageCircle } from 'lucide-react';
@@ -95,6 +95,12 @@ export default function ProductDetail() {
   const [selectedFinish, setSelectedFinish] = useState(productData.variants.finishes[0].id);
   const [quantity, setQuantity] = useState(1);
   const [show3D, setShow3D] = useState(false);
+  const modelViewerRef = useRef<any>(null);
+
+  // Carregar model-viewer
+  useEffect(() => {
+    import('@google/model-viewer');
+  }, []);
 
   const calculatePrice = () => {
     let price = productData.price;
@@ -129,10 +135,17 @@ export default function ProductDetail() {
             {/* Main Image / 3D Viewer */}
             <div className="relative aspect-square rounded-xl overflow-hidden bg-muted">
               {show3D && productData.has3DModel ? (
-                <div className="w-full h-full flex items-center justify-center bg-secondary">
-                  <p className="text-muted-foreground">Visualizador 3D (model-viewer)</p>
-                  {/* <model-viewer> component would go here */}
-                </div>
+                <model-viewer
+                  ref={modelViewerRef}
+                  src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+                  alt="Modelo 3D do produto"
+                  auto-rotate
+                  camera-controls
+                  shadow-intensity="1"
+                  style={{ width: '100%', height: '100%', background: '#f5f5f5' }}
+                  loading="eager"
+                  reveal="auto"
+                ></model-viewer>
               ) : (
                 <img
                   src={productData.images[selectedImage]}
@@ -159,7 +172,7 @@ export default function ProductDetail() {
               {productData.has3DModel && (
                 <button
                   onClick={() => setShow3D(!show3D)}
-                  className={`absolute top-4 right-4 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  className={`absolute top-4 right-4 px-4 py-2 rounded-full text-sm font-medium transition-colors shadow-lg ${
                     show3D 
                       ? 'bg-accent text-accent-foreground' 
                       : 'bg-background/80 text-foreground hover:bg-background'
@@ -167,6 +180,18 @@ export default function ProductDetail() {
                 >
                   {show3D ? '📷 Fotos' : '🎮 Ver em 3D'}
                 </button>
+              )}
+
+              {/* 3D Controls Info */}
+              {show3D && productData.has3DModel && (
+                <div className="absolute bottom-4 left-4 right-4 bg-black/70 text-white px-4 py-3 rounded-lg text-xs backdrop-blur-sm">
+                  <p className="font-medium mb-1">💡 Controles do Visualizador 3D:</p>
+                  <ul className="space-y-0.5 text-white/90">
+                    <li>🖱️ <strong>Arrastar:</strong> Rotacionar modelo</li>
+                    <li>🔍 <strong>Scroll:</strong> Zoom in/out</li>
+                    <li>🔄 <strong>Auto-rotação:</strong> Ativada</li>
+                  </ul>
+                </div>
               )}
             </div>
 
