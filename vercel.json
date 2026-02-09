@@ -42,6 +42,8 @@
     { "source": "/admin/estoque", "destination": "/index.html" },
     { "source": "/admin/produtos-site", "destination": "/index.html" },
     { "source": "/admin/orcamentos/:id", "destination": "/index.html" },
+    { "source": "/model-viewer-docs", "destination": "/index.html" },
+    { "source": "/demo-3d", "destination": "/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
