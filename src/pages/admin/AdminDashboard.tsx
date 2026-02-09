@@ -285,7 +285,8 @@ export default function AdminDashboard() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.1 * index }}
-                        className="flex items-center justify-between p-4 bg-accent/50 rounded-lg"
+                        onClick={() => navigate('/admin/orcamentos')}
+                        className="flex items-center justify-between p-4 bg-accent/50 rounded-lg cursor-pointer hover:bg-accent transition-colors"
                       >
                         <div className="flex items-center gap-3">
                           <div className={`p-2 bg-background rounded-lg ${item.color}`}>
@@ -316,7 +317,10 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                  <div 
+                    onClick={() => navigate('/admin/orcamentos')}
+                    className="flex items-center justify-between p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20 cursor-pointer hover:bg-yellow-500/20 transition-colors"
+                  >
                     <div className="flex items-center gap-3">
                       <Clock className="w-5 h-5 text-yellow-600" />
                       <span className="font-medium">Pendentes</span>
@@ -324,7 +328,10 @@ export default function AdminDashboard() {
                     <span className="text-2xl font-bold">{stats.orcamentosPendentes}</span>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+                  <div 
+                    onClick={() => navigate('/admin/orcamentos')}
+                    className="flex items-center justify-between p-4 bg-green-500/10 rounded-lg border border-green-500/20 cursor-pointer hover:bg-green-500/20 transition-colors"
+                  >
                     <div className="flex items-center gap-3">
                       <CheckCircle className="w-5 h-5 text-green-600" />
                       <span className="font-medium">Aprovados</span>
@@ -332,7 +339,10 @@ export default function AdminDashboard() {
                     <span className="text-2xl font-bold">{stats.orcamentosAprovados}</span>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-red-500/10 rounded-lg border border-red-500/20">
+                  <div 
+                    onClick={() => navigate('/admin/orcamentos')}
+                    className="flex items-center justify-between p-4 bg-red-500/10 rounded-lg border border-red-500/20 cursor-pointer hover:bg-red-500/20 transition-colors"
+                  >
                     <div className="flex items-center gap-3">
                       <XCircle className="w-5 h-5 text-red-600" />
                       <span className="font-medium">Recusados</span>
