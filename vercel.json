@@ -1,49 +1,5 @@
 {
-  "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": "vite",
-  "installCommand": "npm install",
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        },
-        {
-          "key": "Pragma",
-          "value": "no-cache"
-        },
-        {
-          "key": "Expires",
-          "value": "0"
-        }
-      ]
-    }
-  ],
   "rewrites": [
-    { "source": "/sobre", "destination": "/index.html" },
-    { "source": "/contato", "destination": "/index.html" },
-    { "source": "/ajuda", "destination": "/index.html" },
-    { "source": "/devolucao", "destination": "/index.html" },
-    { "source": "/termos", "destination": "/index.html" },
-    { "source": "/privacidade", "destination": "/index.html" },
-    { "source": "/admin/login", "destination": "/index.html" },
-    { "source": "/admin/dashboard", "destination": "/index.html" },
-    { "source": "/admin/orcamentos", "destination": "/index.html" },
-    { "source": "/admin/prestadores", "destination": "/index.html" },
-    { "source": "/admin/usuarios", "destination": "/index.html" },
-    { "source": "/admin/produtos", "destination": "/index.html" },
-    { "source": "/admin/vendas", "destination": "/index.html" },
-    { "source": "/admin/estoque", "destination": "/index.html" },
-    { "source": "/admin/produtos-site", "destination": "/index.html" },
-    { "source": "/admin/orcamentos/:id", "destination": "/index.html" },
-    { "source": "/model-viewer-docs", "destination": "/index.html" },
-    { "source": "/demo-3d", "destination": "/index.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/(.*)", "destination": "/" }
   ]
 }
