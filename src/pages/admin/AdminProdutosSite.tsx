@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Package, Plus, Edit, Trash2, Save, X, Upload, Image as ImageIcon,
-  Search, Filter, Eye, DollarSign, Tag
+  Search, Filter, Eye, DollarSign, Tag, Copy
 } from 'lucide-react';
+import { getProducts, saveProducts, deleteProduct, duplicateProduct, type Product } from '@/data/products';
 
 interface SiteProduct {
   id: string;
@@ -81,14 +82,12 @@ export default function AdminProdutosSite() {
   }, [products, searchTerm, filterBrand]);
 
   const loadProducts = () => {
-    const stored = localStorage.getItem('siteProducts');
-    if (stored) {
-      setProducts(JSON.parse(stored));
-    }
+    const allProducts = getProducts();
+    setProducts(allProducts as any);
   };
 
-  const saveProducts = (newProducts: SiteProduct[]) => {
-    localStorage.setItem('siteProducts', JSON.stringify(newProducts));
+  const saveProductsToStorage = (newProducts: SiteProduct[]) => {
+    saveProducts(newProducts as any);
     setProducts(newProducts);
   };
 
@@ -102,7 +101,7 @@ export default function AdminProdutosSite() {
           ? { ...formData, id: p.id, updatedAt: new Date() } as SiteProduct
           : p
       );
-      saveProducts(updated);
+      saveProductsToStorage(updated);
     } else {
       // Criar novo produto
       const newProduct: SiteProduct = {
@@ -111,7 +110,7 @@ export default function AdminProdutosSite() {
         createdAt: new Date(),
         updatedAt: new Date()
       } as SiteProduct;
-      saveProducts([...products, newProduct]);
+      saveProductsToStorage([...products, newProduct]);
     }
 
     resetForm();
@@ -125,7 +124,7 @@ export default function AdminProdutosSite() {
 
   const handleDelete = (id: string) => {
     if (confirm('Tem certeza que deseja excluir este produto?')) {
-      saveProducts(products.filter(p => p.id !== id));
+      saveProductsToStorage(products.filter(p => p.id !== id));
     }
   };
 
@@ -133,14 +132,21 @@ export default function AdminProdutosSite() {
     const updated = products.map(p => 
       p.id === id ? { ...p, active: !p.active, updatedAt: new Date() } : p
     );
-    saveProducts(updated);
+    saveProductsToStorage(updated);
   };
 
   const handleToggleFeatured = (id: string) => {
     const updated = products.map(p => 
       p.id === id ? { ...p, featured: !p.featured, updatedAt: new Date() } : p
     );
-    saveProducts(updated);
+    saveProductsToStorage(updated);
+  };
+
+  const handleDuplicate = (id: string) => {
+    const duplicated = duplicateProduct(id);
+    if (duplicated) {
+      loadProducts();
+    }
   };
 
   const addSpecification = () => {
@@ -765,14 +771,23 @@ export default function AdminProdutosSite() {
                       Editar
                     </button>
                     <button
+                      onClick={() => handleDuplicate(product.id)}
+                      className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm"
+                      title="Duplicar"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                    <button
                       onClick={() => handleToggleActive(product.id)}
                       className="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm"
+                      title="Ativar/Desativar"
                     >
                       <Eye className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(product.id)}
                       className="px-3 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50 text-sm"
+                      title="Excluir"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
