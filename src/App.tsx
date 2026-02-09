@@ -29,6 +29,7 @@ import AdminUsuarios from './pages/admin/AdminUsuarios';
 import AdminProdutos from './pages/admin/AdminProdutos';
 import AdminEstoque from './pages/admin/AdminEstoque';
 import AdminProdutosSite from './pages/admin/AdminProdutosSite';
+import AdminVendas from './pages/admin/AdminVendas';
 import AdminOrcamentoDetalhes from './pages/admin/AdminOrcamentoDetalhes';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 import About from './pages/About';
@@ -77,7 +78,7 @@ const App = () => (
           <Route path="/admin/prestadores" element={<ProtectedRoute><AdminPrestadores /></ProtectedRoute>} />
           <Route path="/admin/usuarios" element={<ProtectedRoute><AdminUsuarios /></ProtectedRoute>} />
           <Route path="/admin/produtos" element={<ProtectedRoute><AdminProdutos /></ProtectedRoute>} />
-          <Route path="/admin/vendas" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/vendas" element={<ProtectedRoute><AdminVendas /></ProtectedRoute>} />
           <Route path="/admin/estoque" element={<ProtectedRoute><AdminEstoque /></ProtectedRoute>} />
           <Route path="/admin/produtos-site" element={<ProtectedRoute><AdminProdutosSite /></ProtectedRoute>} />
           {/* Institutional Pages */}
