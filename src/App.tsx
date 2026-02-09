@@ -38,6 +38,7 @@ import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import Help from './pages/Help';
 import Calculator3D from './pages/Calculator3D';
+import Demo3D from './pages/Demo3D';
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -86,6 +87,7 @@ const App = () => (
           <Route path="/privacidade" element={<Privacy />} />
           <Route path="/ajuda" element={<Help />} />
           <Route path="/calculadora" element={<Calculator3D />} />
+          <Route path="/demo-3d" element={<Demo3D />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
