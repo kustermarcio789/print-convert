@@ -18,6 +18,7 @@ import {
   CheckCircle,
   XCircle,
   Factory,
+  BarChart3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -118,6 +119,12 @@ export default function AdminDashboard() {
       label: 'Produção',
       icon: Factory,
       path: '/admin/producao',
+    },
+    {
+      id: 'relatorios',
+      label: 'Relatórios',
+      icon: BarChart3,
+      path: '/admin/relatorios',
     },
   ];
 

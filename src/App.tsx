@@ -31,6 +31,10 @@ import AdminEstoque from './pages/admin/AdminEstoque';
 import AdminProdutosSite from './pages/admin/AdminProdutosSite';
 import AdminVendas from './pages/admin/AdminVendas';
 import AdminProducao from './pages/admin/AdminProducao';
+import AdminRelatorios from './pages/admin/AdminRelatorios';
+import AdminRelatorioVendas from './pages/admin/AdminRelatorioVendas';
+import AdminRelatorioProducao from './pages/admin/AdminRelatorioProducao';
+import AdminDashboardExecutivo from './pages/admin/AdminDashboardExecutivo';
 import AdminOrcamentoDetalhes from './pages/admin/AdminOrcamentoDetalhes';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 import About from './pages/About';
@@ -83,6 +87,10 @@ const App = () => (
           <Route path="/admin/estoque" element={<ProtectedRoute><AdminEstoque /></ProtectedRoute>} />
           <Route path="/admin/produtos-site" element={<ProtectedRoute><AdminProdutosSite /></ProtectedRoute>} />
           <Route path="/admin/producao" element={<ProtectedRoute><AdminProducao /></ProtectedRoute>} />
+          <Route path="/admin/relatorios" element={<ProtectedRoute><AdminRelatorios /></ProtectedRoute>} />
+          <Route path="/admin/relatorios/vendas" element={<ProtectedRoute><AdminRelatorioVendas /></ProtectedRoute>} />
+          <Route path="/admin/relatorios/producao" element={<ProtectedRoute><AdminRelatorioProducao /></ProtectedRoute>} />
+          <Route path="/admin/relatorios/dashboard" element={<ProtectedRoute><AdminDashboardExecutivo /></ProtectedRoute>} />
           {/* Institutional Pages */}
           <Route path="/sobre" element={<About />} />
           <Route path="/contato" element={<Contact />} />
