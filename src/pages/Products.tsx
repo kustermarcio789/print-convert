@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, Filter, Grid, List, Star, ShoppingCart, Eye, ChevronDown } from 'lucide-react';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { getProducts } from '@/data/products';
 
 const categories = [
   { id: 'all', name: 'Todas', count: 48 },
@@ -26,7 +27,9 @@ const materials = [
   { id: 'resina', name: 'Resina' },
 ];
 
-const products = [
+// Produtos agora vêm do products.ts
+
+const oldProducts = [
   {
     id: '1',
     name: 'Suporte de Headset Premium',
@@ -189,6 +192,25 @@ export default function ProductsPage() {
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('relevance');
   const [showFilters, setShowFilters] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+
+  useEffect(() => {
+    const allProducts = getProducts();
+    // Converter produtos para o formato esperado pela página
+    const formattedProducts = allProducts.filter(p => p.active).map(p => ({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      originalPrice: p.originalPrice,
+      image: p.images && p.images.length > 0 ? p.images[0] : '/placeholder-product.jpg',
+      rating: p.rating || 4.5,
+      reviews: p.reviews || 0,
+      badge: p.featured ? 'bestseller' : undefined,
+      category: p.category,
+      material: p.brand, // Usando brand como material temporariamente
+    }));
+    setProducts(formattedProducts);
+  }, []);
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
