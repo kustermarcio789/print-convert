@@ -19,6 +19,9 @@ import {
   Box,
   Palette,
   Wrench,
+  Copy,
+  Edit,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -186,6 +189,29 @@ export default function AdminOrcamentos() {
     setOrcamentos(getOrcamentos());
   };
 
+  const handleDuplicar = (orc: Orcamento) => {
+    const novoOrcamento = {
+      ...orc,
+      id: `ORC-${Date.now()}`,
+      data: new Date().toISOString(),
+      status: 'pendente' as const
+    };
+    const orcamentosAtuais = getOrcamentos();
+    localStorage.setItem('orcamentos', JSON.stringify([...orcamentosAtuais, novoOrcamento]));
+    setOrcamentos(getOrcamentos());
+    alert('Orçamento duplicado com sucesso!');
+  };
+
+  const handleExcluir = (id: string) => {
+    if (confirm('Tem certeza que deseja excluir este orçamento?')) {
+      const orcamentosAtuais = getOrcamentos();
+      const orcamentosFiltrados = orcamentosAtuais.filter(o => o.id !== id);
+      localStorage.setItem('orcamentos', JSON.stringify(orcamentosFiltrados));
+      setOrcamentos(getOrcamentos());
+      alert('Orçamento excluído com sucesso!');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
@@ -341,14 +367,34 @@ export default function AdminOrcamentos() {
                           </div>
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => navigate(`/admin/orcamentos/${orc.id}`)}
                           >
                             <Eye className="w-4 h-4 mr-2" />
-                            Ver Detalhes
+                            Ver
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={() => handleDuplicar(orc)}
+                          >
+                            <Copy className="w-4 h-4 mr-2" />
+                            Duplicar
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleExcluir(orc.id)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir
                           </Button>
 
                           {orc.status === 'pendente' && (
@@ -366,7 +412,7 @@ export default function AdminOrcamentos() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                                 onClick={() => handleRecusar(orc.id)}
                               >
                                 <XCircle className="w-4 h-4 mr-2" />

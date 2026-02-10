@@ -4,6 +4,7 @@ import {
   FileText, TrendingUp, DollarSign, Package, Factory, Calendar,
   Download, Filter, BarChart3, PieChart, LineChart, ArrowUp, ArrowDown
 } from 'lucide-react';
+import { exportarRelatorioGeralPDF } from '@/lib/pdfExporter';
 
 interface DadosRelatorio {
   vendas: {
@@ -131,7 +132,26 @@ export default function AdminRelatorios() {
   };
 
   const exportarRelatorio = (tipo: string) => {
-    alert(`Exportando relatório de ${tipo}... (Funcionalidade em desenvolvimento)`);
+    exportarRelatorioGeralPDF({
+      vendas: {
+        totalMes: dados.vendas.totalMes,
+        quantidadeMes: dados.vendas.quantidadeMes,
+        ticketMedio: dados.vendas.ticketMedio,
+        crescimentoMensal: dados.vendas.crescimentoMensal
+      },
+      producao: {
+        pecasProduzidas: dados.producao.pecasProduzidas,
+        materialConsumido: dados.producao.materialConsumido,
+        custoProducao: dados.producao.custoProducao,
+        eficiencia: dados.producao.eficiencia
+      },
+      orcamentos: {
+        total: dados.orcamentos.total,
+        pendentes: dados.orcamentos.pendentes,
+        aprovados: dados.orcamentos.aprovados,
+        taxaConversao: dados.orcamentos.taxaConversao
+      }
+    });
   };
 
   return (
