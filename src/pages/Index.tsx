@@ -6,7 +6,6 @@ import { HowItWorksSection } from '@/components/home/HowItWorksSection';
 import { TestimonialsSection } from '@/components/home/TestimonialsSection';
 import { FAQSection } from '@/components/home/FAQSection';
 import { CTASection } from '@/components/home/CTASection';
-import Chatbot from '@/components/Chatbot';
 
 const Index = () => {
   return (
@@ -18,7 +17,6 @@ const Index = () => {
       <TestimonialsSection />
       <FAQSection />
       <CTASection />
-      <Chatbot />
     </Layout>
   );
 };
