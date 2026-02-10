@@ -367,7 +367,7 @@ export default function AdminProdutosSite() {
         {/* Formulário */}
         {showForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full my-8">
+            <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full my-8 max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold text-gray-900">
@@ -379,11 +379,15 @@ export default function AdminProdutosSite() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Informações Básicas */}
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Informações Básicas</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="col-span-2">
+                  {/* Layout em 2 colunas principais */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* COLUNA ESQUERDA */}
+                    <div className="space-y-6">
+                      {/* Informações Básicas */}
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Informações Básicas</h3>
+                        <div className="space-y-4">
+                      <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Nome do Produto *
                         </label>
@@ -396,10 +400,11 @@ export default function AdminProdutosSite() {
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Marca *
-                        </label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Marca *
+                          </label>
                         <input
                           type="text"
                           required
@@ -407,22 +412,23 @@ export default function AdminProdutosSite() {
                           onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Categoria *
+                            </label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.category}
+                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        </div>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Categoria *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={formData.category}
-                          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </div>
-
-                      <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Descrição *
                         </label>
@@ -435,47 +441,50 @@ export default function AdminProdutosSite() {
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Preço (R$) *
-                        </label>
-                        <input
-                          type="number"
-                          required
-                          step="0.01"
-                          value={formData.price}
-                          onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                        />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Preço (R$) *
+                            </label>
+                          <input
+                            type="number"
+                            required
+                            step="0.01"
+                            value={formData.price}
+                            onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Preço Original (R$)
+                            </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={formData.originalPrice}
+                            onChange={(e) => setFormData({ ...formData, originalPrice: Number(e.target.value) })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        </div>
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Preço Original (R$)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={formData.originalPrice}
-                          onChange={(e) => setFormData({ ...formData, originalPrice: Number(e.target.value) })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Estoque *
+                          </label>
+                          <input
+                            type="number"
+                            required
+                            value={formData.stock}
+                            onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Estoque *
-                        </label>
-                        <input
-                          type="number"
-                          required
-                          value={formData.stock}
-                          onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 pt-6">
                         <label className="flex items-center gap-2">
                           <input
                             type="checkbox"
@@ -495,12 +504,13 @@ export default function AdminProdutosSite() {
                           />
                           <span className="text-sm text-gray-700">Produto Ativo</span>
                         </label>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                        </div>
+                      </div>
 
-                  {/* Imagens */}
-                  <div>
+                      {/* Imagens */}
+                      <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Imagens</h3>
                     <div className="space-y-4">
                       <div className="flex flex-col gap-4">
@@ -557,11 +567,14 @@ export default function AdminProdutosSite() {
                           </div>
                         ))}
                       </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Modelo 3D */}
-                  <div>
+                    {/* COLUNA DIREITA */}
+                    <div className="space-y-6">
+                      {/* Modelo 3D */}
+                      <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Modelo 3D (GLB/GLTF)</h3>
                     <div className="space-y-4">
                       <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors bg-gray-50">
@@ -597,11 +610,11 @@ export default function AdminProdutosSite() {
                           </button>
                         </div>
                       )}
-                    </div>
-                  </div>
+                        </div>
+                      </div>
 
-                  {/* Especificações */}
-                  <div>
+                      {/* Especificações */}
+                      <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Especificações</h3>
                     <div className="space-y-4">
                       <div className="flex gap-2">
@@ -645,11 +658,11 @@ export default function AdminProdutosSite() {
                           </div>
                         ))}
                       </div>
-                    </div>
-                  </div>
+                        </div>
+                      </div>
 
-                  {/* Tags */}
-                  <div>
+                      {/* Tags */}
+                      <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Tags</h3>
                     <div className="space-y-4">
                       <div className="flex gap-2">
@@ -686,10 +699,13 @@ export default function AdminProdutosSite() {
                           </span>
                         ))}
                       </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex gap-3 pt-4">
+                  {/* Botões de Ação */}
+                  <div className="flex gap-3 pt-4 border-t">
                     <button
                       type="submit"
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"

@@ -17,6 +17,7 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  Factory,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -111,6 +112,12 @@ export default function AdminDashboard() {
       label: 'Produtos do Site',
       icon: ShoppingCart,
       path: '/admin/produtos-site',
+    },
+    {
+      id: 'producao',
+      label: 'Produção',
+      icon: Factory,
+      path: '/admin/producao',
     },
   ];
 

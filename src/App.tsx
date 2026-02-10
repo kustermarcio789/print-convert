@@ -30,6 +30,7 @@ import AdminProdutos from './pages/admin/AdminProdutos';
 import AdminEstoque from './pages/admin/AdminEstoque';
 import AdminProdutosSite from './pages/admin/AdminProdutosSite';
 import AdminVendas from './pages/admin/AdminVendas';
+import AdminProducao from './pages/admin/AdminProducao';
 import AdminOrcamentoDetalhes from './pages/admin/AdminOrcamentoDetalhes';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 import About from './pages/About';
@@ -81,6 +82,7 @@ const App = () => (
           <Route path="/admin/vendas" element={<ProtectedRoute><AdminVendas /></ProtectedRoute>} />
           <Route path="/admin/estoque" element={<ProtectedRoute><AdminEstoque /></ProtectedRoute>} />
           <Route path="/admin/produtos-site" element={<ProtectedRoute><AdminProdutosSite /></ProtectedRoute>} />
+          <Route path="/admin/producao" element={<ProtectedRoute><AdminProducao /></ProtectedRoute>} />
           {/* Institutional Pages */}
           <Route path="/sobre" element={<About />} />
           <Route path="/contato" element={<Contact />} />
