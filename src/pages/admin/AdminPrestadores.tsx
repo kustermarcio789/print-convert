@@ -17,6 +17,11 @@ import {
   Phone,
   MapPin,
   Star,
+  Copy,
+  Edit,
+  Trash2,
+  History,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -147,6 +152,10 @@ export default function AdminPrestadores() {
     return matchSearch && matchStatus;
   });
 
+  const [modalHistorico, setModalHistorico] = useState(false);
+  const [prestadorSelecionado, setPrestadorSelecionado] = useState<Prestador | null>(null);
+  const [modalEditar, setModalEditar] = useState(false);
+
   const handleAprovar = (id: string) => {
     atualizarStatusPrestador(id, 'aprovado');
     setPrestadores(getPrestadores());
@@ -155,6 +164,54 @@ export default function AdminPrestadores() {
   const handleRecusar = (id: string) => {
     atualizarStatusPrestador(id, 'recusado');
     setPrestadores(getPrestadores());
+  };
+
+  const handleDuplicar = (prestador: Prestador) => {
+    const novoPrestador = {
+      ...prestador,
+      id: `PREST-${Date.now()}`,
+      nome: `${prestador.nome} (Cópia)`,
+      dataCadastro: new Date().toISOString(),
+      status: 'pendente' as const
+    };
+    const prestadoresAtuais = getPrestadores();
+    localStorage.setItem('prestadores', JSON.stringify([...prestadoresAtuais, novoPrestador]));
+    setPrestadores(getPrestadores());
+    alert('Prestador duplicado com sucesso!');
+  };
+
+  const handleExcluir = (id: string) => {
+    if (confirm('Tem certeza que deseja excluir este prestador?')) {
+      const prestadoresAtuais = getPrestadores();
+      const prestadoresFiltrados = prestadoresAtuais.filter(p => p.id !== id);
+      localStorage.setItem('prestadores', JSON.stringify(prestadoresFiltrados));
+      setPrestadores(getPrestadores());
+      alert('Prestador excluído com sucesso!');
+    }
+  };
+
+  const handleVerHistorico = (prestador: Prestador) => {
+    setPrestadorSelecionado(prestador);
+    setModalHistorico(true);
+  };
+
+  const handleEditar = (prestador: Prestador) => {
+    setPrestadorSelecionado(prestador);
+    setModalEditar(true);
+  };
+
+  const handleSalvarEdicao = () => {
+    if (!prestadorSelecionado) return;
+    
+    const prestadoresAtuais = getPrestadores();
+    const prestadoresAtualizados = prestadoresAtuais.map(p => 
+      p.id === prestadorSelecionado.id ? prestadorSelecionado : p
+    );
+    localStorage.setItem('prestadores', JSON.stringify(prestadoresAtualizados));
+    setPrestadores(getPrestadores());
+    setModalEditar(false);
+    setPrestadorSelecionado(null);
+    alert('Prestador atualizado com sucesso!');
   };
 
   return (
@@ -358,7 +415,47 @@ export default function AdminPrestadores() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                          onClick={() => handleVerHistorico(prest)}
+                        >
+                          <History className="w-4 h-4 mr-2" />
+                          Histórico
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => handleEditar(prest)}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Editar
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => handleDuplicar(prest)}
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Duplicar
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleExcluir(prest.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Excluir
+                        </Button>
+
                         {prest.status === 'pendente' && (
                           <>
                             <Button
@@ -374,7 +471,7 @@ export default function AdminPrestadores() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                               onClick={() => handleRecusar(prest.id)}
                             >
                               <XCircle className="w-4 h-4 mr-2" />
@@ -412,6 +509,191 @@ export default function AdminPrestadores() {
           </div>
         </div>
       </main>
+
+      {/* Modal de Histórico */}
+      {modalHistorico && prestadorSelecionado && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">Histórico de Serviços</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setModalHistorico(false)}
+              >
+                <XCircle className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold">{prestadorSelecionado.nome}</h3>
+              <p className="text-sm text-muted-foreground">@{prestadorSelecionado.apelido}</p>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-semibold">Serviços Oferecidos:</h4>
+              <div className="flex flex-wrap gap-2">
+                {prestadorSelecionado.servicos.map((servico) => (
+                  <span
+                    key={servico}
+                    className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm"
+                  >
+                    {servico}
+                  </span>
+                ))}
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="font-semibold mb-2">Histórico de Propostas:</h4>
+                <p className="text-sm text-muted-foreground">
+                  Funcionalidade em desenvolvimento. Em breve você poderá ver:
+                </p>
+                <ul className="list-disc list-inside text-sm text-muted-foreground mt-2">
+                  <li>Serviços aceitos pelo prestador</li>
+                  <li>Serviços recusados</li>
+                  <li>Avaliações recebidas</li>
+                  <li>Faturamento total</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <Button onClick={() => setModalHistorico(false)}>
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Edição */}
+      {modalEditar && prestadorSelecionado && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-3xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">Editar Prestador</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setModalEditar(false);
+                  setPrestadorSelecionado(null);
+                }}
+              >
+                <XCircle className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Nome</label>
+                  <Input
+                    value={prestadorSelecionado.nome}
+                    onChange={(e) => setPrestadorSelecionado({
+                      ...prestadorSelecionado,
+                      nome: e.target.value
+                    })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Apelido</label>
+                  <Input
+                    value={prestadorSelecionado.apelido}
+                    onChange={(e) => setPrestadorSelecionado({
+                      ...prestadorSelecionado,
+                      apelido: e.target.value
+                    })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">E-mail</label>
+                  <Input
+                    type="email"
+                    value={prestadorSelecionado.email}
+                    onChange={(e) => setPrestadorSelecionado({
+                      ...prestadorSelecionado,
+                      email: e.target.value
+                    })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Telefone</label>
+                  <Input
+                    value={prestadorSelecionado.telefone}
+                    onChange={(e) => setPrestadorSelecionado({
+                      ...prestadorSelecionado,
+                      telefone: e.target.value
+                    })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Cidade</label>
+                  <Input
+                    value={prestadorSelecionado.cidade}
+                    onChange={(e) => setPrestadorSelecionado({
+                      ...prestadorSelecionado,
+                      cidade: e.target.value
+                    })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Estado</label>
+                  <Input
+                    value={prestadorSelecionado.estado}
+                    onChange={(e) => setPrestadorSelecionado({
+                      ...prestadorSelecionado,
+                      estado: e.target.value
+                    })}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Experiência</label>
+                  <Input
+                    value={prestadorSelecionado.experiencia}
+                    onChange={(e) => setPrestadorSelecionado({
+                      ...prestadorSelecionado,
+                      experiencia: e.target.value
+                    })}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Portfólio (URL)</label>
+                  <Input
+                    value={prestadorSelecionado.portfolio || ''}
+                    onChange={(e) => setPrestadorSelecionado({
+                      ...prestadorSelecionado,
+                      portfolio: e.target.value
+                    })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setModalEditar(false);
+                  setPrestadorSelecionado(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={handleSalvarEdicao}>
+                Salvar Alterações
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
