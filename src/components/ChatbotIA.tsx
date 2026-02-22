@@ -49,7 +49,7 @@ export default function ChatbotIA() {
 
   const callOpenAI = async (userMessage: string): Promise<string> => {
     try {
-      const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
+      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
       
       if (!apiKey) {
         return 'Desculpe, o serviço de IA não está configurado no momento. Por favor, entre em contato com nosso suporte via WhatsApp.';
@@ -62,7 +62,7 @@ export default function ChatbotIA() {
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: process.env.REACT_APP_OPENAI_MODEL || 'gpt-3.5-turbo',
+          model: import.meta.env.VITE_OPENAI_MODEL || 'gpt-3.5-turbo',
           messages: [
             {
               role: 'system',
