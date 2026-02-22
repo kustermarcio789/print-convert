@@ -18,7 +18,7 @@
     "recharts": "^2.10.3",
     "@supabase/supabase-js": "^2.38.4",
     "jspdf": "^2.5.1",
-    "three": "^r128",
+    "three": "^0.128.0",
     "@react-three/fiber": "^8.15.12",
     "@react-three/drei": "^9.88.14",
     "zustand": "^4.4.2",
