@@ -41,127 +41,71 @@ export interface Usuario {
   comprasRealizadas: number;
 }
 
-// Chaves do LocalStorage
-const ORCAMENTOS_KEY = '3dkprint_orcamentos';
-const PRESTADORES_KEY = '3dkprint_prestadores';
-const USUARIOS_KEY = '3dkprint_usuarios';
-
-// ==================== ORÇAMENTOS ====================
-
-export const getOrcamentos = (): Orcamento[] => {
-  if (typeof window === 'undefined') return [];
-  const data = localStorage.getItem(ORCAMENTOS_KEY);
-  return data ? JSON.parse(data) : [];
-};
-
-export const salvarOrcamento = (
-  orcamento: Omit<Orcamento, 'id' | 'data' | 'status'>
-): string => {
+// Funções para gerenciar orçamentos
+export const salvarOrcamento = (orcamento: Omit<Orcamento, 'id' | 'data' | 'status'>): string => {
   const orcamentos = getOrcamentos();
   const id = `ORC-${String(orcamentos.length + 1).padStart(3, '0')}`;
-
   const novoOrcamento: Orcamento = {
     ...orcamento,
     id,
     data: new Date().toISOString(),
     status: 'pendente',
   };
-
   orcamentos.push(novoOrcamento);
-  localStorage.setItem(ORCAMENTOS_KEY, JSON.stringify(orcamentos));
-
+  localStorage.setItem('3dkprint_orcamentos', JSON.stringify(orcamentos));
   return id;
 };
 
-export const atualizarOrcamento = (id: string, updates: Partial<Orcamento>) => {
-  const orcamentos = getOrcamentos();
-  const index = orcamentos.findIndex((o) => o.id === id);
-
-  if (index !== -1) {
-    orcamentos[index] = { ...orcamentos[index], ...updates };
-    localStorage.setItem(ORCAMENTOS_KEY, JSON.stringify(orcamentos));
-  }
-};
-
-export const atualizarStatusOrcamento = (
-  id: string,
-  status: 'pendente' | 'aprovado' | 'recusado',
-  valor?: number
-) => {
-  atualizarOrcamento(id, { status, valor });
-};
-
-export const excluirOrcamento = (id: string) => {
-  const orcamentos = getOrcamentos();
-  const filtrados = orcamentos.filter(o => o.id !== id);
-  localStorage.setItem(ORCAMENTOS_KEY, JSON.stringify(filtrados));
-};
-
-// ==================== PRESTADORES ====================
-
-export const getPrestadores = (): Prestador[] => {
-  if (typeof window === 'undefined') return [];
-  const data = localStorage.getItem(PRESTADORES_KEY);
+export const getOrcamentos = (): Orcamento[] => {
+  const data = localStorage.getItem('3dkprint_orcamentos');
   return data ? JSON.parse(data) : [];
 };
 
-export const salvarPrestador = (
-  prestador: Omit<Prestador, 'id' | 'dataCadastro' | 'status'>
-): string => {
+export const atualizarStatusOrcamento = (id: string, status: 'pendente' | 'aprovado' | 'recusado', valor?: number) => {
+  const orcamentos = getOrcamentos();
+  const index = orcamentos.findIndex((o) => o.id === id);
+  if (index !== -1) {
+    orcamentos[index].status = status;
+    if (valor !== undefined) {
+      orcamentos[index].valor = valor;
+    }
+    localStorage.setItem('3dkprint_orcamentos', JSON.stringify(orcamentos));
+  }
+};
+
+// Funções para gerenciar prestadores
+export const salvarPrestador = (prestador: Omit<Prestador, 'id' | 'dataCadastro' | 'status'>): string => {
   const prestadores = getPrestadores();
   const id = `PREST-${String(prestadores.length + 1).padStart(3, '0')}`;
-
   const novoPrestador: Prestador = {
     ...prestador,
     id,
     dataCadastro: new Date().toISOString(),
     status: 'pendente',
   };
-
   prestadores.push(novoPrestador);
-  localStorage.setItem(PRESTADORES_KEY, JSON.stringify(prestadores));
-
+  localStorage.setItem('3dkprint_prestadores', JSON.stringify(prestadores));
   return id;
 };
 
-export const atualizarPrestador = (id: string, updates: Partial<Prestador>) => {
-  const prestadores = getPrestadores();
-  const index = prestadores.findIndex((p) => p.id === id);
-
-  if (index !== -1) {
-    prestadores[index] = { ...prestadores[index], ...updates };
-    localStorage.setItem(PRESTADORES_KEY, JSON.stringify(prestadores));
-  }
-};
-
-// ✅ PATCH CRÍTICO (resolve erro do build)
-export const atualizarStatusPrestador = (
-  id: string,
-  status: 'pendente' | 'aprovado' | 'recusado'
-) => {
-  atualizarPrestador(id, { status });
-};
-
-export const excluirPrestador = (id: string) => {
-  const prestadores = getPrestadores();
-  const filtrados = prestadores.filter(p => p.id !== id);
-  localStorage.setItem(PRESTADORES_KEY, JSON.stringify(filtrados));
-};
-
-// ==================== USUÁRIOS ====================
-
-export const getUsuarios = (): Usuario[] => {
-  if (typeof window === 'undefined') return [];
-  const data = localStorage.getItem(USUARIOS_KEY);
+export const getPrestadores = (): Prestador[] => {
+  const data = localStorage.getItem('3dkprint_prestadores');
   return data ? JSON.parse(data) : [];
 };
 
-export const salvarUsuario = (
-  usuario: Omit<Usuario, 'id' | 'dataCadastro' | 'orcamentosRealizados' | 'comprasRealizadas'>
-): string => {
+export const atualizarStatusPrestador = (id: string, status: 'pendente' | 'aprovado' | 'recusado') => {
+  const prestadores = getPrestadores();
+  const index = prestadores.findIndex((p) => p.id === id);
+  if (index !== -1) {
+    prestadores[index].status = status;
+    localStorage.setItem('3dkprint_prestadores', JSON.stringify(prestadores));
+  }
+};
+
+// Funções para gerenciar usuários
+export const salvarUsuario = (usuario: Omit<Usuario, 'id' | 'dataCadastro' | 'orcamentosRealizados' | 'comprasRealizadas'>): string => {
   const usuarios = getUsuarios();
   const id = `USR-${String(usuarios.length + 1).padStart(3, '0')}`;
-
   const novoUsuario: Usuario = {
     ...usuario,
     id,
@@ -169,36 +113,46 @@ export const salvarUsuario = (
     orcamentosRealizados: 0,
     comprasRealizadas: 0,
   };
-
   usuarios.push(novoUsuario);
-  localStorage.setItem(USUARIOS_KEY, JSON.stringify(usuarios));
-
+  localStorage.setItem('3dkprint_usuarios', JSON.stringify(usuarios));
   return id;
 };
 
-export const atualizarUsuario = (id: string, updates: Partial<Usuario>) => {
-  const usuarios = getUsuarios();
-  const index = usuarios.findIndex((u) => u.id === id);
+export const getUsuarios = (): Usuario[] => {
+  const data = localStorage.getItem('3dkprint_usuarios');
+  return data ? JSON.parse(data) : [];
+};
 
+export const atualizarUltimoAcesso = (email: string) => {
+  const usuarios = getUsuarios();
+  const index = usuarios.findIndex((u) => u.email === email);
   if (index !== -1) {
-    usuarios[index] = { ...usuarios[index], ...updates };
-    localStorage.setItem(USUARIOS_KEY, JSON.stringify(usuarios));
+    usuarios[index].ultimoAcesso = new Date().toISOString();
+    localStorage.setItem('3dkprint_usuarios', JSON.stringify(usuarios));
   }
 };
 
-export const excluirUsuario = (id: string) => {
+export const incrementarOrcamentosUsuario = (email: string) => {
   const usuarios = getUsuarios();
-  const filtrados = usuarios.filter(u => u.id !== id);
-  localStorage.setItem(USUARIOS_KEY, JSON.stringify(filtrados));
+  const index = usuarios.findIndex((u) => u.email === email);
+  if (index !== -1) {
+    usuarios[index].orcamentosRealizados += 1;
+    localStorage.setItem('3dkprint_usuarios', JSON.stringify(usuarios));
+  }
 };
 
-// ==================== DADOS DE EXEMPLO ====================
+// Funções de autenticação
+export const autenticarUsuario = (email: string, senha: string): boolean => {
+  // Implementação básica - em produção, usar hash e backend
+  const usuarios = getUsuarios();
+  const usuario = usuarios.find((u) => u.email === email);
+  return !!usuario;
+};
 
+// Inicializar dados de exemplo (apenas para desenvolvimento)
 export const inicializarDadosExemplo = () => {
-  if (typeof window === 'undefined') return;
-
   if (!localStorage.getItem('3dkprint_dados_inicializados')) {
-
+    // Adicionar alguns orçamentos de exemplo
     const orcamentosExemplo: Orcamento[] = [
       {
         id: 'ORC-001',
@@ -208,8 +162,29 @@ export const inicializarDadosExemplo = () => {
         telefone: '(43) 99999-9999',
         data: new Date(2026, 1, 8).toISOString(),
         status: 'pendente',
-        detalhes: { material: 'PLA', cor: 'Preto', quantidade: 2 }
-      }
+        detalhes: {
+          material: 'PLA',
+          cor: 'Preto',
+          quantidade: 2,
+          infill: '20%',
+          arquivo: 'peca.stl',
+        },
+      },
+      {
+        id: 'ORC-002',
+        tipo: 'modelagem',
+        cliente: 'Maria Santos',
+        email: 'maria@email.com',
+        telefone: '(43) 98888-8888',
+        data: new Date(2026, 1, 7).toISOString(),
+        status: 'aprovado',
+        valor: 350.00,
+        detalhes: {
+          tipoModelagem: 'Parametrica',
+          descricao: 'Suporte para monitor',
+          referencia: 'imagem.jpg',
+        },
+      },
     ];
 
     const prestadoresExemplo: Prestador[] = [
@@ -221,11 +196,12 @@ export const inicializarDadosExemplo = () => {
         telefone: '(43) 99999-1111',
         cidade: 'Londrina',
         estado: 'PR',
-        servicos: ['Impressão 3D'],
+        servicos: ['Impressão 3D', 'Modelagem 3D'],
         experiencia: '5 anos',
+        portfolio: 'https://portfolio.com/carlos',
         dataCadastro: new Date(2026, 1, 8).toISOString(),
-        status: 'pendente'
-      }
+        status: 'pendente',
+      },
     ];
 
     const usuariosExemplo: Usuario[] = [
@@ -237,15 +213,15 @@ export const inicializarDadosExemplo = () => {
         cidade: 'Londrina',
         estado: 'PR',
         dataCadastro: new Date(2026, 0, 15).toISOString(),
+        ultimoAcesso: new Date(2026, 1, 8).toISOString(),
         orcamentosRealizados: 3,
-        comprasRealizadas: 5
-      }
+        comprasRealizadas: 5,
+      },
     ];
 
-    localStorage.setItem(ORCAMENTOS_KEY, JSON.stringify(orcamentosExemplo));
-    localStorage.setItem(PRESTADORES_KEY, JSON.stringify(prestadoresExemplo));
-    localStorage.setItem(USUARIOS_KEY, JSON.stringify(usuariosExemplo));
-
+    localStorage.setItem('3dkprint_orcamentos', JSON.stringify(orcamentosExemplo));
+    localStorage.setItem('3dkprint_prestadores', JSON.stringify(prestadoresExemplo));
+    localStorage.setItem('3dkprint_usuarios', JSON.stringify(usuariosExemplo));
     localStorage.setItem('3dkprint_dados_inicializados', 'true');
   }
 };

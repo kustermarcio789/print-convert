@@ -22,7 +22,6 @@ import {
   Copy,
   Edit,
   Trash2,
-  Save,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,7 +54,6 @@ export default function AdminOrcamentos() {
   const [filterTipo, setFilterTipo] = useState('todos');
   const [filterStatus, setFilterStatus] = useState('todos');
   const [selectedOrcamento, setSelectedOrcamento] = useState<Orcamento | null>(null);
-  const [editingOrcamento, setEditingOrcamento] = useState<Orcamento | null>(null);
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
 
   // Carregar orçamentos do localStorage
@@ -108,6 +106,8 @@ export default function AdminOrcamentos() {
       path: '/admin/estoque',
     },
   ];
+
+
 
   const getTipoIcon = (tipo: string) => {
     switch (tipo) {
@@ -210,20 +210,6 @@ export default function AdminOrcamentos() {
       setOrcamentos(getOrcamentos());
       alert('Orçamento excluído com sucesso!');
     }
-  };
-
-  const handleSaveEdit = () => {
-    if (!editingOrcamento) return;
-    
-    const orcamentosAtuais = getOrcamentos();
-    const orcamentosAtualizados = orcamentosAtuais.map(o => 
-      o.id === editingOrcamento.id ? editingOrcamento : o
-    );
-    
-    localStorage.setItem('orcamentos', JSON.stringify(orcamentosAtualizados));
-    setOrcamentos(orcamentosAtualizados);
-    setEditingOrcamento(null);
-    alert('Orçamento atualizado com sucesso!');
   };
 
   return (
@@ -337,7 +323,7 @@ export default function AdminOrcamentos() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card className="hover:shadow-md transition-shadow">
+                  <Card>
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-4 flex-1">
@@ -385,20 +371,10 @@ export default function AdminOrcamentos() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setSelectedOrcamento(orc)}
+                            onClick={() => navigate(`/admin/orcamentos/${orc.id}`)}
                           >
                             <Eye className="w-4 h-4 mr-2" />
                             Ver
-                          </Button>
-
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                            onClick={() => setEditingOrcamento(orc)}
-                          >
-                            <Edit className="w-4 h-4 mr-2" />
-                            Editar
                           </Button>
 
                           <Button
@@ -466,7 +442,7 @@ export default function AdminOrcamentos() {
         </div>
       </main>
 
-      {/* Modal de Detalhes */}
+      {/* Modal de Detalhes (simplificado) */}
       {selectedOrcamento && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
@@ -504,87 +480,6 @@ export default function AdminOrcamentos() {
             <div className="mt-6 flex justify-end gap-3">
               <Button variant="outline" onClick={() => setSelectedOrcamento(null)}>
                 Fechar
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Modal de Edição */}
-      {editingOrcamento && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-          onClick={() => setEditingOrcamento(null)}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            onClick={(e) => e.stopPropagation()}
-            className="bg-card rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-auto"
-          >
-            <h3 className="text-2xl font-bold mb-6">
-              Editar Orçamento {editingOrcamento.id}
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Nome do Cliente</label>
-                <Input 
-                  value={editingOrcamento.cliente}
-                  onChange={(e) => setEditingOrcamento({...editingOrcamento, cliente: e.target.value})}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Email</label>
-                <Input 
-                  value={editingOrcamento.email}
-                  onChange={(e) => setEditingOrcamento({...editingOrcamento, email: e.target.value})}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Telefone</label>
-                <Input 
-                  value={editingOrcamento.telefone}
-                  onChange={(e) => setEditingOrcamento({...editingOrcamento, telefone: e.target.value})}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Valor (R$)</label>
-                <Input 
-                  type="number"
-                  value={editingOrcamento.valor || ''}
-                  onChange={(e) => setEditingOrcamento({...editingOrcamento, valor: parseFloat(e.target.value)})}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
-                <Select 
-                  value={editingOrcamento.status} 
-                  onValueChange={(v: any) => setEditingOrcamento({...editingOrcamento, status: v})}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="aprovado">Aprovado</SelectItem>
-                    <SelectItem value="recusado">Recusado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="mt-8 flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setEditingOrcamento(null)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleSaveEdit} className="gap-2">
-                <Save className="w-4 h-4" />
-                Salvar Alterações
               </Button>
             </div>
           </motion.div>

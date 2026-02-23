@@ -5,13 +5,18 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
-    port: 8080,
+    host: "0.0.0.0",
+    port: 3000,
     hmr: {
       overlay: false,
     },
+    allowedHosts: [
+      "localhost",
+      ".preview.emergentagent.com",
+      ".preview.emergentcf.cloud"
+    ],
   },
-  plugins: [react()],
+  plugins: [react()].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -20,7 +25,6 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        // Cache busting com hash nos arquivos
         entryFileNames: `assets/[name]-[hash].js`,
         chunkFileNames: `assets/[name]-[hash].js`,
         assetFileNames: `assets/[name]-[hash].[ext]`,

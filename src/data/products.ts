@@ -140,10 +140,10 @@ export const initialProducts: Product[] = [
   },
   {
     id: '9',
-    name: 'Mesa PEI Magnética Ender 3',
+    name: 'PEI Magnética Ender 3',
     price: 89.90,
     originalPrice: 119.90,
-    image: 'https://images.unsplash.com/photo-1631285824403-90a06395138f?w=400&h=400&fit=crop',
+    image: '/images/products/pei-magnetico.jpg',
     rating: 4.8,
     reviews: 32,
     badge: 'bestseller',
@@ -158,7 +158,7 @@ export const initialProducts: Product[] = [
     id: '10',
     name: 'Hotend All Metal CR-10',
     price: 149.90,
-    image: 'https://images.unsplash.com/photo-1631285824403-90a06395138f?w=400&h=400&fit=crop',
+    image: '/images/products/hotend-all-metal.png',
     rating: 4.9,
     reviews: 18,
     category: 'Peças de Impressora 3D',
@@ -172,7 +172,7 @@ export const initialProducts: Product[] = [
     id: '11',
     name: 'Kit Correias GT2 6mm',
     price: 29.90,
-    image: 'https://images.unsplash.com/photo-1631285824403-90a06395138f?w=400&h=400&fit=crop',
+    image: '/images/products/correia-gt2.jpg',
     rating: 4.7,
     reviews: 45,
     category: 'Peças de Impressora 3D',
@@ -186,7 +186,7 @@ export const initialProducts: Product[] = [
     id: '12',
     name: 'Motor Nema 17 42-40',
     price: 59.90,
-    image: 'https://images.unsplash.com/photo-1631285824403-90a06395138f?w=400&h=400&fit=crop',
+    image: '/images/products/motor-nema17.jpg',
     rating: 4.6,
     reviews: 22,
     category: 'Peças de Impressora 3D',
@@ -196,99 +196,12 @@ export const initialProducts: Product[] = [
     active: true,
     featured: false,
   },
-  {
-    id: '13',
-    name: 'Placa PEI Creality K1/K1C/Ender 3V3',
-    price: 129.90,
-    image: 'https://images.unsplash.com/photo-1631285824403-90a06395138f?w=400&h=400&fit=crop',
-    rating: 4.9,
-    reviews: 15,
-    badge: 'premium',
-    category: 'Peças de Impressora 3D',
-    material: 'PEI',
-    description: 'Placa PEI personalizada para Creality K1, K1C e Ender 3V3',
-    stock: 10,
-    active: true,
-    featured: true,
-  },
-  {
-    id: '14',
-    name: 'Placa PEI Creality K1 Max',
-    price: 189.90,
-    image: 'https://images.unsplash.com/photo-1631285824403-90a06395138f?w=400&h=400&fit=crop',
-    rating: 4.9,
-    reviews: 8,
-    category: 'Peças de Impressora 3D',
-    material: 'PEI',
-    description: 'Placa PEI personalizada para Creality K1 Max',
-    stock: 5,
-    active: true,
-    featured: false,
-  },
-  {
-    id: '15',
-    name: 'Placa PEI Voron V0',
-    price: 79.90,
-    image: 'https://images.unsplash.com/photo-1631285824403-90a06395138f?w=400&h=400&fit=crop',
-    rating: 4.8,
-    reviews: 12,
-    category: 'Peças de Impressora 3D',
-    material: 'PEI',
-    description: 'Placa PEI personalizada para Voron V0',
-    stock: 15,
-    active: true,
-    featured: false,
-  },
-  {
-    id: '16',
-    name: 'Placa PEI Voron 2.4',
-    price: 159.90,
-    image: 'https://images.unsplash.com/photo-1631285824403-90a06395138f?w=400&h=400&fit=crop',
-    rating: 4.9,
-    reviews: 20,
-    category: 'Peças de Impressora 3D',
-    material: 'PEI',
-    description: 'Placa PEI personalizada para Voron 2.4',
-    stock: 8,
-    active: true,
-    featured: true,
-  },
-  {
-    id: '17',
-    name: 'Placa PEI Sovol SV06 Plus',
-    price: 139.90,
-    image: 'https://images.unsplash.com/photo-1631285824403-90a06395138f?w=400&h=400&fit=crop',
-    rating: 4.7,
-    reviews: 10,
-    category: 'Peças de Impressora 3D',
-    material: 'PEI',
-    description: 'Placa PEI personalizada para Sovol SV06 Plus',
-    stock: 12,
-    active: true,
-    featured: false,
-  },
-  {
-    id: '18',
-    name: 'Placa PEI Sovol SV08/SV08 Max',
-    price: 199.90,
-    image: 'https://images.unsplash.com/photo-1631285824403-90a06395138f?w=400&h=400&fit=crop',
-    rating: 4.9,
-    reviews: 5,
-    badge: 'premium',
-    category: 'Peças de Impressora 3D',
-    material: 'PEI',
-    description: 'Placa PEI personalizada para Sovol SV08 e SV08 Max',
-    stock: 4,
-    active: true,
-    featured: true,
-  },
 ];
 
 // Funções para gerenciar produtos no localStorage
 const PRODUCTS_KEY = 'produtos_site';
 
 export function getProducts(): Product[] {
-  if (typeof window === 'undefined') return initialProducts;
   const stored = localStorage.getItem(PRODUCTS_KEY);
   if (stored) {
     return JSON.parse(stored);
@@ -299,7 +212,6 @@ export function getProducts(): Product[] {
 }
 
 export function saveProducts(products: Product[]): void {
-  if (typeof window === 'undefined') return;
   localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
 }
 
