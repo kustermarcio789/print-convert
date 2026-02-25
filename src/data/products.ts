@@ -17,7 +17,7 @@ export interface Product {
 }
 
 // Produtos iniciais do site
-export const initialProducts: Product[] = [
+export const archivedProducts: Product[] = [
   {
     id: '1',
     name: 'Suporte de Headset Premium',
@@ -195,8 +195,13 @@ export const initialProducts: Product[] = [
     stock: 22,
     active: true,
     featured: false,
-  },
+    
+
+ 
+  
+},
 ];
+export const initialProducts: Product[] = [];
 
 // Funções para gerenciar produtos no localStorage
 const PRODUCTS_KEY = 'produtos_site';
