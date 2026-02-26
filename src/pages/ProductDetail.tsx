@@ -5,7 +5,7 @@ import { Star, ShoppingCart, Truck, Shield, RotateCcw, ChevronLeft, ChevronRight
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getProducts } from '@/data/products';
+import { produtosAPI } from '@/lib/apiClient';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -17,8 +17,8 @@ export default function ProductDetail() {
   const modelViewerRef = useRef<any>(null);
 
   useEffect(() => {
-    const allProducts = getProducts();
-    const foundProduct = allProducts.find(p => p.id === id);
+    const fetchProduct = async () => {
+    const foundProduct = await produtosAPI.getById(id as string);
     
     if (foundProduct) {
       setProduct(foundProduct);
@@ -29,6 +29,8 @@ export default function ProductDetail() {
 
     // Carregar model-viewer
     import('@google/model-viewer');
+      };
+    fetchProduct();
   }, [id]);
 
   if (!product) {

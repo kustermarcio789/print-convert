@@ -6,7 +6,7 @@ import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getProducts } from '@/data/products';
+import { produtosAPI } from '@/lib/apiClient';
 
 const categories = [
   { id: 'all', name: 'Todas' },
@@ -47,7 +47,8 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
 
   useEffect(() => {
-    const allProducts = getProducts();
+    const fetchProducts = async () => {
+      const allProducts = await produtosAPI.getAll();
     const formattedProducts = allProducts.filter(p => p.active).map(p => ({
       id: p.id,
       name: p.name,
@@ -60,7 +61,9 @@ export default function ProductsPage() {
       category: p.category,
       material: p.brand,
     }));
-    setProducts(formattedProducts);
+      setProducts(formattedProducts);
+    };
+    fetchProducts();
   }, []);
 
   const filteredProducts = products.filter((product) => {

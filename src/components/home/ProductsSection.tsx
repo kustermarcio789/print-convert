@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Star, ShoppingCart, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getProducts } from '@/data/products';
+import { produtosAPI } from '@/lib/apiClient';
 
 const badgeStyles = {
   bestseller: 'badge-bestseller',
@@ -20,8 +20,9 @@ const badgeLabels = {
 export function ProductsSection() {
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
 
-  useEffect(() => {
-    const allProducts = getProducts();
+    useEffect(() => {
+    const fetchFeaturedProducts = async () => {
+    const allProducts = await produtosAPI.getAll();
     // Pegar apenas os produtos em destaque e ativos
     const featured = allProducts
       .filter(p => p.featured && p.active)
@@ -37,7 +38,9 @@ export function ProductsSection() {
         badge: p.featured ? 'bestseller' : undefined,
         category: p.category,
       }));
-    setFeaturedProducts(featured);
+      setFeaturedProducts(featured);
+    };
+    fetchFeaturedProducts();
   }, []);
 
   if (featuredProducts.length === 0) {
