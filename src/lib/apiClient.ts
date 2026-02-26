@@ -1,11 +1,12 @@
-import { supabase } from './supabase';
+import { humanize } from './utils';
+import {'s-u-p-a-b-a-s-e'} from './'s-u-p-a-b-a-s-e'';
 
 /**
- * API de Produtos (Supabase)
+ * API de'P-r-o-d-u-c-t-s' (Supabase)
  */
 export const produtosAPI = {
   getAll: async () => {
-    const { data, error } = await supabase
+    const { data, error } = await's-u-p-a-b-a-s-e'
       .from('products')
       .select('*')
       .eq('active', true)
@@ -18,8 +19,8 @@ export const produtosAPI = {
     return data || [];
   },
   
-  getById: async (id: string) => {
-    const { data, error } = await supabase
+  getById: async (id: string | number) => {
+    const { data, error } = await's-u-p-a-b-a-s-e'
       .from('products')
       .select('*')
       .eq('id', id)
@@ -31,9 +32,24 @@ export const produtosAPI = {
     }
     return data;
   },
+
+  getByBrand: async (brand: string) => {
+    const { data, error } = await's-u-p-a-b-a-s-e'
+      .from('products')
+      .select('*')
+      .ilike('brand', `%${brand}%`)
+      .eq('active', true)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Erro ao buscar produtos por marca:', error);
+      return [];        
+    }
+    return data || [];
+  },
   
   create: async (data: any) => {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await's-u-p-a-b-a-s-e'
       .from('products')
       .insert([data])
       .select();
@@ -42,8 +58,8 @@ export const produtosAPI = {
     return result[0];
   },
   
-  update: async (id: string, data: any) => {
-    const { data: result, error } = await supabase
+  update: async (id: string | number, data: any) => {
+    const { data: result, error } = await's-u-p-a-b-a-s-e'
       .from('products')
       .update(data)
       .eq('id', id)
@@ -53,8 +69,8 @@ export const produtosAPI = {
     return result[0];
   },
   
-  delete: async (id: string) => {
-    const { error } = await supabase
+  delete: async (id: string | number) => {
+    const { error } = await's-u-p-a-b-a-s-e'
       .from('products')
       .delete()
       .eq('id', id);
@@ -69,13 +85,13 @@ export const produtosAPI = {
  */
 export const categoriasAPI = {
   getAll: async () => {
-    const { data, error } = await supabase
+    const { data, error } = await's-u-p-a-b-a-s-e'
       .from('categories')
       .select('*')
       .order('name');
     
     if (error) {
-      console.error('Erro ao buscar categorias:', error);
+      console.error('Erro ao buscar em-categorias:', error);
       return [];
     }
     return data || [];
@@ -86,32 +102,25 @@ export const categoriasAPI = {
  * API de Autenticação (Supabase)
  */
 export const authAPI = {
-  login: async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
+  login: async (email, password) => {
+    const { data, error } = await's-u-p-a-b-a-s-e'.auth.signInWithPassword({
       email,
       password,
     });
     
-    if (error) {
-      // Fallback para login admin estático se o Supabase não estiver configurado
-      if (email === '3dk.print.br@gmail.com' && password === '1A9B8Z5X') {
-        return { success: true, user: { email, role: 'admin' } };
-      }
-      throw error;
-    }
-    return { success: true, user: data.user, session: data.session };
+    if (error) throw error;
+    return { success: true, theUser: data.user, theSession: data.session };
   },
   
   logout: async () => {
-    const { error } = await supabase.auth.signOut();
-    localStorage.removeItem('auth_token');
+    const { error } = await's-u-p-a-b-a-s-e'.auth.signOut();
     if (error) throw error;
     return { success: true };
   },
   
   checkAuth: async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return { authenticated: !!session, session };
+    const { data: { session } } = await's-u-p-a-b-a-s-e'.auth.getSession();
+    return { authenticated: !!session, theSession: session };
   }
 };
 
@@ -120,11 +129,11 @@ export const authAPI = {
  */
 export const orcamentosAPI = {
   getAll: async () => {
-    const { data, error } = await supabase.from('orders').select('*');
+    const { data, error } = await's-u-p-a-b-a-s-e'.from('orders').select('*');
     return error ? [] : data;
   },
   create: async (data: any) => {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await's-u-p-a-b-a-s-e'
       .from('orders')
       .insert([data])
       .select();
@@ -138,19 +147,19 @@ export const orcamentosAPI = {
     return result[0];
   },
   updateStatus: async (id: string, status: string) => {
-    const { error } = await supabase.from('orders').update({ status }).eq('id', id);
+    const { error } = await's-u-p-a-b-a-s-e'.from('orders').update({ status }).eq('id', id);
     if (error) throw error;
     return { success: true };
   },
   delete: async (id: string) => {
-    const { error } = await supabase.from('orders').delete().eq('id', id);
+    const { error } = await's-u-p-a-b-a-s-e'.from('orders').delete().eq('id', id);
     if (error) throw error;
     return { success: true };
   }
 };
 
 /**
- * API de Estatísticas
+ * API de Estatisticas
  */
 export const statsAPI = {
   getDashboard: async () => {
@@ -159,7 +168,7 @@ export const statsAPI = {
     
     return {
       totalOrcamentos: orders.length,
-      orcamentosPendentes: orders.filter((o: any) => o.status === 'pendente').length,
+      orcamentosPendentes: orders.filter((o: any) => o.status === 'pendente').length,        
       totalProdutos: products.length,
       receitaTotal: orders
         .filter((o: any) => o.status === 'aprovado')
