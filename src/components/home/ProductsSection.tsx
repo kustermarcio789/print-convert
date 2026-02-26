@@ -1,53 +1,9 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Star, ShoppingCart, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-
-// Mock products data
-const products = [
-  {
-    id: '1',
-    name: 'Suporte de Headset Premium',
-    price: 89.90,
-    originalPrice: 119.90,
-    image: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=400&h=400&fit=crop',
-    rating: 4.9,
-    reviews: 47,
-    badge: 'bestseller',
-    category: 'Acessórios',
-  },
-  {
-    id: '2',
-    name: 'Vaso Geométrico Moderno',
-    price: 59.90,
-    image: 'https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=400&h=400&fit=crop',
-    rating: 4.8,
-    reviews: 32,
-    badge: 'fast',
-    category: 'Decoração',
-  },
-  {
-    id: '3',
-    name: 'Action Figure Personalizado',
-    price: 249.90,
-    image: 'https://images.unsplash.com/photo-1608889825103-eb5ed706fc64?w=400&h=400&fit=crop',
-    rating: 5.0,
-    reviews: 18,
-    badge: 'premium',
-    category: 'Colecionáveis',
-  },
-  {
-    id: '4',
-    name: 'Organizador de Mesa',
-    price: 79.90,
-    originalPrice: 99.90,
-    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=400&fit=crop',
-    rating: 4.7,
-    reviews: 56,
-    category: 'Organização',
-  },
-];
+import { getProducts } from '@/data/products';
 
 const badgeStyles = {
   bestseller: 'badge-bestseller',
@@ -62,6 +18,32 @@ const badgeLabels = {
 };
 
 export function ProductsSection() {
+  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+
+  useEffect(() => {
+    const allProducts = getProducts();
+    // Pegar apenas os produtos em destaque e ativos
+    const featured = allProducts
+      .filter(p => p.featured && p.active)
+      .slice(0, 4)
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        originalPrice: p.originalPrice,
+        image: p.images && p.images.length > 0 ? p.images[0] : '/placeholder-product.svg',
+        rating: p.rating || 5.0,
+        reviews: p.reviews || 0,
+        badge: p.featured ? 'bestseller' : undefined,
+        category: p.category,
+      }));
+    setFeaturedProducts(featured);
+  }, []);
+
+  if (featuredProducts.length === 0) {
+    return null; // Não mostra a seção se não houver produtos em destaque
+  }
+
   return (
     <section className="section-padding bg-secondary/30">
       <div className="container-custom">
@@ -100,7 +82,7 @@ export function ProductsSection() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {products.map((product, index) => (
+          {featuredProducts.map((product, index) => (
             <motion.div
               key={product.id}
               initial={{ opacity: 0, y: 20 }}

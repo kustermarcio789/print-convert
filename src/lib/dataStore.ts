@@ -149,79 +149,9 @@ export const autenticarUsuario = (email: string, senha: string): boolean => {
   return !!usuario;
 };
 
-// Inicializar dados de exemplo (apenas para desenvolvimento)
+// Inicializar dados de exemplo (limpo para produção)
 export const inicializarDadosExemplo = () => {
   if (!localStorage.getItem('3dkprint_dados_inicializados')) {
-    // Adicionar alguns orçamentos de exemplo
-    const orcamentosExemplo: Orcamento[] = [
-      {
-        id: 'ORC-001',
-        tipo: 'impressao',
-        cliente: 'João Silva',
-        email: 'joao@email.com',
-        telefone: '(43) 99999-9999',
-        data: new Date(2026, 1, 8).toISOString(),
-        status: 'pendente',
-        detalhes: {
-          material: 'PLA',
-          cor: 'Preto',
-          quantidade: 2,
-          infill: '20%',
-          arquivo: 'peca.stl',
-        },
-      },
-      {
-        id: 'ORC-002',
-        tipo: 'modelagem',
-        cliente: 'Maria Santos',
-        email: 'maria@email.com',
-        telefone: '(43) 98888-8888',
-        data: new Date(2026, 1, 7).toISOString(),
-        status: 'aprovado',
-        valor: 350.00,
-        detalhes: {
-          tipoModelagem: 'Parametrica',
-          descricao: 'Suporte para monitor',
-          referencia: 'imagem.jpg',
-        },
-      },
-    ];
-
-    const prestadoresExemplo: Prestador[] = [
-      {
-        id: 'PREST-001',
-        nome: 'Carlos Mendes',
-        apelido: 'CarlosPrint3D',
-        email: 'carlos@email.com',
-        telefone: '(43) 99999-1111',
-        cidade: 'Londrina',
-        estado: 'PR',
-        servicos: ['Impressão 3D', 'Modelagem 3D'],
-        experiencia: '5 anos',
-        portfolio: 'https://portfolio.com/carlos',
-        dataCadastro: new Date(2026, 1, 8).toISOString(),
-        status: 'pendente',
-      },
-    ];
-
-    const usuariosExemplo: Usuario[] = [
-      {
-        id: 'USR-001',
-        nome: 'João Silva',
-        email: 'joao@email.com',
-        telefone: '(43) 99999-9999',
-        cidade: 'Londrina',
-        estado: 'PR',
-        dataCadastro: new Date(2026, 0, 15).toISOString(),
-        ultimoAcesso: new Date(2026, 1, 8).toISOString(),
-        orcamentosRealizados: 3,
-        comprasRealizadas: 5,
-      },
-    ];
-
-    localStorage.setItem('3dkprint_orcamentos', JSON.stringify(orcamentosExemplo));
-    localStorage.setItem('3dkprint_prestadores', JSON.stringify(prestadoresExemplo));
-    localStorage.setItem('3dkprint_usuarios', JSON.stringify(usuariosExemplo));
     localStorage.setItem('3dkprint_dados_inicializados', 'true');
   }
 };

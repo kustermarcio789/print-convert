@@ -1,277 +1,152 @@
-/**
- * Cliente de API - Camada de abstração para comunicação com backend
- * Atualmente usa localStorage, mas pode ser facilmente migrado para API real
- */
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
-const USE_LOCAL_STORAGE = !API_BASE_URL; // Se não houver URL de API, usa localStorage
+import { supabase } from './supabase';
 
 /**
- * Configuração de headers padrão
- */
-function getHeaders(): HeadersInit {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  // Adicionar token de autenticação se existir
-  const token = localStorage.getItem('auth_token');
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  return headers;
-}
-
-/**
- * Função genérica para fazer requisições HTTP
- */
-async function fetchAPI<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  if (USE_LOCAL_STORAGE) {
-    // Simular resposta da API usando localStorage
-    return simulateAPICall<T>(endpoint, options);
-  }
-
-  const url = `${API_BASE_URL}${endpoint}`;
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...getHeaders(),
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
-    throw new Error(error.message || `Erro HTTP: ${response.status}`);
-  }
-
-  return response.json();
-}
-
-/**
- * Simula chamadas de API usando localStorage
- * Esta função será removida quando migrar para backend real
- */
-async function simulateAPICall<T>(
-  endpoint: string,
-  options: RequestInit
-): Promise<T> {
-  // Simular delay de rede
-  await new Promise(resolve => setTimeout(resolve, 100));
-
-  const method = options.method || 'GET';
-  const [, resource, id] = endpoint.split('/');
-
-  // Simular operações CRUD
-  switch (method) {
-    case 'GET':
-      if (id) {
-        return getItem(resource, id) as T;
-      }
-      return getAll(resource) as T;
-
-    case 'POST':
-      const createData = JSON.parse(options.body as string);
-      return create(resource, createData) as T;
-
-    case 'PUT':
-      const updateData = JSON.parse(options.body as string);
-      return update(resource, id!, updateData) as T;
-
-    case 'DELETE':
-      return deleteItem(resource, id!) as T;
-
-    default:
-      throw new Error(`Método ${method} não suportado`);
-  }
-}
-
-function getAll(resource: string): any[] {
-  const data = localStorage.getItem(resource);
-  return data ? JSON.parse(data) : [];
-}
-
-function getItem(resource: string, id: string): any {
-  const items = getAll(resource);
-  return items.find((item: any) => item.id === id) || null;
-}
-
-function create(resource: string, data: any): any {
-  const items = getAll(resource);
-  const newItem = {
-    ...data,
-    id: data.id || `${resource}_${Date.now()}`,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  items.push(newItem);
-  localStorage.setItem(resource, JSON.stringify(items));
-  return newItem;
-}
-
-function update(resource: string, id: string, data: any): any {
-  const items = getAll(resource);
-  const index = items.findIndex((item: any) => item.id === id);
-  
-  if (index === -1) {
-    throw new Error(`Item ${id} não encontrado`);
-  }
-
-  items[index] = {
-    ...items[index],
-    ...data,
-    updatedAt: new Date().toISOString(),
-  };
-  
-  localStorage.setItem(resource, JSON.stringify(items));
-  return items[index];
-}
-
-function deleteItem(resource: string, id: string): { success: boolean } {
-  const items = getAll(resource);
-  const filtered = items.filter((item: any) => item.id !== id);
-  localStorage.setItem(resource, JSON.stringify(filtered));
-  return { success: true };
-}
-
-/**
- * API de Orçamentos
- */
-export const orcamentosAPI = {
-  getAll: () => fetchAPI<any[]>('/orcamentos'),
-  
-  getById: (id: string) => fetchAPI<any>(`/orcamentos/${id}`),
-  
-  create: (data: any) => fetchAPI<any>('/orcamentos', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
-  
-  update: (id: string, data: any) => fetchAPI<any>(`/orcamentos/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  }),
-  
-  delete: (id: string) => fetchAPI<{ success: boolean }>(`/orcamentos/${id}`, {
-    method: 'DELETE',
-  }),
-
-  updateStatus: (id: string, status: string) => 
-    orcamentosAPI.update(id, { status }),
-};
-
-/**
- * API de Usuários
- */
-export const usuariosAPI = {
-  getAll: () => fetchAPI<any[]>('/usuarios'),
-  
-  getById: (id: string) => fetchAPI<any>(`/usuarios/${id}`),
-  
-  create: (data: any) => fetchAPI<any>('/usuarios', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
-  
-  update: (id: string, data: any) => fetchAPI<any>(`/usuarios/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  }),
-  
-  delete: (id: string) => fetchAPI<{ success: boolean }>(`/usuarios/${id}`, {
-    method: 'DELETE',
-  }),
-};
-
-/**
- * API de Prestadores
- */
-export const prestadoresAPI = {
-  getAll: () => fetchAPI<any[]>('/prestadores'),
-  
-  getById: (id: string) => fetchAPI<any>(`/prestadores/${id}`),
-  
-  create: (data: any) => fetchAPI<any>('/prestadores', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
-  
-  update: (id: string, data: any) => fetchAPI<any>(`/prestadores/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  }),
-  
-  delete: (id: string) => fetchAPI<{ success: boolean }>(`/prestadores/${id}`, {
-    method: 'DELETE',
-  }),
-
-  approve: (id: string) => prestadoresAPI.update(id, { aprovado: true }),
-  
-  reject: (id: string) => prestadoresAPI.update(id, { aprovado: false }),
-};
-
-/**
- * API de Produtos
+ * API de Produtos (Supabase)
  */
 export const produtosAPI = {
-  getAll: () => fetchAPI<any[]>('/produtos'),
+  getAll: async () => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('active', true)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Erro ao buscar produtos:', error);
+      return [];
+    }
+    return data || [];
+  },
   
-  getById: (id: string) => fetchAPI<any>(`/produtos/${id}`),
+  getById: async (id: string) => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      console.error('Erro ao buscar produto:', error);
+      return null;
+    }
+    return data;
+  },
   
-  create: (data: any) => fetchAPI<any>('/produtos', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
+  create: async (data: any) => {
+    const { data: result, error } = await supabase
+      .from('products')
+      .insert([data])
+      .select();
+    
+    if (error) throw error;
+    return result[0];
+  },
   
-  update: (id: string, data: any) => fetchAPI<any>(`/produtos/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  }),
+  update: async (id: string, data: any) => {
+    const { data: result, error } = await supabase
+      .from('products')
+      .update(data)
+      .eq('id', id)
+      .select();
+    
+    if (error) throw error;
+    return result[0];
+  },
   
-  delete: (id: string) => fetchAPI<{ success: boolean }>(`/produtos/${id}`, {
-    method: 'DELETE',
-  }),
+  delete: async (id: string) => {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    return { success: true };
+  },
 };
 
 /**
- * API de Autenticação
+ * API de Categorias (Supabase)
+ */
+export const categoriasAPI = {
+  getAll: async () => {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('name');
+    
+    if (error) {
+      console.error('Erro ao buscar categorias:', error);
+      return [];
+    }
+    return data || [];
+  }
+};
+
+/**
+ * API de Autenticação (Supabase)
  */
 export const authAPI = {
   login: async (email: string, password: string) => {
-    if (USE_LOCAL_STORAGE) {
-      // Simulação de login
-      if (email === '3dk.print.br@gmail.com' && password === '1A9B8Z5X') {
-        const token = 'mock_token_' + Date.now();
-        localStorage.setItem('auth_token', token);
-        localStorage.setItem('admin_authenticated', 'true');
-        localStorage.setItem('admin_user', JSON.stringify({ email, role: 'admin' }));
-        return { success: true, token, user: { email, role: 'admin' } };
-      }
-      throw new Error('Credenciais inválidas');
-    }
-
-    return fetchAPI<any>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
+    
+    if (error) {
+      // Fallback para login admin estático se o Supabase não estiver configurado
+      if (email === '3dk.print.br@gmail.com' && password === '1A9B8Z5X') {
+        return { success: true, user: { email, role: 'admin' } };
+      }
+      throw error;
+    }
+    return { success: true, user: data.user, session: data.session };
   },
-
-  logout: () => {
+  
+  logout: async () => {
+    const { error } = await supabase.auth.signOut();
     localStorage.removeItem('auth_token');
-    localStorage.removeItem('admin_authenticated');
-    localStorage.removeItem('admin_user');
-    return Promise.resolve({ success: true });
+    if (error) throw error;
+    return { success: true };
   },
+  
+  checkAuth: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return { authenticated: !!session, session };
+  }
+};
 
-  checkAuth: () => {
-    const token = localStorage.getItem('auth_token');
-    const isAuthenticated = localStorage.getItem('admin_authenticated') === 'true';
-    return Promise.resolve({ authenticated: isAuthenticated, token });
+/**
+ * API de Orçamentos (Simulada ou Supabase)
+ */
+export const orcamentosAPI = {
+  getAll: async () => {
+    const { data, error } = await supabase.from('orders').select('*');
+    return error ? [] : data;
   },
+  create: async (data: any) => {
+    const { data: result, error } = await supabase
+      .from('orders')
+      .insert([data])
+      .select();
+    
+    if (error) {
+      const orders = JSON.parse(localStorage.getItem('orcamentos') || '[]');
+      orders.push({ ...data, id: Date.now().toString(), createdAt: new Date().toISOString() });
+      localStorage.setItem('orcamentos', JSON.stringify(orders));
+      return { success: true };
+    }
+    return result[0];
+  },
+  updateStatus: async (id: string, status: string) => {
+    const { error } = await supabase.from('orders').update({ status }).eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase.from('orders').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  }
 };
 
 /**
@@ -279,19 +154,14 @@ export const authAPI = {
  */
 export const statsAPI = {
   getDashboard: async () => {
-    const orcamentos = await orcamentosAPI.getAll();
-    const usuarios = await usuariosAPI.getAll();
-    const prestadores = await prestadoresAPI.getAll();
-    const produtos = await produtosAPI.getAll();
-
+    const products = await produtosAPI.getAll();
+    const orders = await orcamentosAPI.getAll();
+    
     return {
-      totalOrcamentos: orcamentos.length,
-      orcamentosPendentes: orcamentos.filter((o: any) => o.status === 'pendente').length,
-      totalUsuarios: usuarios.length,
-      totalPrestadores: prestadores.length,
-      prestadoresPendentes: prestadores.filter((p: any) => !p.aprovado).length,
-      totalProdutos: produtos.length,
-      receitaTotal: orcamentos
+      totalOrcamentos: orders.length,
+      orcamentosPendentes: orders.filter((o: any) => o.status === 'pendente').length,
+      totalProdutos: products.length,
+      receitaTotal: orders
         .filter((o: any) => o.status === 'aprovado')
         .reduce((sum: number, o: any) => sum + (o.valor || 0), 0),
     };

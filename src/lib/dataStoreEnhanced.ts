@@ -301,38 +301,10 @@ export const dashboardService = {
   },
 };
 
-// Inicializar dados de exemplo (apenas na primeira vez)
+// Inicializar dados de exemplo (limpo para produção)
 export const inicializarDadosExemplo = () => {
   if (!localStorage.getItem('dados_inicializados')) {
-    // Produtos de exemplo
-    const produtosExemplo: Omit<Produto, 'id' | 'createdAt' | 'updatedAt'>[] = [
-      {
-        nome: 'Filamento PLA 1kg',
-        descricao: 'Filamento PLA de alta qualidade',
-        modelo: 'PLA-1KG',
-        marca: 'Generic',
-        categoria: 'Filamento',
-        unidade: 'UN',
-        valorCusto: 45.00,
-        valorVenda: 89.90,
-        estoque: 50,
-        estoqueMinimo: 10,
-      },
-      {
-        nome: 'Resina Standard 1L',
-        descricao: 'Resina fotopolimerizável padrão',
-        modelo: 'RES-STD-1L',
-        marca: 'Anycubic',
-        categoria: 'Resina',
-        unidade: 'UN',
-        valorCusto: 80.00,
-        valorVenda: 149.90,
-        estoque: 30,
-        estoqueMinimo: 5,
-      },
-    ];
-
-    produtosExemplo.forEach(p => produtoService.create(p));
+    // Não adiciona produtos iniciais para permitir limpeza completa
     localStorage.setItem('dados_inicializados', 'true');
   }
 };
