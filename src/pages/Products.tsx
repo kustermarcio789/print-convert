@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Filter, Star, ShoppingCart, Eye, ChevronDown } from 'lucide-react';
+import { Search, Filter, Star, ShoppingCart, Eye, ChevronDown, Package } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,6 @@ import { produtosAPI, categoriasAPI } from '@/lib/apiClient';
 export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('relevance');
   const [showFilters, setShowFilters] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
@@ -30,6 +29,8 @@ export default function ProductsPage() {
         setCategories(allCategories || []);
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
+        setProducts([]);
+        setCategories([]);
       } finally {
         setLoading(false);
       }
@@ -37,9 +38,13 @@ export default function ProductsPage() {
     loadData();
   }, []);
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (product.brand && product.brand.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredProducts = (products || []).filter((product) => {
+    if (!product) return false;
+    const productName = product.name || '';
+    const productBrand = product.brand || '';
+    
+    const matchesSearch = productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         productBrand.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesCategory = selectedCategory === 'all' || 
                            product.category_id === selectedCategory ||
@@ -48,11 +53,10 @@ export default function ProductsPage() {
     return matchesSearch && matchesCategory;
   });
 
-  // Ordenação
   const sortedProducts = [...filteredProducts].sort((a, b) => {
-    if (sortBy === 'price-asc') return a.price - b.price;
-    if (sortBy === 'price-desc') return b.price - a.price;
-    if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    if (sortBy === 'price-asc') return (a.price || 0) - (b.price || 0);
+    if (sortBy === 'price-desc') return (b.price || 0) - (a.price || 0);
+    if (sortBy === 'newest') return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
     return 0;
   });
@@ -137,7 +141,7 @@ export default function ProductsPage() {
                     >
                       Todas as Categorias
                     </button>
-                    {categories.map((category) => (
+                    {(categories || []).map((category) => (
                       <button
                         key={category.id}
                         onClick={() => setSelectedCategory(category.id)}
@@ -216,13 +220,8 @@ export default function ProductsPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex flex-col">
                             <span className="text-xl font-bold text-gray-900">
-                              R$ {Number(product.price).toFixed(2).replace('.', ',')}
+                              R$ {Number(product.price || 0).toFixed(2).replace('.', ',')}
                             </span>
-                            {product.original_price > 0 && (
-                              <span className="text-xs text-muted-foreground line-through">
-                                R$ {Number(product.original_price).toFixed(2).replace('.', ',')}
-                              </span>
-                            )}
                           </div>
                           <Link to={`/produtos/${product.id}`} className="bg-accent text-accent-foreground p-2 rounded-lg hover:bg-accent/90 transition-colors">
                             <ShoppingCart className="h-5 w-5" />
@@ -235,7 +234,7 @@ export default function ProductsPage() {
               ) : (
                 <div className="text-center py-20 bg-white rounded-xl border border-dashed border-border">
                   <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-                  <p className="text-muted-foreground font-medium">Nenhum produto encontrado com os filtros selecionados.</p>
+                  <p className="text-muted-foreground font-medium">Ainda não há produtos cadastrados.</p>
                   <Button variant="link" onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }} className="mt-2 text-accent">
                     Limpar todos os filtros
                   </Button>

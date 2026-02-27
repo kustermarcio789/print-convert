@@ -83,7 +83,7 @@ export default function Community() {
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      const offset = 80; // Compensar o header fixo
+      const offset = 80; 
       const bodyRect = document.body.getBoundingClientRect().top;
       const elementRect = element.getBoundingClientRect().top;
       const elementPosition = elementRect - bodyRect;
@@ -98,7 +98,6 @@ export default function Community() {
 
   return (
     <Layout>
-      {/* Hero */}
       <section className="bg-primary py-20">
         <div className="container-custom">
           <motion.div
@@ -127,7 +126,6 @@ export default function Community() {
         </div>
       </section>
 
-      {/* WhatsApp Groups */}
       <section id="whatsapp-groups" className="section-padding bg-background scroll-mt-20">
         <div className="container-custom">
           <div className="text-center mb-16">
@@ -167,7 +165,6 @@ export default function Community() {
         </div>
       </section>
 
-      {/* Slicers Section */}
       <section id="slicers-section" className="section-padding bg-white scroll-mt-20">
         <div className="container-custom">
           <div className="text-center mb-16">
@@ -187,11 +184,11 @@ export default function Community() {
                 className="bg-white border border-border rounded-2xl p-8 hover:shadow-xl transition-all group relative overflow-hidden"
               >
                 <div className="flex items-center justify-between mb-6">
-                  <div className="w-16 h-16 bg-muted/30 rounded-2xl p-2 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <div className="w-20 h-20 bg-muted/30 rounded-2xl p-3 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <img 
                       src={slicer.logo} 
                       alt={slicer.name} 
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain filter drop-shadow-md"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = 'https://img.icons8.com/color/96/3d-printer.png';
                       }}

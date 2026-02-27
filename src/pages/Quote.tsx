@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Box, Trash2, Layers, Droplets, ArrowRight, Info, AlertCircle } from 'lucide-react';
+import { Upload, Box, Trash2, CheckCircle, Info, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { salvarOrcamento, incrementarOrcamentosUsuario } from '@/lib/dataStore';
 
@@ -28,10 +28,6 @@ interface MaterialInfo {
   description: string;
   priceMultiplier: number;
   colors: { id: string; name: string; hex: string }[];
-  tempMax: string;
-  impactResistance: string;
-  applications: string[];
-  details: string;
 }
 
 const fdmMaterials: MaterialInfo[] = [
@@ -44,10 +40,6 @@ const fdmMaterials: MaterialInfo[] = [
       { id: 'vermelho', name: 'Vermelho', hex: '#DC2626' },
       { id: 'azul', name: 'Azul', hex: '#2563EB' },
     ],
-    tempMax: '~60°C',
-    impactResistance: 'Baixa',
-    applications: ['Prototipagem rápida', 'Peças decorativas'],
-    details: 'PLA é o material mais comum, ideal para protótipos visuais.',
   },
   {
     id: 'petg', name: 'PETG', description: 'Resistente e durável',
@@ -57,10 +49,6 @@ const fdmMaterials: MaterialInfo[] = [
       { id: 'branco', name: 'Branco', hex: '#FFFFFF' },
       { id: 'transparente', name: 'Transparente', hex: '#E5E7EB' },
     ],
-    tempMax: '~80°C',
-    impactResistance: 'Média-Alta',
-    applications: ['Peças funcionais', 'Suportes'],
-    details: 'PETG combina a facilidade do PLA com a resistência do ABS.',
   }
 ];
 
@@ -72,16 +60,7 @@ const resinMaterials: MaterialInfo[] = [
       { id: 'cinza', name: 'Cinza', hex: '#6B7280' },
       { id: 'transparente', name: 'Transparente', hex: '#E5E7EB' },
     ],
-    tempMax: '~50°C',
-    impactResistance: 'Baixa',
-    applications: ['Miniaturas', 'Action Figures'],
-    details: 'Ideal para peças que exigem alto nível de detalhamento.',
   }
-];
-
-const finishes = [
-  { id: 'raw', name: 'Bruto (Padrão)', priceAdd: 0 },
-  { id: 'painted', name: 'Pintado', priceAdd: 35 },
 ];
 
 export default function Quote() {
@@ -96,12 +75,8 @@ export default function Quote() {
     email: '',
     phone: '',
     material: '',
-    finish: 'raw',
     quantity: 1,
-    urgency: 'normal',
-    dimensions: '',
     description: '',
-    cep: '',
   });
 
   const [selectedColor, setSelectedColor] = useState('');
@@ -120,9 +95,7 @@ export default function Quote() {
       setFiles([...files, ...newFiles]);
       
       const file = newFiles[0];
-      // Libera URL anterior se existir
       if (modelUrl) URL.revokeObjectURL(modelUrl);
-      
       const url = URL.createObjectURL(file);
       setModelUrl(url);
     }
@@ -149,6 +122,10 @@ export default function Quote() {
     
     setIsSubmitting(true);
     try {
+      // Em um cenário real, você faria o upload para o Supabase Storage aqui
+      // Para este MVP, vamos simular o link com o nome do arquivo
+      const fileLinks = files.map(f => `https://3dkprint.com.br/files/${f.name}`);
+
       await salvarOrcamento({
         tipo: 'impressao',
         cliente: formData.name || 'Cliente Site',
@@ -160,11 +137,13 @@ export default function Quote() {
           cor: selectedColor,
           quantidade: formData.quantity,
           descricao: formData.description,
+          arquivos: fileLinks, // Enviando os links dos arquivos para o Admin
         },
       });
       await incrementarOrcamentosUsuario(formData.email);
       navigate('/orcamento-sucesso');
     } catch (error) {
+      console.error('Erro ao enviar orçamento:', error);
       toast({ title: "Erro", description: "Falha ao enviar orçamento.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
@@ -212,6 +191,7 @@ export default function Quote() {
                         alt="Preview 3D"
                         auto-rotate
                         camera-controls
+                        shadow-intensity="1"
                         style={{ width: '100%', height: '100%' }}
                       ></model-viewer>
                     ) : (
@@ -258,8 +238,14 @@ export default function Quote() {
               <div className="card-elevated p-6">
                 <h2 className="text-xl font-semibold mb-4">3. Seus Dados</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input placeholder="Seu Nome" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-                  <Input type="email" placeholder="Seu E-mail" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                  <div className="space-y-2">
+                    <Label>Nome</Label>
+                    <Input placeholder="Seu Nome" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>E-mail</Label>
+                    <Input type="email" placeholder="Seu E-mail" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                  </div>
                 </div>
                 <Button onClick={handleSubmit} className="w-full mt-6 bg-accent text-white" disabled={isSubmitting}>
                   {isSubmitting ? 'Enviando...' : 'Enviar Pedido de Orçamento'}
