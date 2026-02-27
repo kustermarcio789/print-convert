@@ -169,6 +169,7 @@ export default function QuotePage() {
   });
   const [estimate, setEstimate] = useState<number | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentMaterials = category === 'fdm' ? fdmMaterials : category === 'resina' ? resinaMaterials : [];
   const selectedMaterial = currentMaterials.find(m => m.id === formData.material);
@@ -215,40 +216,57 @@ export default function QuotePage() {
     }, 1500);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.material || !category) {
       toast({ title: "Campos obrigatórios", description: "Por favor, preencha todos os campos obrigatórios.", variant: "destructive" });
       return;
     }
     
-    // Salvar orçamento no sistema
-    const orcamentoId = salvarOrcamento({
-      tipo: 'impressao',
-      cliente: formData.name,
-      email: formData.email,
-      telefone: formData.phone || 'Não informado',
-      detalhes: {
-        categoria: category,
-        material: formData.material,
-        cor: formData.color,
-        quantidade: formData.quantity,
-        infill: formData.infill,
-        acabamento: formData.finish,
-        urgencia: formData.urgency,
-        observacoes: formData.notes,
-        arquivo: formData.file?.name,
-        estimativa: estimate,
-      },
-    });
-    
-    // Incrementar contador de orçamentos do usuário
-    incrementarOrcamentosUsuario(formData.email);
-    
-    toast({ 
-      title: "Orçamento enviado!", 
-      description: `Seu orçamento #${orcamentoId} foi registrado. Em breve entraremos em contato com o valor final.` 
-    });
+    setIsSubmitting(true);
+    try {
+      // Salvar orçamento no sistema (Supabase via dataStore)
+      const orcamentoId = await salvarOrcamento({
+        tipo: 'impressao',
+        cliente: formData.name,
+        email: formData.email,
+        telefone: formData.phone || 'Não informado',
+        detalhes: {
+          categoria: category,
+          material: formData.material,
+          cor: selectedColor,
+          quantidade: formData.quantity,
+          acabamento: formData.finish,
+          urgencia: formData.urgency,
+          dimensoes: formData.dimensions,
+          descricao: formData.description,
+          cep: formData.cep,
+          estimativa: estimate,
+        },
+      });
+      
+      // Incrementar contador de orçamentos do usuário
+      await incrementarOrcamentosUsuario(formData.email);
+      
+      toast({ 
+        title: "Orçamento enviado!", 
+        description: `Seu orçamento #${orcamentoId} foi registrado. Em breve entraremos em contato com o valor final.` 
+      });
+
+      // Limpar formulário
+      setFormData({
+        name: '', email: '', phone: '', material: '', finish: 'raw',
+        quantity: 1, urgency: 'normal', dimensions: '', description: '', cep: ''
+      });
+      setFiles([]);
+      setCategory('');
+      setEstimate(null);
+    } catch (error) {
+      console.error('Erro ao enviar orçamento:', error);
+      toast({ title: "Erro no envio", description: "Ocorreu um erro ao enviar seu orçamento. Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -300,104 +318,64 @@ export default function QuotePage() {
                 {/* Category Selection */}
                 <div className="card-elevated p-6">
                   <h2 className="text-xl font-semibold text-foreground mb-4">2. Escolha a tecnologia de impressão</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <button
-                      type="button"
-                      onClick={() => handleCategoryChange('fdm')}
-                      className={`p-6 rounded-xl border-2 text-left transition-all ${category === 'fdm' ? 'border-accent bg-accent/5 shadow-md' : 'border-border hover:border-accent/30'}`}
-                    >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button type="button" onClick={() => handleCategoryChange('fdm')} className={`p-4 rounded-xl border-2 text-left transition-all ${category === 'fdm' ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/50'}`}>
                       <div className="flex items-center gap-3 mb-2">
-                        <Layers className="w-6 h-6 text-accent" />
-                        <span className="text-lg font-bold text-foreground">Filamento FDM</span>
+                        <Layers className={`w-6 h-6 ${category === 'fdm' ? 'text-accent' : 'text-muted-foreground'}`} />
+                        <span className="font-bold">Filamento FDM</span>
                       </div>
-                      <p className="text-sm text-muted-foreground">Impressão por deposição de filamento. Ideal para peças funcionais, protótipos e objetos de uso diário.</p>
-                      <div className="mt-3 flex flex-wrap gap-1">
-                        {['PLA', 'PETG', 'ABS', 'Tritan', 'Nylon'].map(m => (
-                          <span key={m} className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">{m}</span>
-                        ))}
-                      </div>
+                      <p className="text-xs text-muted-foreground">Ideal para peças funcionais e protótipos.</p>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleCategoryChange('resina')}
-                      className={`p-6 rounded-xl border-2 text-left transition-all ${category === 'resina' ? 'border-accent bg-accent/5 shadow-md' : 'border-border hover:border-accent/30'}`}
-                    >
+                    <button type="button" onClick={() => handleCategoryChange('resina')} className={`p-4 rounded-xl border-2 text-left transition-all ${category === 'resina' ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/50'}`}>
                       <div className="flex items-center gap-3 mb-2">
-                        <Droplets className="w-6 h-6 text-accent" />
-                        <span className="text-lg font-bold text-foreground">Resina UV</span>
+                        <Droplets className={`w-6 h-6 ${category === 'resina' ? 'text-accent' : 'text-muted-foreground'}`} />
+                        <span className="font-bold">Resina UV</span>
                       </div>
-                      <p className="text-sm text-muted-foreground">Impressão por cura de resina UV (SLA/DLP/LCD). Alta resolução e detalhes finos.</p>
-                      <div className="mt-3 flex flex-wrap gap-1">
-                        {['Resina Básica', 'ABS-Like'].map(m => (
-                          <span key={m} className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">{m}</span>
-                        ))}
-                      </div>
+                      <p className="text-xs text-muted-foreground">Alta resolução e detalhes finos.</p>
                     </button>
                   </div>
 
-                  {/* Material Selection */}
                   {category && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                      <div>
-                        <Label className="mb-3 block font-semibold">Material *</Label>
-                        <div className="grid grid-cols-1 gap-3">
-                          {currentMaterials.map((material) => (
-                            <button
-                              key={material.id}
-                              type="button"
-                              onClick={() => handleMaterialChange(material.id)}
-                              className={`p-4 rounded-xl border-2 text-left transition-all ${formData.material === material.id ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/30'}`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <span className="font-semibold text-foreground">{material.name}</span>
-                                  <span className="text-sm text-muted-foreground ml-2">— {material.description}</span>
-                                </div>
-                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.material === material.id ? 'border-accent bg-accent' : 'border-border'}`}>
-                                  {formData.material === material.id && <Check className="w-3 h-3 text-accent-foreground" />}
-                                </div>
-                              </div>
-                            </button>
-                          ))}
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-8 space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="md:col-span-2">
+                          <Label className="mb-3 block">Material</Label>
+                          <Select value={formData.material} onValueChange={handleMaterialChange}>
+                            <SelectTrigger><SelectValue placeholder="Selecione o material" /></SelectTrigger>
+                            <SelectContent>
+                              {currentMaterials.map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="mb-3 block">Cor</Label>
+                          <Select value={selectedColor} onValueChange={setSelectedColor}>
+                            <SelectTrigger><SelectValue placeholder="Selecione a cor" /></SelectTrigger>
+                            <SelectContent>
+                              {selectedMaterial?.colors.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full border border-border" style={{ backgroundColor: c.hex }} />
+                                    {c.name}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
 
-                      {/* Color Selection */}
-                      {selectedMaterial && (
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                          <Label className="mb-3 block font-semibold">Cor {selectedColor && `— ${selectedMaterial.colors.find(c => c.id === selectedColor)?.name}`}</Label>
-                          <div className="flex flex-wrap gap-3">
-                            {selectedMaterial.colors.map((color) => (
-                              <button
-                                key={color.id}
-                                type="button"
-                                onClick={() => setSelectedColor(color.id)}
-                                className={`group relative w-10 h-10 rounded-full border-2 transition-all ${selectedColor === color.id ? 'border-accent scale-110 ring-2 ring-accent/30' : 'border-border hover:border-accent/50'}`}
-                                style={{ backgroundColor: color.hex }}
-                                title={color.name}
-                              >
-                                {selectedColor === color.id && (
-                                  <Check className={`w-4 h-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${color.hex === '#FFFFFF' || color.hex === '#F5F5F0' || color.hex === '#E5E7EB' ? 'text-gray-800' : 'text-white'}`} />
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {/* Finish, Quantity, Urgency */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
                           <Label className="mb-3 block">Acabamento</Label>
                           <Select value={formData.finish} onValueChange={(value) => setFormData({ ...formData, finish: value })}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              {finishes.map((finish) => (
-                                <SelectItem key={finish.id} value={finish.id}>
-                                  <div className="flex flex-col">
-                                    <span>{finish.name}</span>
-                                    <span className="text-xs text-muted-foreground">{finish.description}</span>
-                                  </div>
+                              {finishes.map((f) => (
+                                <SelectItem key={f.id} value={f.id}>
+                                  {f.name} {f.priceAdd > 0 && `(+R$ ${f.priceAdd})`}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -457,8 +435,8 @@ export default function QuotePage() {
                   </div>
                 </div>
 
-                <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                  Enviar Orçamento <ArrowRight className="ml-2 h-5 w-5" />
+                <Button type="submit" size="lg" disabled={isSubmitting} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                  {isSubmitting ? 'Enviando...' : 'Enviar Orçamento'} <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </form>
             </motion.div>
