@@ -1,12 +1,12 @@
 import { humanize } from './utils';
-import {'s-u-p-a-b-a-s-e'} from './'s-u-p-a-b-a-s-e'';
+import { supabase } from './supabase';
 
 /**
- * API de'P-r-o-d-u-c-t-s' (Supabase)
+ * API de Produtos (Supabase)
  */
 export const produtosAPI = {
   getAll: async () => {
-    const { data, error } = await's-u-p-a-b-a-s-e'
+    const { data, error } = await supabase
       .from('products')
       .select('*')
       .eq('active', true)
@@ -20,7 +20,7 @@ export const produtosAPI = {
   },
   
   getById: async (id: string | number) => {
-    const { data, error } = await's-u-p-a-b-a-s-e'
+    const { data, error } = await supabase
       .from('products')
       .select('*')
       .eq('id', id)
@@ -34,7 +34,7 @@ export const produtosAPI = {
   },
 
   getByBrand: async (brand: string) => {
-    const { data, error } = await's-u-p-a-b-a-s-e'
+    const { data, error } = await supabase
       .from('products')
       .select('*')
       .ilike('brand', `%${brand}%`)
@@ -49,7 +49,7 @@ export const produtosAPI = {
   },
   
   create: async (data: any) => {
-    const { data: result, error } = await's-u-p-a-b-a-s-e'
+    const { data: result, error } = await supabase
       .from('products')
       .insert([data])
       .select();
@@ -59,7 +59,7 @@ export const produtosAPI = {
   },
   
   update: async (id: string | number, data: any) => {
-    const { data: result, error } = await's-u-p-a-b-a-s-e'
+    const { data: result, error } = await supabase
       .from('products')
       .update(data)
       .eq('id', id)
@@ -70,7 +70,7 @@ export const produtosAPI = {
   },
   
   delete: async (id: string | number) => {
-    const { error } = await's-u-p-a-b-a-s-e'
+    const { error } = await supabase
       .from('products')
       .delete()
       .eq('id', id);
@@ -85,13 +85,13 @@ export const produtosAPI = {
  */
 export const categoriasAPI = {
   getAll: async () => {
-    const { data, error } = await's-u-p-a-b-a-s-e'
+    const { data, error } = await supabase
       .from('categories')
       .select('*')
       .order('name');
     
     if (error) {
-      console.error('Erro ao buscar em-categorias:', error);
+      console.error('Erro ao buscar categorias:', error);
       return [];
     }
     return data || [];
@@ -103,76 +103,291 @@ export const categoriasAPI = {
  */
 export const authAPI = {
   login: async (email, password) => {
-    const { data, error } = await's-u-p-a-b-a-s-e'.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     
     if (error) throw error;
-    return { success: true, theUser: data.user, theSession: data.session };
+    return { success: true, user: data.user, session: data.session };
   },
   
   logout: async () => {
-    const { error } = await's-u-p-a-b-a-s-e'.auth.signOut();
+    const { error } = await supabase.auth.signOut();
     if (error) throw error;
     return { success: true };
   },
   
   checkAuth: async () => {
-    const { data: { session } } = await's-u-p-a-b-a-s-e'.auth.getSession();
-    return { authenticated: !!session, theSession: session };
+    const { data: { session } } = await supabase.auth.getSession();
+    return { authenticated: !!session, session: session };
   }
 };
 
 /**
- * API de Orçamentos (Simulada ou Supabase)
+ * API de Orçamentos (Supabase)
  */
 export const orcamentosAPI = {
   getAll: async () => {
-    const { data, error } = await's-u-p-a-b-a-s-e'.from('orders').select('*');
-    return error ? [] : data;
+    const { data, error } = await supabase.from('orcamentos').select('*');
+    if (error) {
+      console.error('Erro ao buscar orçamentos:', error);
+      return [];
+    }
+    return data || [];
+  },
+  getById: async (id: string) => {
+    const { data, error } = await supabase.from('orcamentos').select('*').eq('id', id).single();
+    if (error) {
+      console.error('Erro ao buscar orçamento:', error);
+      return null;
+    }
+    return data;
   },
   create: async (data: any) => {
-    const { data: result, error } = await's-u-p-a-b-a-s-e'
-      .from('orders')
-      .insert([data])
-      .select();
-    
-    if (error) {
-      const orders = JSON.parse(localStorage.getItem('orcamentos') || '[]');
-      orders.push({ ...data, id: Date.now().toString(), createdAt: new Date().toISOString() });
-      localStorage.setItem('orcamentos', JSON.stringify(orders));
-      return { success: true };
-    }
+    const { data: result, error } = await supabase.from('orcamentos').insert([data]).select();
+    if (error) throw error;
+    return result[0];
+  },
+  update: async (id: string, data: any) => {
+    const { data: result, error } = await supabase.from('orcamentos').update(data).eq('id', id).select();
+    if (error) throw error;
     return result[0];
   },
   updateStatus: async (id: string, status: string) => {
-    const { error } = await's-u-p-a-b-a-s-e'.from('orders').update({ status }).eq('id', id);
+    const { error } = await supabase.from('orcamentos').update({ status }).eq('id', id);
     if (error) throw error;
     return { success: true };
   },
   delete: async (id: string) => {
-    const { error } = await's-u-p-a-b-a-s-e'.from('orders').delete().eq('id', id);
+    const { error } = await supabase.from('orcamentos').delete().eq('id', id);
     if (error) throw error;
     return { success: true };
   }
 };
 
 /**
- * API de Estatisticas
+ * API de Prestadores (Supabase)
  */
-export const statsAPI = {
-  getDashboard: async () => {
-    const products = await produtosAPI.getAll();
-    const orders = await orcamentosAPI.getAll();
-    
+export const prestadoresAPI = {
+  getAll: async () => {
+    const { data, error } = await supabase.from('prestadores').select('*');
+    if (error) {
+      console.error('Erro ao buscar prestadores:', error);
+      return [];
+    }
+    return data || [];
+  },
+  getById: async (id: string) => {
+    const { data, error } = await supabase.from('prestadores').select('*').eq('id', id).single();
+    if (error) {
+      console.error('Erro ao buscar prestador:', error);
+      return null;
+    }
+    return data;
+  },
+  create: async (data: any) => {
+    const { data: result, error } = await supabase.from('prestadores').insert([data]).select();
+    if (error) throw error;
+    return result[0];
+  },
+  update: async (id: string, data: any) => {
+    const { data: result, error } = await supabase.from('prestadores').update(data).eq('id', id).select();
+    if (error) throw error;
+    return result[0];
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase.from('prestadores').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  }
+};
+
+/**
+ * API de Usuários (Supabase)
+ */
+export const usuariosAPI = {
+  getAll: async () => {
+    const { data, error } = await supabase.from('usuarios').select('*');
+    if (error) {
+      console.error('Erro ao buscar usuários:', error);
+      return [];
+    }
+    return data || [];
+  },
+  getById: async (id: string) => {
+    const { data, error } = await supabase.from('usuarios').select('*').eq('id', id).single();
+    if (error) {
+      console.error('Erro ao buscar usuário:', error);
+      return null;
+    }
+    return data;
+  },
+  create: async (data: any) => {
+    const { data: result, error } = await supabase.from('usuarios').insert([data]).select();
+    if (error) throw error;
+    return result[0];
+  },
+  update: async (id: string, data: any) => {
+    const { data: result, error } = await supabase.from('usuarios').update(data).eq('id', id).select();
+    if (error) throw error;
+    return result[0];
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase.from('usuarios').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  }
+};
+
+/**
+ * API de Vendas (Supabase)
+ */
+export const vendasAPI = {
+  getAll: async () => {
+    const { data, error } = await supabase.from('vendas').select('*');
+    if (error) {
+      console.error('Erro ao buscar vendas:', error);
+      return [];
+    }
+    return data || [];
+  },
+  getById: async (id: string) => {
+    const { data, error } = await supabase.from('vendas').select('*').eq('id', id).single();
+    if (error) {
+      console.error('Erro ao buscar venda:', error);
+      return null;
+    }
+    return data;
+  },
+  create: async (data: any) => {
+    const { data: result, error } = await supabase.from('vendas').insert([data]).select();
+    if (error) throw error;
+    return result[0];
+  },
+  update: async (id: string, data: any) => {
+    const { data: result, error } = await supabase.from('vendas').update(data).eq('id', id).select();
+    if (error) throw error;
+    return result[0];
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase.from('vendas').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  }
+};
+
+/**
+ * API de Estoque (Supabase)
+ */
+export const estoqueAPI = {
+  getAll: async () => {
+    const { data, error } = await supabase.from('estoque').select('*');
+    if (error) {
+      console.error('Erro ao buscar estoque:', error);
+      return [];
+    }
+    return data || [];
+  },
+  getById: async (id: string) => {
+    const { data, error } = await supabase.from('estoque').select('*').eq('id', id).single();
+    if (error) {
+      console.error('Erro ao buscar item de estoque:', error);
+      return null;
+    }
+    return data;
+  },
+  create: async (data: any) => {
+    const { data: result, error } = await supabase.from('estoque').insert([data]).select();
+    if (error) throw error;
+    return result[0];
+  },
+  update: async (id: string, data: any) => {
+    const { data: result, error } = await supabase.from('estoque').update(data).eq('id', id).select();
+    if (error) throw error;
+    return result[0];
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase.from('estoque').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  }
+};
+
+/**
+ * API de Produção (Supabase)
+ */
+export const producaoAPI = {
+  getAll: async () => {
+    const { data, error } = await supabase.from('producao').select('*');
+    if (error) {
+      console.error('Erro ao buscar produções:', error);
+      return [];
+    }
+    return data || [];
+  },
+  getById: async (id: string) => {
+    const { data, error } = await supabase.from('producao').select('*').eq('id', id).single();
+    if (error) {
+      console.error('Erro ao buscar produção:', error);
+      return null;
+    }
+    return data;
+  },
+  create: async (data: any) => {
+    const { data: result, error } = await supabase.from('producao').insert([data]).select();
+    if (error) throw error;
+    return result[0];
+  },
+  update: async (id: string, data: any) => {
+    const { data: result, error } = await supabase.from('producao').update(data).eq('id', id).select();
+    if (error) throw error;
+    return result[0];
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase.from('producao').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  }
+};
+
+/**
+ * API de Relatórios (Supabase)
+ */
+export const relatoriosAPI = {
+  getSummary: async (periodo: string) => {
+    // Esta é uma implementação simplificada. Em um cenário real, você faria consultas mais complexas
+    // para agregar dados de vendas, orçamentos e produção com base no período.
+    const { data: vendasData, error: vendasError } = await supabase.from('vendas').select('*');
+    const { data: orcamentosData, error: orcamentosError } = await supabase.from('orcamentos').select('*');
+    const { data: producaoData, error: producaoError } = await supabase.from('producao').select('*');
+
+    if (vendasError || orcamentosError || producaoError) {
+      console.error('Erro ao buscar dados para relatórios:', vendasError || orcamentosError || producaoError);
+      return null;
+    }
+
+    const totalVendas = vendasData?.reduce((sum: number, venda: any) => sum + (venda.valor_total || 0), 0) || 0;
+    const totalOrcamentos = orcamentosData?.length || 0;
+    const totalProducao = producaoData?.length || 0;
+
+    // Exemplo de dados para gráficos (precisaria de lógica real de agregação)
+    const vendasPorMes = [
+      { mes: 'Jan', valor: 1200 }, { mes: 'Fev', valor: 1900 }, { mes: 'Mar', valor: 1500 },
+      { mes: 'Abr', valor: 2200 }, { mes: 'Mai', valor: 2500 }, { mes: 'Jun', valor: 1800 },
+    ];
+    const statusOrcamentos = [
+      { status: 'pendente', count: orcamentosData?.filter((o: any) => o.status === 'pendente').length || 0 },
+      { status: 'aprovado', count: orcamentosData?.filter((o: any) => o.status === 'aprovado').length || 0 },
+      { status: 'recusado', count: orcamentosData?.filter((o: any) => o.status === 'recusado').length || 0 },
+    ];
+
     return {
-      totalOrcamentos: orders.length,
-      orcamentosPendentes: orders.filter((o: any) => o.status === 'pendente').length,        
-      totalProdutos: products.length,
-      receitaTotal: orders
-        .filter((o: any) => o.status === 'aprovado')
-        .reduce((sum: number, o: any) => sum + (o.valor || 0), 0),
+      totalVendas,
+      totalOrcamentos,
+      totalProducao,
+      vendasPorMes,
+      statusOrcamentos,
     };
   },
 };
