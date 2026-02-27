@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquare, Download, Users, ExternalLink, Globe, Zap } from 'lucide-react';
+import { MessageSquare, Download, Users, ExternalLink, Globe, Zap, ArrowRight } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 
@@ -35,7 +35,7 @@ const slicers = [
     type: 'FDM',
     description: 'Desenvolvido pela Prusa Research. Referência em qualidade e suporte a múltiplas marcas.',
     download: 'https://www.prusa3d.com/page/prusaslicer_424/',
-    logo: '/assets/slicers/prusa.png',
+    logo: 'https://img.icons8.com/color/96/3d-printer.png',
   },
   {
     name: 'OrcaSlicer',
@@ -43,7 +43,7 @@ const slicers = [
     type: 'FDM',
     description: 'Fork moderno do PrusaSlicer com otimizações para ultra-velocidade e calibrações integradas.',
     download: 'https://github.com/SoftFever/OrcaSlicer/releases',
-    logo: '/assets/slicers/orca.png',
+    logo: 'https://img.icons8.com/color/96/whale.png',
   },
   {
     name: 'UltiMaker Cura',
@@ -51,7 +51,7 @@ const slicers = [
     type: 'FDM',
     description: 'O fatiador mais popular do mundo. Gratuito, código aberto e com centenas de plugins.',
     download: 'https://ultimaker.com/software/ultimaker-cura',
-    logo: '/assets/slicers/cura.png',
+    logo: 'https://img.icons8.com/color/96/cube.png',
   },
   {
     name: 'Bambu Studio',
@@ -83,7 +83,16 @@ export default function Community() {
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      const offset = 80; // Compensar o header fixo
+      const bodyRect = document.body.getBoundingClientRect().top;
+      const elementRect = element.getBoundingClientRect().top;
+      const elementPosition = elementRect - bodyRect;
+      const offsetPosition = elementPosition - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
     }
   };
 
@@ -119,7 +128,7 @@ export default function Community() {
       </section>
 
       {/* WhatsApp Groups */}
-      <section id="whatsapp-groups" className="section-padding bg-background">
+      <section id="whatsapp-groups" className="section-padding bg-background scroll-mt-20">
         <div className="container-custom">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-foreground mb-4">Grupos de WhatsApp</h2>
@@ -159,7 +168,7 @@ export default function Community() {
       </section>
 
       {/* Slicers Section */}
-      <section id="slicers-section" className="section-padding bg-white">
+      <section id="slicers-section" className="section-padding bg-white scroll-mt-20">
         <div className="container-custom">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-foreground mb-4">Fatiadores Recomendados</h2>
@@ -219,29 +228,13 @@ export default function Community() {
           <p className="text-xl opacity-90 mb-10 max-w-2xl mx-auto">
             Se você criou um tutorial, perfil de fatiador ou macro de Klipper e quer compartilhar com a comunidade, entre em contato conosco!
           </p>
-          <Button size="lg" variant="outline" className="bg-transparent border-accent-foreground text-accent-foreground hover:bg-accent-foreground hover:text-accent">
-            Enviar Conteúdo <Globe className="ml-2 h-5 w-5" />
+          <Button asChild size="lg" variant="outline" className="bg-transparent border-accent-foreground text-accent-foreground hover:bg-accent-foreground hover:text-accent">
+            <a href="https://wa.me/5543991741518" target="_blank" rel="noopener noreferrer">
+              Enviar Conteúdo <Globe className="ml-2 h-5 w-5" />
+            </a>
           </Button>
         </div>
       </section>
     </Layout>
   );
 }
-
-const ArrowRight = ({ className }: { className?: string }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width="24" 
-    height="24" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <path d="M5 12h14" />
-    <path d="m12 5 7 7-7 7" />
-  </svg>
-);
