@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquare, Download, Users, ExternalLink, Globe, Heart, Shield, Zap } from 'lucide-react';
+import { MessageSquare, Download, Users, ExternalLink, Globe, Zap } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 
@@ -30,46 +30,46 @@ const groups = [
 
 const slicers = [
   {
-    name: 'UltiMaker Cura',
-    type: 'FDM',
-    description: 'O fatiador mais popular do mundo. Gratuito, código aberto e com centenas de plugins disponíveis.',
-    download: 'https://ultimaker.com/software/ultimaker-cura',
-    logo: '🔵',
-  },
-  {
     name: 'PrusaSlicer',
     type: 'FDM',
-    description: 'Desenvolvido pela Prusa Research. Excelente qualidade de impressão e suporte a múltiplas marcas de impressoras.',
-    download: 'https://www.prusa3d.com/en/page/prusaslicer_3d_printing_software/',
-    logo: '🟠',
+    description: 'Desenvolvido pela Prusa Research. Referência em qualidade e suporte a múltiplas marcas.',
+    download: 'https://www.prusa3d.com/page/prusaslicer_424/',
+    logo: '/assets/slicers/prusa.png',
   },
   {
     name: 'OrcaSlicer',
     type: 'FDM',
-    description: 'Fork moderno do PrusaSlicer com otimizações para ultra-velocidade. Padrão para Bambu Lab e Voron.',
+    description: 'Fork moderno do PrusaSlicer com otimizações para ultra-velocidade e calibrações integradas.',
     download: 'https://github.com/SoftFever/OrcaSlicer/releases',
-    logo: '🐋',
+    logo: '/assets/slicers/orca.png',
+  },
+  {
+    name: 'UltiMaker Cura',
+    type: 'FDM',
+    description: 'O fatiador mais popular do mundo. Gratuito, código aberto e com centenas de plugins.',
+    download: 'https://ultimaker.com/software/ultimaker-cura',
+    logo: '/assets/slicers/cura.png',
   },
   {
     name: 'Bambu Studio',
     type: 'FDM',
-    description: 'Fatiador oficial da Bambu Lab. Otimizado para impressoras de ultra-velocidade com suporte a multi-cores.',
+    description: 'Fatiador oficial da Bambu Lab. Otimizado para ultra-velocidade e multi-cores.',
     download: 'https://bambulab.com/en/download/studio',
-    logo: '🟢',
+    logo: 'https://img.icons8.com/color/96/panda.png',
   },
   {
     name: 'Lychee Slicer',
     type: 'Resina',
-    description: 'O melhor fatiador para impressoras de resina. Interface 3D intuitiva e suporte a todos os modelos populares.',
-    download: 'https://www.lychee3d.com/en/',
-    logo: '💜',
+    description: 'O melhor fatiador para resina. Interface intuitiva e suportes automáticos inteligentes.',
+    download: 'https://mango3d.io/lychee-slicer-for-sla-3d-printers/',
+    logo: 'https://img.icons8.com/color/96/fruit.png',
   },
   {
     name: 'ChituBox',
     type: 'Resina',
-    description: 'Fatiador gratuito para impressoras de resina. Compatível com Anycubic, Elegoo, Creality e outras marcas.',
-    download: 'https://www.chitubox.com/en/',
-    logo: '🟣',
+    description: 'Padrão da indústria para impressoras de resina. Compatível com as principais marcas.',
+    download: 'https://www.chitubox.com/en/download/chitubox-free',
+    logo: 'https://img.icons8.com/color/96/box.png',
   },
 ];
 
@@ -122,7 +122,7 @@ export default function Community() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="card-elevated p-8 flex flex-col h-full"
+                className="card-elevated p-8 flex flex-col h-full bg-white border border-border"
               >
                 <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center text-accent mb-6">
                   {group.icon}
@@ -146,7 +146,7 @@ export default function Community() {
       </section>
 
       {/* Slicers Section */}
-      <section className="section-padding bg-muted/30">
+      <section className="section-padding bg-white">
         <div className="container-custom">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-foreground mb-4">Fatiadores Recomendados</h2>
@@ -155,30 +155,39 @@ export default function Community() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {slicers.map((slicer, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.05 }}
-                className="bg-background border border-border rounded-2xl p-6 hover:shadow-lg transition-all group"
+                className="bg-white border border-border rounded-2xl p-8 hover:shadow-xl transition-all group relative overflow-hidden"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-4xl">{slicer.logo}</span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    slicer.type === 'FDM' ? 'bg-blue-500/10 text-blue-500' : 'bg-purple-500/10 text-purple-500'
+                <div className="flex items-center justify-between mb-6">
+                  <div className="w-16 h-16 bg-muted/30 rounded-2xl p-2 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <img 
+                      src={slicer.logo} 
+                      alt={slicer.name} 
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://img.icons8.com/color/96/3d-printer.png';
+                      }}
+                    />
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase ${
+                    slicer.type === 'FDM' ? 'bg-blue-500/10 text-blue-600' : 'bg-purple-500/10 text-purple-600'
                   }`}>
                     {slicer.type}
                   </span>
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-2">{slicer.name}</h3>
-                <p className="text-sm text-muted-foreground mb-6 line-clamp-2">
+                <h3 className="text-xl font-bold text-foreground mb-3">{slicer.name}</h3>
+                <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
                   {slicer.description}
                 </p>
-                <Button asChild className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
+                <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-300 font-semibold py-6">
                   <a href={slicer.download} target="_blank" rel="noopener noreferrer">
-                    Download <Download className="ml-2 h-4 w-4" />
+                    Download Software <Download className="ml-2 h-4 w-4" />
                   </a>
                 </Button>
               </motion.div>
