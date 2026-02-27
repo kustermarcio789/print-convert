@@ -154,3 +154,14 @@ export const inicializarDadosExemplo = () => {
     localStorage.setItem('3dkprint_dados_inicializados', 'true');
   }
 };
+
+export const getUsuarioByEmail = async (email: string): Promise<Usuario | null> => {
+  try {
+    const usuarios = await usuariosAPI.getAll();
+    return usuarios.find(u => u.email === email) || null;
+  } catch (error) {
+    console.error('Erro ao buscar usuário por e-mail:', error);
+    const usuarios = getUsuarios();
+    return usuarios.find(u => u.email === email) || null;
+  }
+};

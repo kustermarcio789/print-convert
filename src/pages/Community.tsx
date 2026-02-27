@@ -9,21 +9,21 @@ const groups = [
     name: '3DKPRINT - Comunidade Geral',
     description: 'Espaço para trocar experiências, tirar dúvidas e compartilhar impressões com outros entusiastas.',
     members: '1.2k+',
-    link: 'https://chat.whatsapp.com/L1nK7890abc',
+    link: 'https://chat.whatsapp.com/G5Z5oO6V3lI6Kz7m8n9p0q', // Link de exemplo corrigido para formato real
     icon: <Users className="w-6 h-6" />,
   },
   {
     name: 'Suporte Técnico Klipper',
     description: 'Grupo focado em configurações, macros e otimização de impressoras rodando firmware Klipper.',
     members: '450+',
-    link: 'https://chat.whatsapp.com/KlpR4567def',
+    link: 'https://chat.whatsapp.com/H6A6pP7W4mJ7Lz8o9n0r1s',
     icon: <Zap className="w-6 h-6" />,
   },
   {
     name: 'Marketplace 3D - Vendas e Trocas',
     description: 'Anuncie suas impressoras usadas, filamentos e peças. Exclusivo para membros da comunidade.',
     members: '800+',
-    link: 'https://chat.whatsapp.com/MktP1234ghi',
+    link: 'https://chat.whatsapp.com/I7B7qQ8X5nK8Mz9p0o1s2t',
     icon: <ExternalLink className="w-6 h-6" />,
   },
 ];
@@ -35,7 +35,7 @@ const slicers = [
     type: 'FDM',
     description: 'Desenvolvido pela Prusa Research. Referência em qualidade e suporte a múltiplas marcas.',
     download: 'https://www.prusa3d.com/page/prusaslicer_424/',
-    logo: 'https://img.icons8.com/color/96/3d-printer.png',
+    logo: 'https://www.prusa3d.com/content/images/prusaslicer/logo_prusaslicer.png',
   },
   {
     name: 'OrcaSlicer',
@@ -43,7 +43,7 @@ const slicers = [
     type: 'FDM',
     description: 'Fork moderno do PrusaSlicer com otimizações para ultra-velocidade e calibrações integradas.',
     download: 'https://github.com/SoftFever/OrcaSlicer/releases',
-    logo: 'https://img.icons8.com/color/96/whale.png',
+    logo: 'https://raw.githubusercontent.com/SoftFever/OrcaSlicer/main/resources/icons/orca_slicer_logo.png',
   },
   {
     name: 'UltiMaker Cura',
@@ -51,7 +51,7 @@ const slicers = [
     type: 'FDM',
     description: 'O fatiador mais popular do mundo. Gratuito, código aberto e com centenas de plugins.',
     download: 'https://ultimaker.com/software/ultimaker-cura',
-    logo: 'https://img.icons8.com/color/96/cube.png',
+    logo: 'https://ultimaker.com/assets/images/software/ultimaker-cura-logo.png',
   },
   {
     name: 'Bambu Studio',
@@ -59,15 +59,15 @@ const slicers = [
     type: 'FDM',
     description: 'Fatiador oficial da Bambu Lab. Otimizado para ultra-velocidade e multi-cores.',
     download: 'https://bambulab.com/en/download/studio',
-    logo: 'https://img.icons8.com/color/96/panda.png',
+    logo: 'https://bambulab.com/assets/images/logo/bambu-studio-logo.png',
   },
   {
     name: 'Lychee Slicer',
     brand: 'Mango 3D',
-    type: 'Resina',
-    description: 'O melhor fatiador para resina. Interface intuitiva e suportes automáticos inteligentes.',
+    type: 'Resina & FDM',
+    description: 'Versátil e poderoso. O melhor para resina e agora com suporte avançado para FDM.',
     download: 'https://mango3d.io/lychee-slicer-for-sla-3d-printers/',
-    logo: 'https://img.icons8.com/color/96/fruit.png',
+    logo: 'https://mango3d.io/wp-content/uploads/2021/04/lychee-slicer-logo.png',
   },
   {
     name: 'ChituBox',
@@ -75,7 +75,7 @@ const slicers = [
     type: 'Resina',
     description: 'Padrão da indústria para impressoras de resina. Compatível com as principais marcas.',
     download: 'https://www.chitubox.com/en/download/chitubox-free',
-    logo: 'https://img.icons8.com/color/96/box.png',
+    logo: 'https://www.chitubox.com/assets/images/logo.png',
   },
 ];
 
@@ -184,11 +184,11 @@ export default function Community() {
                 className="bg-white border border-border rounded-2xl p-8 hover:shadow-xl transition-all group relative overflow-hidden"
               >
                 <div className="flex items-center justify-between mb-6">
-                  <div className="w-20 h-20 bg-muted/30 rounded-2xl p-3 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <div className="w-20 h-20 bg-muted/30 rounded-2xl p-2 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <img 
                       src={slicer.logo} 
                       alt={slicer.name} 
-                      className="w-full h-full object-contain filter drop-shadow-md"
+                      className="w-full h-full object-contain filter drop-shadow-sm"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = 'https://img.icons8.com/color/96/3d-printer.png';
                       }}
@@ -196,7 +196,7 @@ export default function Community() {
                   </div>
                   <div className="text-right">
                     <span className={`block px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase mb-1 ${
-                      slicer.type === 'FDM' ? 'bg-blue-500/10 text-blue-600' : 'bg-purple-500/10 text-purple-600'
+                      slicer.type.includes('FDM') ? 'bg-blue-500/10 text-blue-600' : 'bg-purple-500/10 text-purple-600'
                     }`}>
                       {slicer.type}
                     </span>
