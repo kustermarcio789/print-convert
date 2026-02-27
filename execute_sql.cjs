@@ -1,3 +1,12 @@
+const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+const sql = `
 -- Tabela de Leads
 CREATE TABLE IF NOT EXISTS leads (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -33,3 +42,23 @@ DROP POLICY IF EXISTS "Leitura pública de traffic" ON traffic;
 CREATE POLICY "Leitura pública de traffic" ON traffic FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Escrita para autenticados em traffic" ON traffic;
 CREATE POLICY "Escrita para autenticados em traffic" ON traffic FOR ALL USING (true);
+`;
+
+async function run() {
+  console.log("Tentando executar SQL no Supabase...");
+  // Nota: RPC 'exec_sql' é uma função personalizada que geralmente não existe por padrão.
+  // Vamos tentar via query direta se possível ou informar o usuário.
+  const { data, error } = await supabase.rpc('exec_sql', { sql_query: sql });
+
+  if (error) {
+    console.error("Erro ao executar SQL via RPC:", error.message);
+    console.log("\n--- INSTRUÇÕES PARA EXECUÇÃO MANUAL ---");
+    console.log("A chave 'anon' não tem permissão para criar tabelas diretamente.");
+    console.log("Por favor, copie o SQL acima e cole no SQL Editor do seu painel Supabase.");
+    console.log("----------------------------------------\n");
+  } else {
+    console.log("SQL executado com sucesso!");
+  }
+}
+
+run();
