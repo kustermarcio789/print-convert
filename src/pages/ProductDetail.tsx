@@ -18,18 +18,21 @@ export default function ProductDetail() {
 
   useEffect(() => {
     const fetchProduct = async () => {
-    const foundProduct = await produtosAPI.getById(id as string);
-    
-    if (foundProduct) {
-      setProduct(foundProduct);
-    } else {
-      // Redirecionar se o produto não for encontrado
-      // navigate('/produtos');
-    }
-
-    // Carregar model-viewer
-    import('@google/model-viewer');
-      };
+      try {
+        const foundProduct = await produtosAPI.getById(id as string);
+        if (foundProduct) {
+          setProduct(foundProduct);
+          // Carregar model-viewer dinamicamente se houver modelo 3D
+          if (foundProduct.modelo_3d || foundProduct.modelo3D) {
+            import('@google/model-viewer');
+          }
+        } else {
+          // navigate('/produtos');
+        }
+      } catch (error) {
+        console.error('Erro ao buscar produto:', error);
+      }
+    };
     fetchProduct();
   }, [id]);
 
@@ -37,6 +40,7 @@ export default function ProductDetail() {
     return (
       <Layout>
         <div className="container-custom py-20 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
           <p className="text-muted-foreground">Carregando produto...</p>
         </div>
       </Layout>
@@ -44,17 +48,18 @@ export default function ProductDetail() {
   }
 
   const images = product.images && product.images.length > 0 ? product.images : ['/placeholder-product.svg'];
+  const modelo3D = product.modelo_3d || product.modelo3D;
 
   return (
     <Layout>
       <div className="container-custom py-8">
         <nav className="mb-8">
           <ol className="flex items-center text-sm text-muted-foreground">
-            <li><Link to="/" className="hover:text-accent">Início</Link></li>
+            <li><Link to="/" className="hover:text-accent transition-colors">Início</Link></li>
             <li className="mx-2">/</li>
-            <li><Link to="/produtos" className="hover:text-accent">Produtos</Link></li>
+            <li><Link to="/produtos" className="hover:text-accent transition-colors">Produtos</Link></li>
             <li className="mx-2">/</li>
-            <li className="text-foreground">{product.name}</li>
+            <li className="text-foreground font-medium">{product.name}</li>
           </ol>
         </nav>
 
@@ -64,16 +69,16 @@ export default function ProductDetail() {
             animate={{ opacity: 1, x: 0 }}
             className="space-y-4"
           >
-            <div className="relative aspect-square rounded-xl overflow-hidden bg-muted">
-              {show3D && product.modelo3D ? (
+            <div className="relative aspect-square rounded-xl overflow-hidden bg-white border border-border shadow-sm">
+              {show3D && modelo3D ? (
                 <model-viewer
                   ref={modelViewerRef}
-                  src={product.modelo3D}
+                  src={modelo3D}
                   alt="Modelo 3D do produto"
                   auto-rotate
                   camera-controls
                   shadow-intensity="1"
-                  style={{ width: '100%', height: '100%', background: '#f5f5f5' }}
+                  style={{ width: '100%', height: '100%', background: '#ffffff' }}
                   loading="eager"
                   reveal="auto"
                 ></model-viewer>
@@ -81,7 +86,7 @@ export default function ProductDetail() {
                 <img
                   src={images[selectedImage]}
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain p-4"
                 />
               )}
               
@@ -89,41 +94,41 @@ export default function ProductDetail() {
                 <>
                   <button
                     onClick={() => setSelectedImage((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/80 flex items-center justify-center hover:bg-background transition-colors"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-md border border-border"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => setSelectedImage((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-background/80 flex items-center justify-center hover:bg-background transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-md border border-border"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>
                 </>
               )}
 
-              {product.modelo3D && (
+              {modelo3D && (
                 <button
                   onClick={() => setShow3D(!show3D)}
-                  className={`absolute top-4 right-4 px-4 py-2 rounded-full text-sm font-medium transition-colors shadow-lg ${
+                  className={`absolute top-4 right-4 px-4 py-2 rounded-full text-sm font-bold transition-all shadow-lg ${
                     show3D 
                       ? 'bg-accent text-accent-foreground' 
-                      : 'bg-background/80 text-foreground hover:bg-background'
+                      : 'bg-white text-foreground hover:bg-gray-50 border border-border'
                   }`}
                 >
-                  {show3D ? '📷 Fotos' : '🎮 Ver em 3D'}
+                  {show3D ? '📷 Ver Fotos' : '🎮 Ver em 3D'}
                 </button>
               )}
             </div>
 
             {images.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2">
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                 {images.map((image: string, index: number) => (
                   <button
                     key={index}
                     onClick={() => { setSelectedImage(index); setShow3D(false); }}
-                    className={`w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
-                      selectedImage === index && !show3D ? 'border-accent' : 'border-transparent'
+                    className={`w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
+                      selectedImage === index && !show3D ? 'border-accent shadow-md' : 'border-transparent opacity-70 hover:opacity-100'
                     }`}
                   >
                     <img src={image} alt="" className="w-full h-full object-cover" />
@@ -138,17 +143,17 @@ export default function ProductDetail() {
             animate={{ opacity: 1, x: 0 }}
             className="space-y-6"
           >
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span className="uppercase tracking-wider">{product.category}</span>
+            <div className="flex items-center gap-4 text-sm font-semibold">
+              <span className="text-accent uppercase tracking-wider">{product.category_name || product.category}</span>
               {product.brand && (
                 <>
-                  <span>•</span>
-                  <span>{product.brand}</span>
+                  <span className="text-muted-foreground">•</span>
+                  <span className="text-muted-foreground">{product.brand}</span>
                 </>
               )}
             </div>
 
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
               {product.name}
             </h1>
 
@@ -157,108 +162,112 @@ export default function ProductDetail() {
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star
                     key={i}
-                    className={`w-5 h-5 ${i < 5 ? 'text-amber-500 fill-current' : 'text-muted'}`}
+                    className={`w-5 h-5 ${i < (product.rating || 5) ? 'text-amber-500 fill-current' : 'text-gray-300'}`}
                   />
                 ))}
               </div>
-              <span className="font-medium">5.0</span>
-              <span className="text-muted-foreground">(Novidade)</span>
+              <span className="font-bold text-lg">{Number(product.rating || 5).toFixed(1)}</span>
+              <span className="text-muted-foreground">({product.reviews || 0} avaliações)</span>
             </div>
 
-            <div className="flex items-baseline gap-4">
-              <span className="text-3xl font-bold text-foreground">
-                R$ {product.price.toFixed(2).replace('.', ',')}
+            <div className="flex items-baseline gap-4 py-4 border-y border-border">
+              <span className="text-4xl font-bold text-foreground">
+                R$ {Number(product.price).toFixed(2).replace('.', ',')}
               </span>
-              {product.originalPrice && (
-                <span className="text-lg text-muted-foreground line-through">
-                  R$ {product.originalPrice.toFixed(2).replace('.', ',')}
+              {product.original_price > 0 && (
+                <span className="text-xl text-muted-foreground line-through">
+                  R$ {Number(product.original_price).toFixed(2).replace('.', ',')}
                 </span>
               )}
             </div>
 
-            <p className="text-muted-foreground leading-relaxed">
+            <p className="text-muted-foreground leading-relaxed text-lg">
               {product.description || 'Nenhuma descrição disponível para este produto.'}
             </p>
 
-            <div className="space-y-4 pt-6 border-t border-border">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center border border-border rounded-lg">
+            <div className="space-y-4 pt-6">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <div className="flex items-center justify-between border border-border rounded-lg bg-white p-1">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-2 hover:bg-muted transition-colors"
+                    className="p-3 hover:bg-gray-100 rounded-md transition-colors"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
-                  <span className="w-12 text-center font-medium">{quantity}</span>
+                  <span className="w-12 text-center font-bold text-lg">{quantity}</span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="p-2 hover:bg-muted transition-colors"
+                    className="p-3 hover:bg-gray-100 rounded-md transition-colors"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
-                <Button className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground h-12">
-                  <ShoppingCart className="w-5 h-5 mr-2" />
+                <Button className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground h-14 text-lg font-bold shadow-lg shadow-accent/20">
+                  <ShoppingCart className="w-6 h-6 mr-2" />
                   Adicionar ao Carrinho
                 </Button>
               </div>
               
-              <Button variant="outline" className="w-full h-12 border-accent text-accent hover:bg-accent/10">
-                <MessageCircle className="w-5 h-5 mr-2" />
+              <Button variant="outline" className="w-full h-14 border-2 border-green-500 text-green-600 hover:bg-green-50 font-bold text-lg" onClick={() => window.open('https://wa.me/5527999999999', '_blank')}>
+                <MessageCircle className="w-6 h-6 mr-2" />
                 Dúvidas? Fale no WhatsApp
               </Button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-8">
-              <div className="flex flex-col items-center text-center p-4 rounded-xl bg-secondary/30">
-                <Truck className="w-6 h-6 text-accent mb-2" />
-                <span className="text-xs font-medium">Frete Seguro</span>
+              <div className="flex flex-col items-center text-center p-4 rounded-xl bg-blue-50 border border-blue-100">
+                <Truck className="w-6 h-6 text-blue-600 mb-2" />
+                <span className="text-xs font-bold text-blue-900">Frete Seguro</span>
               </div>
-              <div className="flex flex-col items-center text-center p-4 rounded-xl bg-secondary/30">
-                <Shield className="w-6 h-6 text-accent mb-2" />
-                <span className="text-xs font-medium">Garantia 3DK</span>
+              <div className="flex flex-col items-center text-center p-4 rounded-xl bg-green-50 border border-green-100">
+                <Shield className="w-6 h-6 text-green-600 mb-2" />
+                <span className="text-xs font-bold text-green-900">Garantia 3DK</span>
               </div>
-              <div className="flex flex-col items-center text-center p-4 rounded-xl bg-secondary/30">
-                <RotateCcw className="w-6 h-6 text-accent mb-2" />
-                <span className="text-xs font-medium">7 dias Troca</span>
+              <div className="flex flex-col items-center text-center p-4 rounded-xl bg-purple-50 border border-purple-100">
+                <RotateCcw className="w-6 h-6 text-purple-600 mb-2" />
+                <span className="text-xs font-bold text-purple-900">7 dias Troca</span>
               </div>
             </div>
           </motion.div>
         </div>
 
         <div className="mt-16">
-          <Tabs defaultValue="specs">
+          <Tabs defaultValue="specs" className="w-full">
             <TabsList className="w-full justify-start border-b border-border bg-transparent rounded-none h-auto p-0 space-x-8">
-              <TabsTrigger value="specs" className="rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:bg-transparent px-0 py-4">Especificações</TabsTrigger>
-              <TabsTrigger value="tags" className="rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:bg-transparent px-0 py-4">Tags</TabsTrigger>
+              <TabsTrigger value="specs" className="rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:bg-transparent px-0 py-4 font-bold text-lg">Especificações</TabsTrigger>
+              <TabsTrigger value="tags" className="rounded-none border-b-2 border-transparent data-[state=active]:border-accent data-[state=active]:bg-transparent px-0 py-4 font-bold text-lg">Tags</TabsTrigger>
             </TabsList>
-            <TabsContent value="specs" className="py-8">
-              <div className="max-w-2xl">
+            <TabsContent value="specs" className="py-8 animate-in fade-in duration-500">
+              <div className="max-w-2xl bg-white rounded-xl border border-border overflow-hidden shadow-sm">
                 <table className="w-full text-sm">
                   <tbody className="divide-y divide-border">
-                    {product.specifications && Object.entries(product.specifications).map(([key, value]: [string, any]) => (
-                      <tr key={key}>
-                        <td className="py-3 font-medium text-foreground w-1/3">{key}</td>
-                        <td className="py-3 text-muted-foreground">{value}</td>
-                      </tr>
-                    ))}
-                    {!product.specifications && (
+                    {product.specifications && Object.entries(product.specifications).length > 0 ? (
+                      Object.entries(product.specifications).map(([key, value]: [string, any]) => (
+                        <tr key={key} className="hover:bg-gray-50 transition-colors">
+                          <td className="py-4 px-6 font-bold text-gray-900 w-1/3 bg-gray-50/50">{key}</td>
+                          <td className="py-4 px-6 text-gray-600">{value}</td>
+                        </tr>
+                      ))
+                    ) : (
                       <tr>
-                        <td className="py-3 text-muted-foreground">Nenhuma especificação disponível.</td>
+                        <td className="py-8 px-6 text-center text-muted-foreground italic">Nenhuma especificação técnica detalhada disponível.</td>
                       </tr>
                     )}
                   </tbody>
                 </table>
               </div>
             </TabsContent>
-            <TabsContent value="tags" className="py-8">
-              <div className="flex flex-wrap gap-2">
-                {product.tags && product.tags.map((tag: string) => (
-                  <span key={tag} className="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs">
-                    {tag}
-                  </span>
-                ))}
-                {!product.tags && <p className="text-muted-foreground">Nenhuma tag disponível.</p>}
+            <TabsContent value="tags" className="py-8 animate-in fade-in duration-500">
+              <div className="flex flex-wrap gap-3">
+                {product.tags && product.tags.length > 0 ? (
+                  product.tags.map((tag: string) => (
+                    <span key={tag} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors border border-gray-200">
+                      #{tag}
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground italic">Nenhuma tag associada a este produto.</p>
+                )}
               </div>
             </TabsContent>
           </Tabs>

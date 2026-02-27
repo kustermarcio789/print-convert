@@ -1,60 +1,38 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import {
-  LayoutDashboard,
-  FileText,
-  Users,
-  UserCheck,
-  Package,
-  ShoppingCart,
-  LogOut,
-  Printer,
-  Palette,
-  Wrench,
-  Box,
-  TrendingUp,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Factory,
-  BarChart3,
+import { 
+  LayoutDashboard, ShoppingCart, Package, Users, TrendingUp, 
+  Clock, CheckCircle, AlertCircle, BarChart3, Settings,
+  LogOut, ExternalLink, Box, Truck, ClipboardList, Database,
+  FileText, UserCheck, Factory
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { statsAPI } from '@/lib/apiClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getOrcamentos, getPrestadores, getUsuarios, inicializarDadosExemplo } from '@/lib/dataStore';
+import { Button } from '@/components/ui/button';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState('dashboard');
   const [stats, setStats] = useState({
-    orcamentosTotal: 0,
+    totalOrcamentos: 0,
     orcamentosPendentes: 0,
-    orcamentosAprovados: 0,
-    orcamentosRecusados: 0,
-    prestadoresPendentes: 0,
-    prestadoresAprovados: 0,
-    usuariosTotal: 0,
-    vendasMes: 0,
+    totalProdutos: 0,
+    receitaTotal: 0
   });
+  const [loading, setLoading] = useState(true);
 
-  // Carregar dados do localStorage
   useEffect(() => {
-    inicializarDadosExemplo();
-    const orcamentos = getOrcamentos();
-    const prestadores = getPrestadores();
-    const usuarios = getUsuarios();
-
-    setStats({
-      orcamentosTotal: orcamentos.length,
-      orcamentosPendentes: orcamentos.filter(o => o.status === 'pendente').length,
-      orcamentosAprovados: orcamentos.filter(o => o.status === 'aprovado').length,
-      orcamentosRecusados: orcamentos.filter(o => o.status === 'recusado').length,
-      prestadoresPendentes: prestadores.filter(p => p.status === 'pendente').length,
-      prestadoresAprovados: prestadores.filter(p => p.status === 'aprovado').length,
-      usuariosTotal: usuarios.length,
-      vendasMes: orcamentos.filter(o => o.status === 'aprovado').length,
-    });
+    const loadStats = async () => {
+      try {
+        const data = await statsAPI.getDashboard();
+        setStats(data);
+      } catch (error) {
+        console.error('Erro ao carregar estatísticas:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadStats();
   }, []);
 
   const handleLogout = () => {
@@ -63,347 +41,165 @@ export default function AdminDashboard() {
     navigate('/admin/login');
   };
 
-
-
   const menuItems = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-      path: '/admin/dashboard',
-    },
-    {
-      id: 'orcamentos',
-      label: 'Orçamentos',
-      icon: FileText,
-      path: '/admin/orcamentos',
-    },
-    {
-      id: 'prestadores',
-      label: 'Prestadores',
-      icon: UserCheck,
-      path: '/admin/prestadores',
-    },
-    {
-      id: 'usuarios',
-      label: 'Usuários',
-      icon: Users,
-      path: '/admin/usuarios',
-    },
-    {
-      id: 'produtos',
-      label: 'Produtos',
-      icon: Package,
-      path: '/admin/produtos',
-    },
-    {
-      id: 'vendas',
-      label: 'Vendas',
-      icon: ShoppingCart,
-      path: '/admin/vendas',
-    },
-    {
-      id: 'estoque',
-      label: 'Estoque',
-      icon: Package,
-      path: '/admin/estoque',
-    },
-    {
-      id: 'produtos-site',
-      label: 'Produtos do Site',
-      icon: ShoppingCart,
-      path: '/admin/produtos-site',
-    },
-    {
-      id: 'producao',
-      label: 'Produção',
-      icon: Factory,
-      path: '/admin/producao',
-    },
-    {
-      id: 'relatorios',
-      label: 'Relatórios',
-      icon: BarChart3,
-      path: '/admin/relatorios',
-    },
-  ];
-
-  const orcamentosPorTipo = [
-    { tipo: 'Impressão 3D', total: 18, pendentes: 5, icon: Printer, color: 'text-blue-500' },
-    { tipo: 'Modelagem 3D', total: 12, pendentes: 3, icon: Box, color: 'text-purple-500' },
-    { tipo: 'Pintura', total: 8, pendentes: 2, icon: Palette, color: 'text-pink-500' },
-    { tipo: 'Manutenção', total: 7, pendentes: 2, icon: Wrench, color: 'text-orange-500' },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard', color: 'text-blue-600' },
+    { id: 'orcamentos', label: 'Orçamentos', icon: ClipboardList, path: '/admin/orcamentos', color: 'text-orange-600' },
+    { id: 'estoque', label: 'Estoque', icon: Database, path: '/admin/estoque', color: 'text-purple-600' },
+    { id: 'produtos-site', label: 'Produtos do Site', icon: Package, path: '/admin/produtos-site', color: 'text-indigo-600' },
+    { id: 'producao', label: 'Produção', icon: Box, path: '/admin/producao', color: 'text-green-600' },
+    { id: 'prestadores', label: 'Prestadores', icon: Truck, path: '/admin/prestadores', color: 'text-cyan-600' },
+    { id: 'usuarios', label: 'Usuários', icon: Users, path: '/admin/usuarios', color: 'text-pink-600' },
+    { id: 'vendas', label: 'Vendas', icon: TrendingUp, path: '/admin/vendas', color: 'text-emerald-600' },
+    { id: 'relatorios', label: 'Relatórios', icon: BarChart3, path: '/admin/relatorios', color: 'text-slate-600' },
   ];
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-card border-r border-border flex flex-col">
-        {/* Logo */}
-        <div className="p-6 border-b border-border">
-          <h1 className="text-2xl font-bold text-primary">3DKPRINT</h1>
-          <p className="text-sm text-muted-foreground">Painel Administrativo</p>
+      <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
+        <div className="p-6 border-b border-gray-100">
+          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Settings className="text-blue-600" />
+            3DKPRINT Admin
+          </h1>
         </div>
-
-        {/* Menu */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 mt-4 px-4 space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeSection === item.id;
             return (
-              <button
+              <Link
                 key={item.id}
-                onClick={() => {
-                  setActiveSection(item.id);
-                  navigate(item.path);
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  window.location.pathname === item.path 
+                  ? 'bg-blue-50 text-blue-700' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                <Icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-              </button>
+                <span className={item.color}><Icon size={20} /></span>
+                {item.label}
+              </Link>
             );
           })}
         </nav>
-
-        {/* Logout */}
-        <div className="p-4 border-t border-border">
-          <Button
-            variant="outline"
-            className="w-full justify-start gap-3"
+        <div className="p-4 border-t border-gray-100">
+          <button
             onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
           >
-            <LogOut className="w-5 h-5" />
-            Sair
-          </Button>
+            <LogOut size={20} />
+            Sair do Painel
+          </button>
         </div>
       </aside>
 
-      {/* Conteúdo Principal */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">
-          {/* Cabeçalho */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-foreground mb-2">
-              Dashboard
-            </h2>
-            <p className="text-muted-foreground">
-              Visão geral do sistema 3DKPRINT
-            </p>
-          </div>
-
-          {/* Cards de Estatísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Orçamentos Total
-                  </CardTitle>
-                  <FileText className="w-4 h-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.orcamentosTotal}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {stats.orcamentosPendentes} pendentes
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Prestadores
-                  </CardTitle>
-                  <UserCheck className="w-4 h-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.prestadoresAprovados}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {stats.prestadoresPendentes} aguardando aprovação
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Usuários
-                  </CardTitle>
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.usuariosTotal}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Cadastrados no sistema
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Vendas do Mês
-                  </CardTitle>
-                  <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.vendasMes}</div>
-                  <p className="text-xs text-green-600 mt-1">
-                    +12% vs mês anterior
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
-
-          {/* Orçamentos por Tipo */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Orçamentos por Tipo</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {orcamentosPorTipo.map((item, index) => {
-                    const Icon = item.icon;
-                    return (
-                      <motion.div
-                        key={item.tipo}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 * index }}
-                        onClick={() => navigate('/admin/orcamentos')}
-                        className="flex items-center justify-between p-4 bg-accent/50 rounded-lg cursor-pointer hover:bg-accent transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 bg-background rounded-lg ${item.color}`}>
-                            <Icon className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="font-medium">{item.tipo}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {item.pendentes} pendentes
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold">{item.total}</p>
-                          <p className="text-xs text-muted-foreground">total</p>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Status dos Orçamentos */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Status dos Orçamentos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div 
-                    onClick={() => navigate('/admin/orcamentos')}
-                    className="flex items-center justify-between p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20 cursor-pointer hover:bg-yellow-500/20 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Clock className="w-5 h-5 text-yellow-600" />
-                      <span className="font-medium">Pendentes</span>
-                    </div>
-                    <span className="text-2xl font-bold">{stats.orcamentosPendentes}</span>
-                  </div>
-
-                  <div 
-                    onClick={() => navigate('/admin/orcamentos')}
-                    className="flex items-center justify-between p-4 bg-green-500/10 rounded-lg border border-green-500/20 cursor-pointer hover:bg-green-500/20 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                      <span className="font-medium">Aprovados</span>
-                    </div>
-                    <span className="text-2xl font-bold">{stats.orcamentosAprovados}</span>
-                  </div>
-
-                  <div 
-                    onClick={() => navigate('/admin/orcamentos')}
-                    className="flex items-center justify-between p-4 bg-red-500/10 rounded-lg border border-red-500/20 cursor-pointer hover:bg-red-500/20 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <XCircle className="w-5 h-5 text-red-600" />
-                      <span className="font-medium">Recusados</span>
-                    </div>
-                    <span className="text-2xl font-bold">{stats.orcamentosRecusados}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Ações Rápidas */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Ações Rápidas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button
-                  variant="outline"
-                  className="h-auto py-4 flex-col gap-2"
-                  onClick={() => navigate('/admin/orcamentos')}
-                >
-                  <FileText className="w-6 h-6" />
-                  <span>Ver Orçamentos</span>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="h-auto py-4 flex-col gap-2"
-                  onClick={() => navigate('/admin/prestadores')}
-                >
-                  <UserCheck className="w-6 h-6" />
-                  <span>Aprovar Prestadores</span>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="h-auto py-4 flex-col gap-2"
-                  onClick={() => navigate('/admin/vendas')}
-                >
-                  <ShoppingCart className="w-6 h-6" />
-                  <span>Gerenciar Vendas</span>
-                </Button>
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto">
+        <header className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
+          <div className="flex justify-between items-center max-w-7xl mx-auto">
+            <h2 className="text-lg font-semibold text-gray-800">Visão Geral</h2>
+            <div className="flex items-center gap-4">
+              <Link to="/" target="_blank" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                Ver Site <ExternalLink size={14} />
+              </Link>
+              <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
+                AD
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+        </header>
+
+        <div className="p-8 max-w-7xl mx-auto">
+          {/* Welcome Card */}
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8"
+          >
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Olá, Administrador! 👋</h1>
+            <p className="text-gray-600">Aqui está o que está acontecendo na sua loja hoje.</p>
+          </motion.div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">Orçamentos Total</CardTitle>
+                <ClipboardList className="w-4 h-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalOrcamentos}</div>
+                <p className="text-xs text-gray-400 mt-1">Acumulado no sistema</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">Pendentes</CardTitle>
+                <Clock className="w-4 h-4 text-orange-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.orcamentosPendentes}</div>
+                <p className="text-xs text-orange-600 mt-1">Aguardando revisão</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">Produtos no Site</CardTitle>
+                <Package className="w-4 h-4 text-indigo-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalProdutos}</div>
+                <p className="text-xs text-gray-400 mt-1">Itens ativos no catálogo</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">Receita Total</CardTitle>
+                <TrendingUp className="w-4 h-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">R$ {stats.receitaTotal.toFixed(2)}</div>
+                <p className="text-xs text-green-600 mt-1">Pedidos aprovados</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Actions */}
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Ações Rápidas</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Link to="/admin/produtos-site" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow flex items-center gap-4 group">
+              <div className="p-3 bg-blue-100 text-blue-600 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <Plus size={24} />
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-900">Novo Produto</h4>
+                <p className="text-sm text-gray-500">Adicionar ao catálogo</p>
+              </div>
+            </Link>
+
+            <Link to="/admin/orcamentos" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow flex items-center gap-4 group">
+              <div className="p-3 bg-orange-100 text-orange-600 rounded-full group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                <ClipboardList size={24} />
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-900">Ver Orçamentos</h4>
+                <p className="text-sm text-gray-500">Gerenciar pedidos</p>
+              </div>
+            </Link>
+
+            <Link to="/admin/estoque" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow flex items-center gap-4 group">
+              <div className="p-3 bg-purple-100 text-purple-600 rounded-full group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                <Database size={24} />
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-900">Controle de Estoque</h4>
+                <p className="text-sm text-gray-500">Atualizar quantidades</p>
+              </div>
+            </Link>
+          </div>
         </div>
       </main>
     </div>

@@ -6,37 +6,7 @@ import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { produtosAPI } from '@/lib/apiClient';
-
-const categories = [
-  { id: 'all', name: 'Todas' },
-  { id: 'pecas-impressora', name: 'Peças de Impressora 3D' },
-  { id: 'prototipos', name: 'Protótipos' },
-  { id: 'decoracao', name: 'Decoração' },
-  { id: 'acessorios', name: 'Acessórios' },
-  { id: 'colecionaveis', name: 'Colecionáveis' },
-  { id: 'organizacao', name: 'Organização' },
-];
-
-const materials = [
-  { id: 'pla', name: 'PLA' },
-  { id: 'petg', name: 'PETG' },
-  { id: 'abs', name: 'ABS' },
-  { id: 'nylon', name: 'Nylon' },
-  { id: 'resina', name: 'Resina' },
-];
-
-const badgeStyles: Record<string, string> = {
-  bestseller: 'badge-bestseller',
-  fast: 'badge-fast',
-  premium: 'badge-premium',
-};
-
-const badgeLabels: Record<string, string> = {
-  bestseller: 'Mais vendido',
-  fast: 'Entrega rápida',
-  premium: 'Premium',
-};
+import { produtosAPI, categoriasAPI } from '@/lib/apiClient';
 
 export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,34 +15,46 @@ export default function ProductsPage() {
   const [sortBy, setSortBy] = useState('relevance');
   const [showFilters, setShowFilters] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      const allProducts = await produtosAPI.getAll();
-    const formattedProducts = allProducts.filter(p => p.active).map(p => ({
-      id: p.id,
-      name: p.name,
-      price: p.price,
-      originalPrice: p.originalPrice,
-      image: p.images && p.images.length > 0 ? p.images[0] : '/placeholder-product.svg',
-      rating: p.rating || 5.0,
-      reviews: p.reviews || 0,
-      badge: p.featured ? 'bestseller' : undefined,
-      category: p.category,
-      material: p.brand,
-    }));
-      setProducts(formattedProducts);
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [allProducts, allCategories] = await Promise.all([
+          produtosAPI.getAll(),
+          categoriasAPI.getAll()
+        ]);
+        setProducts(allProducts || []);
+        setCategories(allCategories || []);
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+      } finally {
+        setLoading(false);
+      }
     };
-    fetchProducts();
+    loadData();
   }, []);
 
   const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (product.brand && product.brand.toLowerCase().includes(searchQuery.toLowerCase()));
+    
     const matchesCategory = selectedCategory === 'all' || 
-      (selectedCategory === 'pecas-impressora' && product.category === 'Peças de Impressora 3D') ||
-      (selectedCategory !== 'pecas-impressora' && product.category.toLowerCase() === selectedCategory);
-    const matchesMaterial = selectedMaterials.length === 0 || selectedMaterials.includes(product.material.toLowerCase());
-    return matchesSearch && matchesCategory && matchesMaterial;
+                           product.category_id === selectedCategory ||
+                           product.category === selectedCategory;
+
+    return matchesSearch && matchesCategory;
+  });
+
+  // Ordenação
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (sortBy === 'price-asc') return a.price - b.price;
+    if (sortBy === 'price-desc') return b.price - a.price;
+    if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+    return 0;
   });
 
   return (
@@ -104,7 +86,7 @@ export default function ProductsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Buscar produtos..."
+                placeholder="Buscar produtos por nome ou marca..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -141,17 +123,27 @@ export default function ProductsPage() {
         <div className="container-custom">
           <div className="flex flex-col md:flex-row gap-8">
             <aside className={`md:w-64 flex-shrink-0 ${showFilters ? 'block' : 'hidden md:block'}`}>
-              <div className="filter-sidebar sticky top-40">
+              <div className="filter-sidebar sticky top-40 bg-white p-6 rounded-xl border border-border shadow-sm">
                 <div>
-                  <h3 className="font-semibold text-foreground mb-4">Categorias</h3>
-                  <div className="space-y-2">
+                  <h3 className="font-bold text-foreground mb-4">Categorias</h3>
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => setSelectedCategory('all')}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                        selectedCategory === 'all'
+                          ? 'bg-accent text-accent-foreground font-bold'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      Todas as Categorias
+                    </button>
                     {categories.map((category) => (
                       <button
                         key={category.id}
                         onClick={() => setSelectedCategory(category.id)}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                           selectedCategory === category.id
-                            ? 'bg-accent text-accent-foreground'
+                            ? 'bg-accent text-accent-foreground font-bold'
                             : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                         }`}
                       >
@@ -160,79 +152,56 @@ export default function ProductsPage() {
                     ))}
                   </div>
                 </div>
-
-                <div className="mt-8">
-                  <h3 className="font-semibold text-foreground mb-4">Materiais</h3>
-                  <div className="space-y-2">
-                    {materials.map((material) => (
-                      <div key={material.id} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id={material.id}
-                          checked={selectedMaterials.includes(material.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedMaterials([...selectedMaterials, material.id]);
-                            } else {
-                              setSelectedMaterials(selectedMaterials.filter(m => m !== material.id));
-                            }
-                          }}
-                          className="rounded border-gray-300 text-accent focus:ring-accent"
-                        />
-                        <label htmlFor={material.id} className="text-sm text-muted-foreground hover:text-foreground cursor-pointer">
-                          {material.name}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             </aside>
 
             <div className="flex-1">
               <div className="flex items-center justify-between mb-6">
-                <p className="text-sm text-muted-foreground">
-                  {filteredProducts.length} produtos encontrados
+                <p className="text-sm text-muted-foreground font-medium">
+                  {loading ? 'Carregando...' : `${sortedProducts.length} produtos encontrados`}
                 </p>
               </div>
 
-              {filteredProducts.length > 0 ? (
+              {loading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredProducts.map((product) => (
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="bg-white rounded-xl border border-border h-80 animate-pulse"></div>
+                  ))}
+                </div>
+              ) : sortedProducts.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {sortedProducts.map((product) => (
                     <motion.div
                       key={product.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="group card-elevated overflow-hidden bg-background"
+                      className="group card-elevated overflow-hidden bg-white border border-border rounded-xl hover:shadow-xl transition-all duration-300"
                     >
-                      <div className="relative aspect-square overflow-hidden bg-muted">
+                      <div className="relative aspect-square overflow-hidden bg-gray-50">
                         <img
-                          src={product.image}
+                          src={product.images && product.images.length > 0 ? product.images[0] : '/placeholder-product.svg'}
                           alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
                         />
-                        {product.badge && (
-                          <div className={`absolute top-3 left-3 ${badgeStyles[product.badge]}`}>
-                            {badgeLabels[product.badge]}
+                        {product.featured && (
+                          <div className="absolute top-3 left-3 bg-accent text-accent-foreground text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded">
+                            Destaque
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-primary/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                        <div className="absolute inset-0 bg-primary/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                           <Link to={`/produtos/${product.id}`}>
-                            <Button size="icon" variant="secondary" className="rounded-full">
+                            <Button size="icon" variant="secondary" className="rounded-full shadow-lg">
                               <Eye className="h-5 w-5" />
                             </Button>
                           </Link>
-                          <Button size="icon" className="rounded-full bg-accent hover:bg-accent/90">
-                            <ShoppingCart className="h-5 w-5" />
-                          </Button>
                         </div>
                       </div>
 
-                      <div className="p-4">
-                        <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                          {product.category}
+                      <div className="p-5">
+                        <span className="text-[10px] font-bold text-accent uppercase tracking-widest">
+                          {product.category_name || product.category}
                         </span>
-                        <h3 className="font-semibold text-foreground mt-1 mb-2 line-clamp-2 group-hover:text-accent transition-colors">
+                        <h3 className="font-bold text-gray-900 mt-1 mb-2 line-clamp-1 group-hover:text-accent transition-colors">
                           <Link to={`/produtos/${product.id}`}>
                             {product.name}
                           </Link>
@@ -240,27 +209,36 @@ export default function ProductsPage() {
                         <div className="flex items-center gap-2 mb-3">
                           <div className="flex items-center text-amber-500">
                             <Star className="h-4 w-4 fill-current" />
-                            <span className="ml-1 text-sm font-medium">{product.rating}</span>
+                            <span className="ml-1 text-xs font-bold">{Number(product.rating || 5).toFixed(1)}</span>
                           </div>
-                          <span className="text-muted-foreground text-sm">({product.reviews})</span>
+                          <span className="text-muted-foreground text-xs">({product.reviews || 0})</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl font-bold text-foreground">
-                            R$ {product.price.toFixed(2).replace('.', ',')}
-                          </span>
-                          {product.originalPrice && (
-                            <span className="text-sm text-muted-foreground line-through">
-                              R$ {product.originalPrice.toFixed(2).replace('.', ',')}
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="text-xl font-bold text-gray-900">
+                              R$ {Number(product.price).toFixed(2).replace('.', ',')}
                             </span>
-                          )}
+                            {product.original_price > 0 && (
+                              <span className="text-xs text-muted-foreground line-through">
+                                R$ {Number(product.original_price).toFixed(2).replace('.', ',')}
+                              </span>
+                            )}
+                          </div>
+                          <Link to={`/produtos/${product.id}`} className="bg-accent text-accent-foreground p-2 rounded-lg hover:bg-accent/90 transition-colors">
+                            <ShoppingCart className="h-5 w-5" />
+                          </Link>
                         </div>
                       </div>
                     </motion.div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-20 bg-background rounded-xl border border-dashed border-border">
-                  <p className="text-muted-foreground">Nenhum produto encontrado com os filtros selecionados.</p>
+                <div className="text-center py-20 bg-white rounded-xl border border-dashed border-border">
+                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
+                  <p className="text-muted-foreground font-medium">Nenhum produto encontrado com os filtros selecionados.</p>
+                  <Button variant="link" onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }} className="mt-2 text-accent">
+                    Limpar todos os filtros
+                  </Button>
                 </div>
               )}
             </div>

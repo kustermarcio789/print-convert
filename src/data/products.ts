@@ -19,5 +19,4 @@ export interface Product {
   reviews?: number;
 }
 
-
-
+export const products: Product[] = [];
