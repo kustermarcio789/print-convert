@@ -1,374 +1,273 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, DollarSign, TrendingUp, Calendar, Trash2, Eye, Mail, Phone, MapPin, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  LayoutDashboard, ClipboardList, Package, Users, TrendingUp,
+  Clock, CheckCircle, AlertCircle, BarChart3, Settings,
+  LogOut, ExternalLink, Box, Truck, Database,
+  FileText, UserCheck, Factory, ShoppingCart, Search, Eye, Trash2, DollarSign, Calendar
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { vendasAPI } from '@/lib/apiClient'; // Supondo que você tenha uma API para vendas
 
 interface Venda {
   id: string;
-  produto: string;
-  cliente: string;
-  clienteEmail?: string;
-  clienteTelefone?: string;
-  clienteCidade?: string;
-  valor: number;
-  data: string;
+  produto_nome: string; // Alterado para produto_nome
+  cliente_nome: string; // Alterado para cliente_nome
+  valor_total: number; // Alterado para valor_total
+  data_venda: string; // Alterado para data_venda
   status: 'concluída' | 'pendente' | 'cancelada';
 }
 
 export default function AdminVendas() {
   const navigate = useNavigate();
   const [vendas, setVendas] = useState<Venda[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('todos');
 
   useEffect(() => {
-    // Carregar vendas do localStorage ou API
-    const vendasSalvas = localStorage.getItem('vendas');
-    if (vendasSalvas) {
-      setVendas(JSON.parse(vendasSalvas));
-    } else {
-      // Dados de exemplo
-      const vendasExemplo: Venda[] = [
-        {
-          id: 'V-001',
-          produto: 'Filamento PLA 1kg',
-          cliente: 'João Silva',
-          clienteEmail: 'joao.silva@email.com',
-          clienteTelefone: '(43) 99999-1111',
-          clienteCidade: 'Jacarezinho - PR',
-          valor: 89.90,
-          data: '2026-02-08',
-          status: 'concluída',
-        },
-        {
-          id: 'V-002',
-          produto: 'Bico 0.4mm',
-          cliente: 'Maria Santos',
-          clienteEmail: 'maria.santos@email.com',
-          clienteTelefone: '(43) 99999-2222',
-          clienteCidade: 'Jacarezinho - PR',
-          valor: 25.00,
-          data: '2026-02-07',
-          status: 'concluída',
-        },
-        {
-          id: 'V-003',
-          produto: 'Mesa PEI',
-          cliente: 'Carlos Oliveira',
-          clienteEmail: 'carlos.oliveira@email.com',
-          clienteTelefone: '(43) 99999-3333',
-          clienteCidade: 'Jacarezinho - PR',
-          valor: 150.00,
-          data: '2026-02-06',
-          status: 'pendente',
-        },
-      ];
-      setVendas(vendasExemplo);
-      localStorage.setItem('vendas', JSON.stringify(vendasExemplo));
-    }
+    const fetchVendas = async () => {
+      try {
+        setLoading(true);
+        const data = await vendasAPI.getAll(); // Buscar todas as vendas
+        setVendas(data);
+      } catch (error) {
+        console.error('Erro ao carregar vendas:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVendas();
   }, []);
 
-  const [modalDetalhes, setModalDetalhes] = useState(false);
-  const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null);
+  const handleLogout = () => {
+    localStorage.removeItem('admin_authenticated');
+    localStorage.removeItem('admin_user');
+    navigate('/admin/login');
+  };
 
-  const totalVendas = vendas.reduce((acc, venda) => acc + venda.valor, 0);
-  const vendasConcluidas = vendas.filter(v => v.status === 'concluída').length;
-  const vendasPendentes = vendas.filter(v => v.status === 'pendente').length;
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard', color: 'text-blue-600' },
+    { id: 'orcamentos', label: 'Orçamentos', icon: ClipboardList, path: '/admin/orcamentos', color: 'text-orange-600' },
+    { id: 'prestadores', label: 'Prestadores', icon: Truck, path: '/admin/prestadores', color: 'text-cyan-600' },
+    { id: 'usuarios', label: 'Usuários', icon: Users, path: '/admin/usuarios', color: 'text-pink-600' },
+    { id: 'produtos', label: 'Produtos', icon: Package, path: '/admin/produtos', color: 'text-green-600' },
+    { id: 'vendas', label: 'Vendas', icon: TrendingUp, path: '/admin/vendas', color: 'text-emerald-600' },
+    { id: 'estoque', label: 'Estoque', icon: Database, path: '/admin/estoque', color: 'text-purple-600' },
+    { id: 'produtos-site', label: 'Produtos do Site', icon: ShoppingCart, path: '/admin/produtos-site', color: 'text-indigo-600' },
+    { id: 'producao', label: 'Produção', icon: Box, path: '/admin/producao', color: 'text-yellow-600' },
+    { id: 'relatorios', label: 'Relatórios', icon: BarChart3, path: '/admin/relatorios', color: 'text-slate-600' },
+  ];
 
-  const handleExcluir = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir esta venda?')) {
-      const vendasAtualizadas = vendas.filter(v => v.id !== id);
-      setVendas(vendasAtualizadas);
-      localStorage.setItem('vendas', JSON.stringify(vendasAtualizadas));
-      alert('Venda excluída com sucesso!');
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pendente':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-500/10 text-yellow-600 rounded-full text-xs font-medium">
+            <Clock className="w-3 h-3" />
+            Pendente
+          </span>
+        );
+      case 'concluída':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-500/10 text-green-600 rounded-full text-xs font-medium">
+            <CheckCircle className="w-3 h-3" />
+            Concluída
+          </span>
+        );
+      case 'cancelada':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-500/10 text-red-600 rounded-full text-xs font-medium">
+            <AlertCircle className="w-3 h-3" />
+            Cancelada
+          </span>
+        );
+      default:
+        return null;
     }
   };
 
-  const handleVerDetalhes = (venda: Venda) => {
-    setVendaSelecionada(venda);
-    setModalDetalhes(true);
-  };
+  const filteredVendas = vendas.filter((venda) => {
+    const matchesSearch =
+      venda.produto_nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      venda.cliente_nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      venda.id.toLowerCase().includes(searchTerm.toLowerCase());
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'concluída':
-        return 'bg-green-500/10 text-green-600 border-green-500/20';
-      case 'pendente':
-        return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
-      case 'cancelada':
-        return 'bg-red-500/10 text-red-600 border-red-500/20';
-      default:
-        return 'bg-gray-500/10 text-gray-600 border-gray-500/20';
+    const matchesStatus = filterStatus === 'todos' || venda.status === filterStatus;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir esta venda?')) {
+      try {
+        await vendasAPI.delete(id);
+        setVendas(prev => prev.filter(venda => venda.id !== id));
+      } catch (error) {
+        console.error(`Erro ao excluir venda ${id}:`, error);
+      }
     }
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/admin/dashboard')}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold">Vendas</h1>
-              <p className="text-muted-foreground">Gerencie as vendas de produtos</p>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
+        <div className="p-6 border-b border-gray-100">
+          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Settings className="text-blue-600" />
+            3DKPRINT Admin
+          </h1>
+        </div>
+        <nav className="flex-1 mt-4 px-4 space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.id}
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  window.location.pathname === item.path 
+                  ? 'bg-blue-50 text-blue-700' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+              >
+                <span className={item.color}><Icon size={20} /></span>
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="p-4 border-t border-gray-100">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <LogOut size={20} />
+            Sair do Painel
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto">
+        <header className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
+          <div className="flex justify-between items-center max-w-7xl mx-auto">
+            <h2 className="text-lg font-semibold text-gray-800">Vendas</h2>
+            <div className="flex items-center gap-4">
+              <Link to="/" target="_blank" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                Ver Site <ExternalLink size={14} />
+              </Link>
+              <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
+                AD
+              </div>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total de Vendas</CardTitle>
-              <Package className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{vendas.length}</div>
-              <p className="text-xs text-muted-foreground">vendas registradas</p>
-            </CardContent>
-          </Card>
+        <div className="p-8 max-w-7xl mx-auto">
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por produto, cliente ou ID..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-              <DollarSign className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">R$ {totalVendas.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">em vendas</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
-              <TrendingUp className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{vendasConcluidas}</div>
-              <p className="text-xs text-muted-foreground">vendas finalizadas</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-              <Calendar className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{vendasPendentes}</div>
-              <p className="text-xs text-muted-foreground">aguardando</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Vendas List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Histórico de Vendas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {vendas.length === 0 ? (
-              <div className="text-center py-12">
-                <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Nenhuma venda registrada</p>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os Status</SelectItem>
+                    <SelectItem value="concluída">Concluída</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="cancelada">Cancelada</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {vendas.map((venda) => (
-                  <div
-                    key={venda.id}
-                    className="p-4 border rounded-lg hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="font-mono text-sm text-muted-foreground">
-                            {venda.id}
-                          </span>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                              venda.status
-                            )}`}
-                          >
-                            {venda.status}
-                          </span>
-                        </div>
-                        <h3 className="font-semibold text-lg mb-2">{venda.produto}</h3>
-                        
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          <p className="flex items-center gap-2">
-                            <User className="w-4 h-4" />
-                            <span className="font-medium">Cliente:</span> {venda.cliente}
-                          </p>
-                          {venda.clienteEmail && (
-                            <p className="flex items-center gap-2">
-                              <Mail className="w-4 h-4" />
-                              {venda.clienteEmail}
-                            </p>
-                          )}
-                          {venda.clienteTelefone && (
-                            <p className="flex items-center gap-2">
-                              <Phone className="w-4 h-4" />
-                              {venda.clienteTelefone}
-                            </p>
-                          )}
-                          {venda.clienteCidade && (
-                            <p className="flex items-center gap-2">
-                              <MapPin className="w-4 h-4" />
-                              {venda.clienteCidade}
-                            </p>
-                          )}
-                        </div>
+            </CardContent>
+          </Card>
+
+          {loading ? (
+            <div className="grid grid-cols-1 gap-4">
+              {[1, 2, 3].map(i => (
+                <Card key={i} className="animate-pulse h-48"></Card>
+              ))}
+            </div>
+          ) : filteredVendas.length > 0 ? (
+            <div className="space-y-4">
+              {filteredVendas.map((venda, index) => (
+                <Card key={venda.id} className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className="p-3 bg-emerald-100 rounded-lg">
+                        <ShoppingCart className="w-6 h-6 text-emerald-600" />
                       </div>
-                      
-                      <div className="flex flex-col items-end gap-3">
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-green-600">
-                            R$ {venda.valor.toFixed(2)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(venda.data).toLocaleDateString('pt-BR')}
-                          </p>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                            onClick={() => handleVerDetalhes(venda)}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            Ver Detalhes
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleExcluir(venda.id)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Excluir
-                          </Button>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold mb-1">{venda.produto_nome}</h3>
+                        <p className="text-sm text-gray-600 mb-1">
+                          <span className="font-medium">Cliente:</span> {venda.cliente_nome}
+                        </p>
+                        <p className="text-sm text-gray-600 mb-1">
+                          <span className="font-medium">Valor:</span> R$ {Number(venda.valor_total).toFixed(2).replace('.', ',')}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Data:</span> {new Date(venda.data_venda).toLocaleDateString('pt-BR')}
+                        </p>
+                        <div className="mt-2">
+                          {getStatusBadge(venda.status)}
                         </div>
                       </div>
                     </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/admin/vendas/${venda.id}`)}
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        Ver
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => handleDelete(venda.id)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Excluir
+                      </Button>
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Modal de Detalhes */}
-      {modalDetalhes && vendaSelecionada && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Detalhes da Venda</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setModalDetalhes(false)}
-              >
-                <ArrowLeft className="w-5 h-5" />
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
+              <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4 opacity-20" />
+              <p className="text-gray-600 font-medium">Nenhuma venda encontrada com os filtros selecionados.</p>
+              <Button variant="link" onClick={() => { setSearchTerm(''); setFilterStatus('todos'); }} className="mt-2 text-blue-600">
+                Limpar todos os filtros
               </Button>
             </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">ID da Venda</label>
-                  <p className="text-lg font-semibold">{vendaSelecionada.id}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Status</label>
-                  <p>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(vendaSelecionada.status)}`}>
-                      {vendaSelecionada.status}
-                    </span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-2">Produto</h3>
-                <p className="text-lg">{vendaSelecionada.produto}</p>
-              </div>
-
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-3">Dados do Cliente</h3>
-                <div className="space-y-2">
-                  <p className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-medium">Nome:</span> {vendaSelecionada.cliente}
-                  </p>
-                  {vendaSelecionada.clienteEmail && (
-                    <p className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-medium">E-mail:</span> {vendaSelecionada.clienteEmail}
-                    </p>
-                  )}
-                  {vendaSelecionada.clienteTelefone && (
-                    <p className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-medium">Telefone:</span> {vendaSelecionada.clienteTelefone}
-                    </p>
-                  )}
-                  {vendaSelecionada.clienteCidade && (
-                    <p className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-medium">Cidade:</span> {vendaSelecionada.clienteCidade}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Valor</label>
-                    <p className="text-2xl font-bold text-green-600">
-                      R$ {vendaSelecionada.valor.toFixed(2)}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Data</label>
-                    <p className="text-lg">
-                      {new Date(vendaSelecionada.data).toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-2">
-              <Button
-                variant="outline"
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                onClick={() => {
-                  setModalDetalhes(false);
-                  handleExcluir(vendaSelecionada.id);
-                }}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Excluir Venda
-              </Button>
-              <Button onClick={() => setModalDetalhes(false)}>
-                Fechar
-              </Button>
-            </div>
-          </div>
+          )}
         </div>
-      )}
+      </main>
     </div>
   );
 }

@@ -1,32 +1,14 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  FileText,
-  Users,
-  UserCheck,
-  Package,
-  ShoppingCart,
-  LogOut,
-  Search,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Mail,
-  Phone,
-  MapPin,
-  Star,
-  Copy,
-  Edit,
-  Trash2,
-  History,
-  Eye,
+  LayoutDashboard, ClipboardList, Package, Users, TrendingUp,
+  Clock, CheckCircle, AlertCircle, BarChart3, Settings,
+  LogOut, ExternalLink, Box, Truck, Database,
+  FileText, UserCheck, Factory, Search, Filter, Eye, Copy, Edit, Trash2, Mail, Phone, MapPin, Star
 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getPrestadores, atualizarStatusPrestador, inicializarDadosExemplo } from '@/lib/dataStore';
 import {
   Select,
   SelectContent,
@@ -34,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { prestadoresAPI } from '@/lib/apiClient'; // Supondo que você tenha uma API para prestadores
 
 interface Prestador {
   id: string;
@@ -46,23 +29,31 @@ interface Prestador {
   servicos: string[];
   experiencia: string;
   portfolio?: string;
-  dataCadastro: string;
+  data_cadastro: string; // Alterado para data_cadastro para consistência com Supabase
   status: 'pendente' | 'aprovado' | 'recusado';
   avaliacao?: number;
 }
 
 export default function AdminPrestadores() {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState('prestadores');
+  const [prestadores, setPrestadores] = useState<Prestador[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('todos');
-  const [selectedPrestador, setSelectedPrestador] = useState<Prestador | null>(null);
-  const [prestadores, setPrestadores] = useState<Prestador[]>([]);
 
-  // Carregar prestadores do localStorage
   useEffect(() => {
-    inicializarDadosExemplo();
-    setPrestadores(getPrestadores());
+    const fetchPrestadores = async () => {
+      try {
+        setLoading(true);
+        const data = await prestadoresAPI.getAll(); // Buscar todos os prestadores
+        setPrestadores(data);
+      } catch (error) {
+        console.error('Erro ao carregar prestadores:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPrestadores();
   }, []);
 
   const handleLogout = () => {
@@ -72,45 +63,17 @@ export default function AdminPrestadores() {
   };
 
   const menuItems = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-      path: '/admin/dashboard',
-    },
-    {
-      id: 'orcamentos',
-      label: 'Orçamentos',
-      icon: FileText,
-      path: '/admin/orcamentos',
-    },
-    {
-      id: 'prestadores',
-      label: 'Prestadores',
-      icon: UserCheck,
-      path: '/admin/prestadores',
-    },
-    {
-      id: 'usuarios',
-      label: 'Usuários',
-      icon: Users,
-      path: '/admin/usuarios',
-    },
-    {
-      id: 'vendas',
-      label: 'Vendas',
-      icon: ShoppingCart,
-      path: '/admin/vendas',
-    },
-    {
-      id: 'estoque',
-      label: 'Estoque',
-      icon: Package,
-      path: '/admin/estoque',
-    },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard', color: 'text-blue-600' },
+    { id: 'orcamentos', label: 'Orçamentos', icon: ClipboardList, path: '/admin/orcamentos', color: 'text-orange-600' },
+    { id: 'prestadores', label: 'Prestadores', icon: Truck, path: '/admin/prestadores', color: 'text-cyan-600' },
+    { id: 'usuarios', label: 'Usuários', icon: Users, path: '/admin/usuarios', color: 'text-pink-600' },
+    { id: 'produtos', label: 'Produtos', icon: Package, path: '/admin/produtos', color: 'text-green-600' },
+    { id: 'vendas', label: 'Vendas', icon: TrendingUp, path: '/admin/vendas', color: 'text-emerald-600' },
+    { id: 'estoque', label: 'Estoque', icon: Database, path: '/admin/estoque', color: 'text-purple-600' },
+    { id: 'produtos-site', label: 'Produtos do Site', icon: ShoppingCart, path: '/admin/produtos-site', color: 'text-indigo-600' },
+    { id: 'producao', label: 'Produção', icon: Box, path: '/admin/producao', color: 'text-yellow-600' },
+    { id: 'relatorios', label: 'Relatórios', icon: BarChart3, path: '/admin/relatorios', color: 'text-slate-600' },
   ];
-
-
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -131,7 +94,7 @@ export default function AdminPrestadores() {
       case 'recusado':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-500/10 text-red-600 rounded-full text-xs font-medium">
-            <XCircle className="w-3 h-3" />
+            <AlertCircle className="w-3 h-3" />
             Recusado
           </span>
         );
@@ -141,178 +104,102 @@ export default function AdminPrestadores() {
   };
 
   const filteredPrestadores = prestadores.filter((prest) => {
-    const matchSearch =
+    const matchesSearch =
       prest.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       prest.apelido.toLowerCase().includes(searchTerm.toLowerCase()) ||
       prest.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       prest.id.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchStatus = filterStatus === 'todos' || prest.status === filterStatus;
+    const matchesStatus = filterStatus === 'todos' || prest.status === filterStatus;
 
-    return matchSearch && matchStatus;
+    return matchesSearch && matchesStatus;
   });
 
-  const [modalHistorico, setModalHistorico] = useState(false);
-  const [prestadorSelecionado, setPrestadorSelecionado] = useState<Prestador | null>(null);
-  const [modalEditar, setModalEditar] = useState(false);
-
-  const handleAprovar = (id: string) => {
-    atualizarStatusPrestador(id, 'aprovado');
-    setPrestadores(getPrestadores());
-  };
-
-  const handleRecusar = (id: string) => {
-    atualizarStatusPrestador(id, 'recusado');
-    setPrestadores(getPrestadores());
-  };
-
-  const handleDuplicar = (prestador: Prestador) => {
-    const novoPrestador = {
-      ...prestador,
-      id: `PREST-${Date.now()}`,
-      nome: `${prestador.nome} (Cópia)`,
-      dataCadastro: new Date().toISOString(),
-      status: 'pendente' as const
-    };
-    const prestadoresAtuais = getPrestadores();
-    localStorage.setItem('prestadores', JSON.stringify([...prestadoresAtuais, novoPrestador]));
-    setPrestadores(getPrestadores());
-    alert('Prestador duplicado com sucesso!');
-  };
-
-  const handleExcluir = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este prestador?')) {
-      const prestadoresAtuais = getPrestadores();
-      const prestadoresFiltrados = prestadoresAtuais.filter(p => p.id !== id);
-      localStorage.setItem('prestadores', JSON.stringify(prestadoresFiltrados));
-      setPrestadores(getPrestadores());
-      alert('Prestador excluído com sucesso!');
+  const handleUpdateStatus = async (id: string, newStatus: 'aprovado' | 'recusado') => {
+    try {
+      await prestadoresAPI.updateStatus(id, newStatus);
+      setPrestadores(prev => prev.map(prest => prest.id === id ? { ...prest, status: newStatus } : prest));
+    } catch (error) {
+      console.error(`Erro ao atualizar status do prestador ${id}:`, error);
     }
   };
 
-  const handleVerHistorico = (prestador: Prestador) => {
-    setPrestadorSelecionado(prestador);
-    setModalHistorico(true);
-  };
-
-  const handleEditar = (prestador: Prestador) => {
-    setPrestadorSelecionado(prestador);
-    setModalEditar(true);
-  };
-
-  const handleSalvarEdicao = () => {
-    if (!prestadorSelecionado) return;
-    
-    const prestadoresAtuais = getPrestadores();
-    const prestadoresAtualizados = prestadoresAtuais.map(p => 
-      p.id === prestadorSelecionado.id ? prestadorSelecionado : p
-    );
-    localStorage.setItem('prestadores', JSON.stringify(prestadoresAtualizados));
-    setPrestadores(getPrestadores());
-    setModalEditar(false);
-    setPrestadorSelecionado(null);
-    alert('Prestador atualizado com sucesso!');
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este prestador?')) {
+      try {
+        await prestadoresAPI.delete(id);
+        setPrestadores(prev => prev.filter(prest => prest.id !== id));
+      } catch (error) {
+        console.error(`Erro ao excluir prestador ${id}:`, error);
+      }
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-card border-r border-border flex flex-col">
-        <div className="p-6 border-b border-border">
-          <h1 className="text-2xl font-bold text-primary">3DKPRINT</h1>
-          <p className="text-sm text-muted-foreground">Painel Administrativo</p>
+      <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
+        <div className="p-6 border-b border-gray-100">
+          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Settings className="text-blue-600" />
+            3DKPRINT Admin
+          </h1>
         </div>
-
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 mt-4 px-4 space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeSection === item.id;
             return (
-              <button
+              <Link
                 key={item.id}
-                onClick={() => {
-                  setActiveSection(item.id);
-                  navigate(item.path);
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  window.location.pathname === item.path 
+                  ? 'bg-blue-50 text-blue-700' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                <Icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-              </button>
+                <span className={item.color}><Icon size={20} /></span>
+                {item.label}
+              </Link>
             );
           })}
         </nav>
-
-        <div className="p-4 border-t border-border">
-          <Button
-            variant="outline"
-            className="w-full justify-start gap-3"
+        <div className="p-4 border-t border-gray-100">
+          <button
             onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
           >
-            <LogOut className="w-5 h-5" />
-            Sair
-          </Button>
+            <LogOut size={20} />
+            Sair do Painel
+          </button>
         </div>
       </aside>
 
-      {/* Conteúdo Principal */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">
-          {/* Cabeçalho */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-foreground mb-2">
-              Gestão de Prestadores
-            </h2>
-            <p className="text-muted-foreground">
-              Aprove ou recuse cadastros de prestadores de serviço
-            </p>
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto">
+        <header className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
+          <div className="flex justify-between items-center max-w-7xl mx-auto">
+            <h2 className="text-lg font-semibold text-gray-800">Prestadores</h2>
+            <div className="flex items-center gap-4">
+              <Link to="/" target="_blank" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                Ver Site <ExternalLink size={14} />
+              </Link>
+              <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
+                AD
+              </div>
+            </div>
           </div>
+        </header>
 
-          {/* Estatísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Aguardando Aprovação
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">
-                  {prestadores.filter((p) => p.status === 'pendente').length}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Aprovados
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">
-                  {prestadores.filter((p) => p.status === 'aprovado').length}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Recusados
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">
-                  {prestadores.filter((p) => p.status === 'recusado').length}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        <div className="p-8 max-w-7xl mx-auto">
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8"
+          >
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Gestão de Prestadores</h1>
+            <p className="text-gray-600">Visualize e gerencie todos os prestadores de serviço cadastrados.</p>
+          </motion.div>
 
           {/* Filtros */}
           <Card className="mb-6">
@@ -344,356 +231,144 @@ export default function AdminPrestadores() {
           </Card>
 
           {/* Lista de Prestadores */}
-          <div className="space-y-4">
-            {filteredPrestadores.map((prest, index) => (
-              <motion.div
-                key={prest.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                          <UserCheck className="w-8 h-8 text-primary" />
-                        </div>
-
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold">{prest.nome}</h3>
-                            {getStatusBadge(prest.status)}
+          {loading ? (
+            <div className="grid grid-cols-1 gap-4">
+              {[1, 2, 3].map(i => (
+                <Card key={i} className="animate-pulse h-48"></Card>
+              ))}
+            </div>
+          ) : filteredPrestadores.length > 0 ? (
+            <div className="space-y-4">
+              {filteredPrestadores.map((prest, index) => (
+                <motion.div
+                  key={prest.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4 flex-1">
+                          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                            <UserCheck className="w-8 h-8 text-blue-600" />
                           </div>
 
-                          <p className="text-sm text-muted-foreground mb-1">
-                            <span className="font-medium">Apelido:</span> @{prest.apelido}
-                          </p>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold">{prest.nome}</h3>
+                              {getStatusBadge(prest.status)}
+                            </div>
 
-                          <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
-                            <Mail className="w-3 h-3" />
-                            {prest.email}
-                          </p>
-
-                          <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
-                            <Phone className="w-3 h-3" />
-                            {prest.telefone}
-                          </p>
-
-                          <p className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
-                            <MapPin className="w-3 h-3" />
-                            {prest.cidade} - {prest.estado}
-                          </p>
-
-                          <div className="flex flex-wrap gap-2 mb-2">
-                            {prest.servicos.map((servico) => (
-                              <span
-                                key={servico}
-                                className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
-                              >
-                                {servico}
-                              </span>
-                            ))}
-                          </div>
-
-                          <p className="text-sm text-muted-foreground">
-                            <span className="font-medium">Experiência:</span>{' '}
-                            {prest.experiencia}
-                          </p>
-
-                          {prest.avaliacao && (
-                            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                              <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                              <span className="font-medium">{prest.avaliacao.toFixed(1)}</span>
+                            <p className="text-sm text-gray-600 mb-1">
+                              <span className="font-medium">Apelido:</span> @{prest.apelido}
                             </p>
-                          )}
 
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Cadastrado em:{' '}
-                            {new Date(prest.dataCadastro).toLocaleDateString('pt-BR')}
-                          </p>
+                            <p className="text-sm text-gray-600 mb-1 flex items-center gap-2">
+                              <Mail className="w-3 h-3" />
+                              {prest.email}
+                            </p>
+
+                            <p className="text-sm text-gray-600 mb-1 flex items-center gap-2">
+                              <Phone className="w-3 h-3" />
+                              {prest.telefone}
+                            </p>
+
+                            <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
+                              <MapPin className="w-3 h-3" />
+                              {prest.cidade} - {prest.estado}
+                            </p>
+
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {prest.servicos.map((servico) => (
+                                <span
+                                  key={servico}
+                                  className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                                >
+                                  {servico}
+                                </span>
+                              ))}
+                            </div>
+
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Experiência:</span>{' '}
+                              {prest.experiencia}
+                            </p>
+
+                            {prest.avaliacao && (
+                              <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                                <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                                <span className="font-medium">{Number(prest.avaliacao).toFixed(1)}</span>
+                              </p>
+                            )}
+
+                            <p className="text-xs text-gray-500 mt-2">
+                              Cadastrado em:{' '}
+                              {new Date(prest.data_cadastro).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                          onClick={() => handleVerHistorico(prest)}
-                        >
-                          <History className="w-4 h-4 mr-2" />
-                          Histórico
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          onClick={() => handleEditar(prest)}
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Editar
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          onClick={() => handleDuplicar(prest)}
-                        >
-                          <Copy className="w-4 h-4 mr-2" />
-                          Duplicar
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleExcluir(prest.id)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Excluir
-                        </Button>
-
-                        {prest.status === 'pendente' && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                              onClick={() => handleAprovar(prest.id)}
-                            >
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Aprovar
-                            </Button>
-
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                              onClick={() => handleRecusar(prest.id)}
-                            >
-                              <XCircle className="w-4 h-4 mr-2" />
-                              Recusar
-                            </Button>
-                          </>
-                        )}
-
-                        {prest.portfolio && (
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.open(prest.portfolio, '_blank')}
+                            onClick={() => navigate(`/admin/prestadores/${prest.id}`)}
                           >
-                            Ver Portfólio
+                            <Eye className="w-4 h-4 mr-2" />
+                            Ver
                           </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
 
-            {filteredPrestadores.length === 0 && (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <UserCheck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">
-                    Nenhum prestador encontrado com os filtros selecionados
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                          {prest.status === 'pendente' && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                onClick={() => handleUpdateStatus(prest.id, 'aprovado')}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Aprovar
+                              </Button>
+
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleUpdateStatus(prest.id, 'recusado')}
+                              >
+                                <AlertCircle className="w-4 h-4 mr-2" />
+                                Recusar
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDelete(prest.id)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
+              <UserCheck className="h-12 w-12 text-gray-400 mx-auto mb-4 opacity-20" />
+              <p className="text-gray-600 font-medium">Nenhum prestador encontrado com os filtros selecionados.</p>
+              <Button variant="link" onClick={() => { setSearchTerm(''); setFilterStatus('todos'); }} className="mt-2 text-blue-600">
+                Limpar todos os filtros
+              </Button>
+            </div>
+          )}
         </div>
       </main>
-
-      {/* Modal de Histórico */}
-      {modalHistorico && prestadorSelecionado && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Histórico de Serviços</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setModalHistorico(false)}
-              >
-                <XCircle className="w-5 h-5" />
-              </Button>
-            </div>
-
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold">{prestadorSelecionado.nome}</h3>
-              <p className="text-sm text-muted-foreground">@{prestadorSelecionado.apelido}</p>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="font-semibold">Serviços Oferecidos:</h4>
-              <div className="flex flex-wrap gap-2">
-                {prestadorSelecionado.servicos.map((servico) => (
-                  <span
-                    key={servico}
-                    className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm"
-                  >
-                    {servico}
-                  </span>
-                ))}
-              </div>
-
-              <div className="border-t pt-4">
-                <h4 className="font-semibold mb-2">Histórico de Propostas:</h4>
-                <p className="text-sm text-muted-foreground">
-                  Funcionalidade em desenvolvimento. Em breve você poderá ver:
-                </p>
-                <ul className="list-disc list-inside text-sm text-muted-foreground mt-2">
-                  <li>Serviços aceitos pelo prestador</li>
-                  <li>Serviços recusados</li>
-                  <li>Avaliações recebidas</li>
-                  <li>Faturamento total</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end">
-              <Button onClick={() => setModalHistorico(false)}>
-                Fechar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Edição */}
-      {modalEditar && prestadorSelecionado && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-3xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Editar Prestador</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setModalEditar(false);
-                  setPrestadorSelecionado(null);
-                }}
-              >
-                <XCircle className="w-5 h-5" />
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Nome</label>
-                  <Input
-                    value={prestadorSelecionado.nome}
-                    onChange={(e) => setPrestadorSelecionado({
-                      ...prestadorSelecionado,
-                      nome: e.target.value
-                    })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Apelido</label>
-                  <Input
-                    value={prestadorSelecionado.apelido}
-                    onChange={(e) => setPrestadorSelecionado({
-                      ...prestadorSelecionado,
-                      apelido: e.target.value
-                    })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">E-mail</label>
-                  <Input
-                    type="email"
-                    value={prestadorSelecionado.email}
-                    onChange={(e) => setPrestadorSelecionado({
-                      ...prestadorSelecionado,
-                      email: e.target.value
-                    })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Telefone</label>
-                  <Input
-                    value={prestadorSelecionado.telefone}
-                    onChange={(e) => setPrestadorSelecionado({
-                      ...prestadorSelecionado,
-                      telefone: e.target.value
-                    })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Cidade</label>
-                  <Input
-                    value={prestadorSelecionado.cidade}
-                    onChange={(e) => setPrestadorSelecionado({
-                      ...prestadorSelecionado,
-                      cidade: e.target.value
-                    })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Estado</label>
-                  <Input
-                    value={prestadorSelecionado.estado}
-                    onChange={(e) => setPrestadorSelecionado({
-                      ...prestadorSelecionado,
-                      estado: e.target.value
-                    })}
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1">Experiência</label>
-                  <Input
-                    value={prestadorSelecionado.experiencia}
-                    onChange={(e) => setPrestadorSelecionado({
-                      ...prestadorSelecionado,
-                      experiencia: e.target.value
-                    })}
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1">Portfólio (URL)</label>
-                  <Input
-                    value={prestadorSelecionado.portfolio || ''}
-                    onChange={(e) => setPrestadorSelecionado({
-                      ...prestadorSelecionado,
-                      portfolio: e.target.value
-                    })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setModalEditar(false);
-                  setPrestadorSelecionado(null);
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button onClick={handleSalvarEdicao}>
-                Salvar Alterações
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

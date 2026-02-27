@@ -1,35 +1,14 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  Package,
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  AlertTriangle,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
+  LayoutDashboard, ClipboardList, Package, Users, TrendingUp,
+  Clock, CheckCircle, AlertCircle, BarChart3, Settings,
+  LogOut, ExternalLink, Box, Truck, Database,
+  FileText, UserCheck, Factory, Search, Filter, Eye, Copy, Edit, Trash2, Plus
 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -37,606 +16,265 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { produtoService, Produto, inicializarDadosExemplo } from '@/lib/dataStoreEnhanced';
-import { useToast } from '@/hooks/use-toast';
+import { produtosAPI } from '@/lib/apiClient'; // Supondo que você tenha uma API para produtos
+
+interface Produto {
+  id: string;
+  nome: string;
+  categoria: string;
+  preco: number;
+  estoque: number;
+  created_at: string;
+}
 
 export default function AdminProdutos() {
+  const navigate = useNavigate();
   const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [filteredProdutos, setFilteredProdutos] = useState<Produto[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingProduto, setEditingProduto] = useState<Produto | null>(null);
-  const { toast } = useToast();
-
-  const [formData, setFormData] = useState({
-    nome: '',
-    descricao: '',
-    modelo: '',
-    marca: '',
-    categoria: '',
-    unidade: 'UN' as const,
-    valorCusto: 0,
-    valorVenda: 0,
-    estoque: 0,
-    estoqueMinimo: 5,
-    imagens: [] as string[],
-    modelo3dUrl: '',
-  });
-
-  const [imagemPreview, setImagemPreview] = useState<string[]>([]);
-  const [modelo3dPreview, setModelo3dPreview] = useState<string>('');
+  const [filterCategory, setFilterCategory] = useState('todos');
 
   useEffect(() => {
-    inicializarDadosExemplo();
-    carregarProdutos();
+    const fetchProdutos = async () => {
+      try {
+        setLoading(true);
+        const data = await produtosAPI.getAll(); // Buscar todos os produtos
+        setProdutos(data);
+      } catch (error) {
+        console.error('Erro ao carregar produtos:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProdutos();
   }, []);
 
-  useEffect(() => {
-    const filtered = produtos.filter(
-      (p) =>
-        p.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.marca?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.categoria.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredProdutos(filtered);
-  }, [searchTerm, produtos]);
-
-  const carregarProdutos = () => {
-    const data = produtoService.getAll();
-    setProdutos(data);
-    setFilteredProdutos(data);
+  const handleLogout = () => {
+    localStorage.removeItem('admin_authenticated');
+    localStorage.removeItem('admin_user');
+    navigate('/admin/login');
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const newImages: string[] = [];
-      Array.from(files).forEach((file) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const result = reader.result as string;
-          newImages.push(result);
-          if (newImages.length === files.length) {
-            setImagemPreview([...imagemPreview, ...newImages]);
-            setFormData({ ...formData, imagens: [...formData.imagens, ...newImages] });
-          }
-        };
-        reader.readAsDataURL(file);
-      });
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard', color: 'text-blue-600' },
+    { id: 'orcamentos', label: 'Orçamentos', icon: ClipboardList, path: '/admin/orcamentos', color: 'text-orange-600' },
+    { id: 'prestadores', label: 'Prestadores', icon: Truck, path: '/admin/prestadores', color: 'text-cyan-600' },
+    { id: 'usuarios', label: 'Usuários', icon: Users, path: '/admin/usuarios', color: 'text-pink-600' },
+    { id: 'produtos', label: 'Produtos', icon: Package, path: '/admin/produtos', color: 'text-green-600' },
+    { id: 'vendas', label: 'Vendas', icon: TrendingUp, path: '/admin/vendas', color: 'text-emerald-600' },
+    { id: 'estoque', label: 'Estoque', icon: Database, path: '/admin/estoque', color: 'text-purple-600' },
+    { id: 'produtos-site', label: 'Produtos do Site', icon: ShoppingCart, path: '/admin/produtos-site', color: 'text-indigo-600' },
+    { id: 'producao', label: 'Produção', icon: Box, path: '/admin/producao', color: 'text-yellow-600' },
+    { id: 'relatorios', label: 'Relatórios', icon: BarChart3, path: '/admin/relatorios', color: 'text-slate-600' },
+  ];
+
+  const filteredProdutos = produtos.filter((produto) => {
+    const matchesSearch =
+      produto.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      produto.categoria.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = filterCategory === 'todos' || produto.categoria === filterCategory;
+
+    return matchesSearch && matchesCategory;
+  });
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este produto?')) {
+      try {
+        await produtosAPI.delete(id);
+        setProdutos(prev => prev.filter(produto => produto.id !== id));
+      } catch (error) {
+        console.error(`Erro ao excluir produto ${id}:`, error);
+      }
     }
-  };
-
-  const handleModelo3DUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setModelo3dPreview(result);
-        setFormData({ ...formData, modelo3dUrl: result });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeImage = (index: number) => {
-    const newImages = imagemPreview.filter((_, i) => i !== index);
-    setImagemPreview(newImages);
-    setFormData({ ...formData, imagens: newImages });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (editingProduto) {
-      produtoService.update(editingProduto.id, formData);
-      toast({
-        title: 'Produto atualizado!',
-        description: 'As alterações foram salvas com sucesso.',
-      });
-    } else {
-      produtoService.create(formData);
-      toast({
-        title: 'Produto cadastrado!',
-        description: 'O produto foi adicionado ao sistema.',
-      });
-    }
-
-    resetForm();
-    carregarProdutos();
-    setIsDialogOpen(false);
-  };
-
-  const handleEdit = (produto: Produto) => {
-    setEditingProduto(produto);
-    setFormData({
-      nome: produto.nome,
-      descricao: produto.descricao,
-      modelo: produto.modelo || '',
-      marca: produto.marca || '',
-      categoria: produto.categoria,
-      unidade: produto.unidade,
-      valorCusto: produto.valorCusto,
-      valorVenda: produto.valorVenda,
-      estoque: produto.estoque,
-      estoqueMinimo: produto.estoqueMinimo,
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este produto?')) {
-      produtoService.delete(id);
-      toast({
-        title: 'Produto excluído',
-        description: 'O produto foi removido do sistema.',
-      });
-      carregarProdutos();
-    }
-  };
-
-  const resetForm = () => {
-    setEditingProduto(null);
-    setFormData({
-      nome: '',
-      descricao: '',
-      modelo: '',
-      marca: '',
-      categoria: '',
-      unidade: 'UN',
-      valorCusto: 0,
-      valorVenda: 0,
-      estoque: 0,
-      estoqueMinimo: 5,
-    });
-  };
-
-  const calcularMargem = (custo: number, venda: number) => {
-    if (custo === 0) return 0;
-    return ((venda - custo) / custo) * 100;
-  };
-
-  const estatisticas = {
-    total: produtos.length,
-    estoqueBaixo: produtos.filter((p) => p.estoque <= p.estoqueMinimo).length,
-    valorTotal: produtos.reduce((sum, p) => sum + p.valorVenda * p.estoque, 0),
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Produtos</h1>
-          <p className="text-muted-foreground">
-            Gerencie o catálogo de produtos
-          </p>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
+        <div className="p-6 border-b border-gray-100">
+          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Settings className="text-blue-600" />
+            3DKPRINT Admin
+          </h1>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Produto
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingProduto ? 'Editar Produto' : 'Novo Produto'}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <Label>Nome do Produto *</Label>
-                  <Input
-                    value={formData.nome}
-                    onChange={(e) =>
-                      setFormData({ ...formData, nome: e.target.value })
-                    }
-                    required
-                  />
-                </div>
+        <nav className="flex-1 mt-4 px-4 space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.id}
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  window.location.pathname === item.path 
+                  ? 'bg-blue-50 text-blue-700' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+              >
+                <span className={item.color}><Icon size={20} /></span>
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="p-4 border-t border-gray-100">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <LogOut size={20} />
+            Sair do Painel
+          </button>
+        </div>
+      </aside>
 
-                <div className="col-span-2">
-                  <Label>Descrição</Label>
-                  <Input
-                    value={formData.descricao}
-                    onChange={(e) =>
-                      setFormData({ ...formData, descricao: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <Label>Modelo</Label>
-                  <Input
-                    value={formData.modelo}
-                    onChange={(e) =>
-                      setFormData({ ...formData, modelo: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <Label>Marca</Label>
-                  <Input
-                    value={formData.marca}
-                    onChange={(e) =>
-                      setFormData({ ...formData, marca: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <Label>Categoria *</Label>
-                  <Input
-                    value={formData.categoria}
-                    onChange={(e) =>
-                      setFormData({ ...formData, categoria: e.target.value })
-                    }
-                    required
-                    placeholder="Ex: Filamento, Resina, Peças"
-                  />
-                </div>
-
-                {/* Upload de Imagens */}
-                <div className="col-span-2">
-                  <Label>Imagens do Produto</Label>
-                  <div className="mt-2">
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors">
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <svg className="w-8 h-8 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <p className="text-sm text-gray-500">Clique para fazer upload de imagens</p>
-                        <p className="text-xs text-gray-400">PNG, JPG, WEBP (Máx. 5MB cada)</p>
-                      </div>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        multiple
-                        onChange={handleImageUpload}
-                      />
-                    </label>
-                  </div>
-                  {imagemPreview.length > 0 && (
-                    <div className="mt-4 grid grid-cols-4 gap-4">
-                      {imagemPreview.map((img, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={img}
-                            alt={`Preview ${index + 1}`}
-                            className="w-full h-24 object-cover rounded-lg"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Upload de Modelo 3D */}
-                <div className="col-span-2">
-                  <Label>Modelo 3D (GLB/GLTF)</Label>
-                  <div className="mt-2">
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors">
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <Package className="w-8 h-8 mb-2 text-gray-400" />
-                        <p className="text-sm text-gray-500">Clique para fazer upload do modelo 3D</p>
-                        <p className="text-xs text-gray-400">GLB, GLTF (Máx. 50MB)</p>
-                      </div>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept=".glb,.gltf"
-                        onChange={handleModelo3DUpload}
-                      />
-                    </label>
-                  </div>
-                  {modelo3dPreview && (
-                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-sm text-green-700 flex items-center gap-2">
-                        <Package className="w-4 h-4" />
-                        Modelo 3D carregado com sucesso!
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <Label>Unidade *</Label>
-                  <Select
-                    value={formData.unidade}
-                    onValueChange={(value: any) =>
-                      setFormData({ ...formData, unidade: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="UN">Unidade (UN)</SelectItem>
-                      <SelectItem value="KG">Quilograma (KG)</SelectItem>
-                      <SelectItem value="GR">Grama (GR)</SelectItem>
-                      <SelectItem value="MT">Metro (MT)</SelectItem>
-                      <SelectItem value="LT">Litro (LT)</SelectItem>
-                      <SelectItem value="ML">Mililitro (ML)</SelectItem>
-                      <SelectItem value="PC">Peça (PC)</SelectItem>
-                      <SelectItem value="CX">Caixa (CX)</SelectItem>
-                      <SelectItem value="RL">Rolo (RL)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label>Valor de Custo (R$) *</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.valorCusto}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        valorCusto: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>Valor de Venda (R$) *</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.valorVenda}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        valorVenda: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>Estoque Atual *</Label>
-                  <Input
-                    type="number"
-                    value={formData.estoque}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        estoque: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>Estoque Mínimo *</Label>
-                  <Input
-                    type="number"
-                    value={formData.estoqueMinimo}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        estoqueMinimo: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    required
-                  />
-                </div>
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto">
+        <header className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
+          <div className="flex justify-between items-center max-w-7xl mx-auto">
+            <h2 className="text-lg font-semibold text-gray-800">Produtos</h2>
+            <div className="flex items-center gap-4">
+              <Link to="/" target="_blank" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                Ver Site <ExternalLink size={14} />
+              </Link>
+              <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
+                AD
               </div>
+            </div>
+          </div>
+        </header>
 
-              {formData.valorCusto > 0 && formData.valorVenda > 0 && (
-                <div className="p-4 bg-muted rounded-lg">
-                  <p className="text-sm font-medium">
-                    Margem de Lucro:{' '}
-                    <span
-                      className={
-                        calcularMargem(formData.valorCusto, formData.valorVenda) >
-                        0
-                          ? 'text-green-600'
-                          : 'text-red-600'
-                      }
-                    >
-                      {calcularMargem(
-                        formData.valorCusto,
-                        formData.valorVenda
-                      ).toFixed(2)}
-                      %
-                    </span>
-                  </p>
+        <div className="p-8 max-w-7xl mx-auto">
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8"
+          >
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Gestão de Produtos</h1>
+            <p className="text-gray-600">Visualize e gerencie todos os produtos internos.</p>
+          </motion.div>
+
+          {/* Filtros e Ações */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="relative flex-1 w-full">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome ou categoria..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-              )}
 
-              <div className="flex gap-2 justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="w-full md:w-[180px]">
+                    <SelectValue placeholder="Filtrar por Categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas as Categorias</SelectItem>
+                    <SelectItem value="Filamento">Filamento</SelectItem>
+                    <SelectItem value="Resina">Resina</SelectItem>
+                    <SelectItem value="Peças">Peças</SelectItem>
+                    <SelectItem value="Impressora">Impressora</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button onClick={() => navigate('/admin/produtos/novo')} className="w-full md:w-auto">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Novo Produto
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Lista de Produtos */}
+          {loading ? (
+            <div className="grid grid-cols-1 gap-4">
+              {[1, 2, 3].map(i => (
+                <Card key={i} className="animate-pulse h-48"></Card>
+              ))}
+            </div>
+          ) : filteredProdutos.length > 0 ? (
+            <div className="space-y-4">
+              {filteredProdutos.map((produto, index) => (
+                <motion.div
+                  key={produto.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
                 >
-                  Cancelar
-                </Button>
-                <Button type="submit">
-                  {editingProduto ? 'Salvar Alterações' : 'Cadastrar Produto'}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4 flex-1">
+                          <div className="p-3 bg-green-100 rounded-lg">
+                            <Package className="w-6 h-6 text-green-600" />
+                          </div>
 
-      {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-card rounded-lg p-6 border border-border"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Total de Produtos</p>
-              <p className="text-3xl font-bold text-foreground">
-                {estatisticas.total}
-              </p>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold mb-1">{produto.nome}</h3>
+                            <p className="text-sm text-gray-600 mb-1">
+                              <span className="font-medium">Categoria:</span> {produto.categoria}
+                            </p>
+                            <p className="text-sm text-gray-600 mb-1">
+                              <span className="font-medium">Preço:</span> R$ {Number(produto.preco).toFixed(2).replace('.', ',')}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Estoque:</span> {produto.estoque}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-2">
+                              Cadastrado em: {new Date(produto.created_at).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/admin/produtos/${produto.id}`)}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Ver
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/admin/produtos/${produto.id}/editar`)}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDelete(produto.id)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
             </div>
-            <Package className="w-12 h-12 text-primary opacity-20" />
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-card rounded-lg p-6 border border-border"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Estoque Baixo</p>
-              <p className="text-3xl font-bold text-orange-600">
-                {estatisticas.estoqueBaixo}
-              </p>
+          ) : (
+            <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
+              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4 opacity-20" />
+              <p className="text-gray-600 font-medium">Nenhum produto encontrado com os filtros selecionados.</p>
+              <Button variant="link" onClick={() => { setSearchTerm(''); setFilterCategory('todos'); }} className="mt-2 text-blue-600">
+                Limpar todos os filtros
+              </Button>
             </div>
-            <AlertTriangle className="w-12 h-12 text-orange-600 opacity-20" />
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-card rounded-lg p-6 border border-border"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Valor em Estoque</p>
-              <p className="text-3xl font-bold text-green-600">
-                R$ {estatisticas.valorTotal.toFixed(2)}
-              </p>
-            </div>
-            <DollarSign className="w-12 h-12 text-green-600 opacity-20" />
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Busca */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome, marca ou categoria..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      {/* Tabela */}
-      <div className="bg-card rounded-lg border border-border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Produto</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Estoque</TableHead>
-              <TableHead>Custo</TableHead>
-              <TableHead>Venda</TableHead>
-              <TableHead>Margem</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredProdutos.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
-                  Nenhum produto encontrado
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredProdutos.map((produto) => {
-                const margem = calcularMargem(
-                  produto.valorCusto,
-                  produto.valorVenda
-                );
-                return (
-                  <TableRow key={produto.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{produto.nome}</p>
-                        {produto.marca && (
-                          <p className="text-sm text-muted-foreground">
-                            {produto.marca} {produto.modelo && `- ${produto.modelo}`}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{produto.categoria}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span>
-                          {produto.estoque} {produto.unidade}
-                        </span>
-                        {produto.estoque <= produto.estoqueMinimo && (
-                          <AlertTriangle className="w-4 h-4 text-orange-600" />
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>R$ {produto.valorCusto.toFixed(2)}</TableCell>
-                    <TableCell>R$ {produto.valorVenda.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {margem > 0 ? (
-                          <TrendingUp className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <TrendingDown className="w-4 h-4 text-red-600" />
-                        )}
-                        <span
-                          className={
-                            margem > 0 ? 'text-green-600' : 'text-red-600'
-                          }
-                        >
-                          {margem.toFixed(1)}%
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-2 justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(produto)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(produto.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 }

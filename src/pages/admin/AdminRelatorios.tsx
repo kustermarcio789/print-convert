@@ -1,436 +1,234 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  FileText, TrendingUp, DollarSign, Package, Factory, Calendar,
-  Download, Filter, BarChart3, PieChart, LineChart, ArrowUp, ArrowDown
+  LayoutDashboard, ClipboardList, Package, Users, TrendingUp,
+  Clock, CheckCircle, AlertCircle, BarChart3, Settings,
+  LogOut, ExternalLink, Box, Truck, Database,
+  FileText, UserCheck, Factory, ShoppingCart, Download, Filter, PieChart, LineChart, ArrowUp, ArrowDown, DollarSign
 } from 'lucide-react';
-import { exportarRelatorioGeralPDF } from '@/lib/pdfExporter';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { relatoriosAPI } from '@/lib/apiClient'; // Supondo que você tenha uma API para relatórios
 
-interface DadosRelatorio {
-  vendas: {
-    totalMes: number;
-    totalAno: number;
-    quantidadeMes: number;
-    ticketMedio: number;
-    crescimentoMensal: number;
-  };
-  producao: {
-    pecasProduzidas: number;
-    materialConsumido: number;
-    custoProducao: number;
-    eficiencia: number;
-  };
-  estoque: {
-    valorTotal: number;
-    itensAtivos: number;
-    itensBaixos: number;
-    itensCriticos: number;
-  };
-  orcamentos: {
-    total: number;
-    pendentes: number;
-    aprovados: number;
-    recusados: number;
-    taxaConversao: number;
-  };
+interface RelatorioData {
+  totalVendas: number;
+  totalOrcamentos: number;
+  totalProducao: number;
+  vendasPorMes: { mes: string; valor: number }[];
+  statusOrcamentos: { status: string; count: number }[];
 }
 
 export default function AdminRelatorios() {
   const navigate = useNavigate();
-  const [periodo, setPeriodo] = useState<'mes' | 'trimestre' | 'ano'>('mes');
-  const [dados, setDados] = useState<DadosRelatorio>({
-    vendas: {
-      totalMes: 0,
-      totalAno: 0,
-      quantidadeMes: 0,
-      ticketMedio: 0,
-      crescimentoMensal: 0
-    },
-    producao: {
-      pecasProduzidas: 0,
-      materialConsumido: 0,
-      custoProducao: 0,
-      eficiencia: 0
-    },
-    estoque: {
-      valorTotal: 0,
-      itensAtivos: 0,
-      itensBaixos: 0,
-      itensCriticos: 0
-    },
-    orcamentos: {
-      total: 0,
-      pendentes: 0,
-      aprovados: 0,
-      recusados: 0,
-      taxaConversao: 0
-    }
-  });
+  const [relatorio, setRelatorio] = useState<RelatorioData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [periodo, setPeriodo] = useState('mensal'); // 'mensal', 'trimestral', 'anual'
 
   useEffect(() => {
-    carregarDados();
+    const fetchRelatorios = async () => {
+      try {
+        setLoading(true);
+        const data = await relatoriosAPI.getSummary(periodo); // Buscar dados de relatório
+        setRelatorio(data);
+      } catch (error) {
+        console.error('Erro ao carregar relatórios:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRelatorios();
   }, [periodo]);
 
-  const carregarDados = () => {
-    // Carregar dados do localStorage
-    const orcamentos = JSON.parse(localStorage.getItem('orcamentos') || '[]');
-    const registrosProducao = JSON.parse(localStorage.getItem('registros_producao') || '[]');
-    const materiais = JSON.parse(localStorage.getItem('estoque_materiais') || '[]');
-    const produtos = JSON.parse(localStorage.getItem('produtos') || '[]');
-
-    // Calcular dados de vendas
-    const vendasAprovadas = orcamentos.filter((o: any) => o.status === 'aprovado');
-    const totalVendasMes = vendasAprovadas.reduce((sum: number, o: any) => sum + (o.valorTotal || 0), 0);
-    const quantidadeVendasMes = vendasAprovadas.length;
-    const ticketMedio = quantidadeVendasMes > 0 ? totalVendasMes / quantidadeVendasMes : 0;
-
-    // Calcular dados de produção
-    const pecasProduzidas = registrosProducao.length;
-    const custoProducao = registrosProducao.reduce((sum: number, r: any) => sum + (r.custoMaterial || 0), 0);
-    const materialConsumido = registrosProducao.reduce((sum: number, r: any) => sum + (r.quantidadeTotal || 0), 0);
-
-    // Calcular dados de estoque
-    const valorEstoque = materiais.reduce((sum: number, m: any) => sum + (m.precoCompra || 0), 0);
-    const itensBaixos = materiais.filter((m: any) => m.status === 'baixo').length;
-    const itensCriticos = materiais.filter((m: any) => m.status === 'critico').length;
-
-    // Calcular dados de orçamentos
-    const totalOrcamentos = orcamentos.length;
-    const orcamentosPendentes = orcamentos.filter((o: any) => o.status === 'pendente').length;
-    const orcamentosAprovados = orcamentos.filter((o: any) => o.status === 'aprovado').length;
-    const orcamentosRecusados = orcamentos.filter((o: any) => o.status === 'recusado').length;
-    const taxaConversao = totalOrcamentos > 0 ? (orcamentosAprovados / totalOrcamentos) * 100 : 0;
-
-    setDados({
-      vendas: {
-        totalMes: totalVendasMes,
-        totalAno: totalVendasMes * 12, // Estimativa
-        quantidadeMes: quantidadeVendasMes,
-        ticketMedio,
-        crescimentoMensal: 15.5 // Simulado
-      },
-      producao: {
-        pecasProduzidas,
-        materialConsumido,
-        custoProducao,
-        eficiencia: 87.5 // Simulado
-      },
-      estoque: {
-        valorTotal: valorEstoque,
-        itensAtivos: materiais.length,
-        itensBaixos,
-        itensCriticos
-      },
-      orcamentos: {
-        total: totalOrcamentos,
-        pendentes: orcamentosPendentes,
-        aprovados: orcamentosAprovados,
-        recusados: orcamentosRecusados,
-        taxaConversao
-      }
-    });
+  const handleLogout = () => {
+    localStorage.removeItem('admin_authenticated');
+    localStorage.removeItem('admin_user');
+    navigate('/admin/login');
   };
 
-  const exportarRelatorio = (tipo: string) => {
-    exportarRelatorioGeralPDF({
-      vendas: {
-        totalMes: dados.vendas.totalMes,
-        quantidadeMes: dados.vendas.quantidadeMes,
-        ticketMedio: dados.vendas.ticketMedio,
-        crescimentoMensal: dados.vendas.crescimentoMensal
-      },
-      producao: {
-        pecasProduzidas: dados.producao.pecasProduzidas,
-        materialConsumido: dados.producao.materialConsumido,
-        custoProducao: dados.producao.custoProducao,
-        eficiencia: dados.producao.eficiencia
-      },
-      orcamentos: {
-        total: dados.orcamentos.total,
-        pendentes: dados.orcamentos.pendentes,
-        aprovados: dados.orcamentos.aprovados,
-        taxaConversao: dados.orcamentos.taxaConversao
-      }
-    });
-  };
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard', color: 'text-blue-600' },
+    { id: 'orcamentos', label: 'Orçamentos', icon: ClipboardList, path: '/admin/orcamentos', color: 'text-orange-600' },
+    { id: 'prestadores', label: 'Prestadores', icon: Truck, path: '/admin/prestadores', color: 'text-cyan-600' },
+    { id: 'usuarios', label: 'Usuários', icon: Users, path: '/admin/usuarios', color: 'text-pink-600' },
+    { id: 'produtos', label: 'Produtos', icon: Package, path: '/admin/produtos', color: 'text-green-600' },
+    { id: 'vendas', label: 'Vendas', icon: TrendingUp, path: '/admin/vendas', color: 'text-emerald-600' },
+    { id: 'estoque', label: 'Estoque', icon: Database, path: '/admin/estoque', color: 'text-purple-600' },
+    { id: 'produtos-site', label: 'Produtos do Site', icon: ShoppingCart, path: '/admin/produtos-site', color: 'text-indigo-600' },
+    { id: 'producao', label: 'Produção', icon: Box, path: '/admin/producao', color: 'text-yellow-600' },
+    { id: 'relatorios', label: 'Relatórios', icon: BarChart3, path: '/admin/relatorios', color: 'text-slate-600' },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate('/admin/dashboard')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            ← Voltar
-          </button>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Relatórios Gerenciais</h1>
-              <p className="text-gray-600 mt-2">Análise completa do desempenho do negócio</p>
-            </div>
-            <div className="flex gap-3">
-              <select
-                value={periodo}
-                onChange={(e) => setPeriodo(e.target.value as any)}
-                className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
+        <div className="p-6 border-b border-gray-100">
+          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Settings className="text-blue-600" />
+            3DKPRINT Admin
+          </h1>
+        </div>
+        <nav className="flex-1 mt-4 px-4 space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.id}
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  window.location.pathname === item.path 
+                  ? 'bg-blue-50 text-blue-700' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
               >
-                <option value="mes">Este Mês</option>
-                <option value="trimestre">Trimestre</option>
-                <option value="ano">Ano</option>
-              </select>
-              <button
-                onClick={() => exportarRelatorio('geral')}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                <Download className="h-5 w-5" />
-                Exportar PDF
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Cards de Métricas Principais */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Vendas */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <DollarSign className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
-                <ArrowUp className="h-4 w-4" />
-                {dados.vendas.crescimentoMensal.toFixed(1)}%
-              </div>
-            </div>
-            <h3 className="text-gray-600 text-sm font-medium">Vendas do Mês</h3>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
-              R$ {dados.vendas.totalMes.toFixed(2)}
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              {dados.vendas.quantidadeMes} vendas realizadas
-            </p>
-          </div>
-
-          {/* Produção */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Factory className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="flex items-center gap-1 text-blue-600 text-sm font-medium">
-                {dados.producao.eficiencia.toFixed(1)}%
-              </div>
-            </div>
-            <h3 className="text-gray-600 text-sm font-medium">Peças Produzidas</h3>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
-              {dados.producao.pecasProduzidas}
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              {(dados.producao.materialConsumido / 1000).toFixed(2)}kg consumidos
-            </p>
-          </div>
-
-          {/* Ticket Médio */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-purple-600" />
-              </div>
-            </div>
-            <h3 className="text-gray-600 text-sm font-medium">Ticket Médio</h3>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
-              R$ {dados.vendas.ticketMedio.toFixed(2)}
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              Por venda realizada
-            </p>
-          </div>
-
-          {/* Taxa de Conversão */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-orange-100 rounded-lg">
-                <BarChart3 className="h-6 w-6 text-orange-600" />
-              </div>
-            </div>
-            <h3 className="text-gray-600 text-sm font-medium">Taxa de Conversão</h3>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
-              {dados.orcamentos.taxaConversao.toFixed(1)}%
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              {dados.orcamentos.aprovados} de {dados.orcamentos.total} orçamentos
-            </p>
-          </div>
-        </div>
-
-        {/* Navegação de Relatórios */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <span className={item.color}><Icon size={20} /></span>
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="p-4 border-t border-gray-100">
           <button
-            onClick={() => navigate('/admin/relatorios/vendas')}
-            className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow text-left"
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
           >
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <DollarSign className="h-8 w-8 text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Relatório de Vendas</h3>
-                <p className="text-sm text-gray-600">Análise detalhada de faturamento</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Ver relatório completo</span>
-              <ArrowUp className="h-5 w-5 text-gray-400 rotate-45" />
-            </div>
-          </button>
-
-          <button
-            onClick={() => navigate('/admin/relatorios/producao')}
-            className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow text-left"
-          >
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Factory className="h-8 w-8 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Relatório de Produção</h3>
-                <p className="text-sm text-gray-600">Consumo de materiais e custos</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Ver relatório completo</span>
-              <ArrowUp className="h-5 w-5 text-gray-400 rotate-45" />
-            </div>
-          </button>
-
-          <button
-            onClick={() => navigate('/admin/relatorios/dashboard')}
-            className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow text-left"
-          >
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <BarChart3 className="h-8 w-8 text-purple-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Dashboard Executivo</h3>
-                <p className="text-sm text-gray-600">KPIs e métricas em tempo real</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Ver dashboard</span>
-              <ArrowUp className="h-5 w-5 text-gray-400 rotate-45" />
-            </div>
+            <LogOut size={20} />
+            Sair do Painel
           </button>
         </div>
+      </aside>
 
-        {/* Resumo Executivo */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Resumo Executivo</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Vendas */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-green-600" />
-                Desempenho de Vendas
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Faturamento Mensal</span>
-                  <span className="font-semibold text-gray-900">R$ {dados.vendas.totalMes.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Projeção Anual</span>
-                  <span className="font-semibold text-gray-900">R$ {dados.vendas.totalAno.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Crescimento</span>
-                  <span className="font-semibold text-green-600 flex items-center gap-1">
-                    <ArrowUp className="h-4 w-4" />
-                    {dados.vendas.crescimentoMensal.toFixed(1)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Produção */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Factory className="h-5 w-5 text-blue-600" />
-                Eficiência Operacional
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Custo de Produção</span>
-                  <span className="font-semibold text-gray-900">R$ {dados.producao.custoProducao.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Material Consumido</span>
-                  <span className="font-semibold text-gray-900">{(dados.producao.materialConsumido / 1000).toFixed(2)}kg</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Eficiência</span>
-                  <span className="font-semibold text-blue-600">{dados.producao.eficiencia.toFixed(1)}%</span>
-                </div>
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto">
+        <header className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
+          <div className="flex justify-between items-center max-w-7xl mx-auto">
+            <h2 className="text-lg font-semibold text-gray-800">Relatórios</h2>
+            <div className="flex items-center gap-4">
+              <Link to="/" target="_blank" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                Ver Site <ExternalLink size={14} />
+              </Link>
+              <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
+                AD
               </div>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Alertas e Recomendações */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <TrendingUp className="h-6 w-6 text-blue-600" />
-            Insights e Recomendações
-          </h2>
-          <div className="space-y-3">
-            {dados.vendas.crescimentoMensal > 10 && (
-              <div className="flex items-start gap-3 bg-white p-4 rounded-lg">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <ArrowUp className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">Crescimento Acelerado</p>
-                  <p className="text-sm text-gray-600">
-                    Suas vendas cresceram {dados.vendas.crescimentoMensal.toFixed(1)}% este mês. 
-                    Considere aumentar o estoque de materiais mais utilizados.
-                  </p>
-                </div>
-              </div>
-            )}
-            {dados.estoque.itensCriticos > 0 && (
-              <div className="flex items-start gap-3 bg-white p-4 rounded-lg">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <Package className="h-5 w-5 text-red-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">Atenção ao Estoque</p>
-                  <p className="text-sm text-gray-600">
-                    {dados.estoque.itensCriticos} {dados.estoque.itensCriticos === 1 ? 'material está' : 'materiais estão'} com estoque crítico. 
-                    Programe compras urgentes para evitar interrupções na produção.
-                  </p>
+        <div className="p-8 max-w-7xl mx-auto">
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <h1 className="text-2xl font-bold text-gray-900">Relatórios Gerenciais</h1>
+                <div className="flex gap-3">
+                  <Select value={periodo} onValueChange={setPeriodo}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Selecionar Período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mensal">Mensal</SelectItem>
+                      <SelectItem value="trimestral">Trimestral</SelectItem>
+                      <SelectItem value="anual">Anual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button>
+                    <Download className="mr-2 h-4 w-4" />
+                    Exportar PDF
+                  </Button>
                 </div>
               </div>
-            )}
-            {dados.orcamentos.taxaConversao < 50 && (
-              <div className="flex items-start gap-3 bg-white p-4 rounded-lg">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <BarChart3 className="h-5 w-5 text-yellow-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">Oportunidade de Melhoria</p>
-                  <p className="text-sm text-gray-600">
-                    Sua taxa de conversão está em {dados.orcamentos.taxaConversao.toFixed(1)}%. 
-                    Revise seus preços e processos de negociação para aumentar aprovações.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
+            </CardContent>
+          </Card>
+
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => (
+                <Card key={i} className="animate-pulse h-32"></Card>
+              ))}
+            </div>
+          ) : relatorio ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Total de Vendas</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">R$ {relatorio.totalVendas.toFixed(2).replace('.', ',')}</div>
+                  <p className="text-xs text-muted-foreground">No período selecionado</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Total de Orçamentos</CardTitle>
+                  <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{relatorio.totalOrcamentos}</div>
+                  <p className="text-xs text-muted-foreground">No período selecionado</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Total de Produção</CardTitle>
+                  <Factory className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{relatorio.totalProducao}</div>
+                  <p className="text-xs text-muted-foreground">Itens produzidos</p>
+                </CardContent>
+              </Card>
+
+              {/* Gráfico de Vendas por Mês (Exemplo) */}
+              {relatorio.vendasPorMes && relatorio.vendasPorMes.length > 0 && (
+                <Card className="md:col-span-2">
+                  <CardHeader>
+                    <CardTitle>Vendas por Mês</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Aqui você integraria um componente de gráfico, como Recharts ou Chart.js */}
+                    <div className="h-[200px] flex items-center justify-center bg-gray-50 rounded-md border border-dashed text-gray-500">
+                      <LineChart className="mr-2 h-4 w-4" /> Gráfico de Linhas (Implementar)
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Gráfico de Status de Orçamentos (Exemplo) */}
+              {relatorio.statusOrcamentos && relatorio.statusOrcamentos.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Status dos Orçamentos</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Aqui você integraria um componente de gráfico de pizza */}
+                    <div className="h-[200px] flex items-center justify-center bg-gray-50 rounded-md border border-dashed text-gray-500">
+                      <PieChart className="mr-2 h-4 w-4" /> Gráfico de Pizza (Implementar)
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
+              <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4 opacity-20" />
+              <p className="text-gray-600 font-medium">Nenhum dado de relatório encontrado para o período selecionado.</p>
+              <Button variant="link" onClick={() => setPeriodo('mensal')} className="mt-2 text-blue-600">
+                Tentar novamente com período mensal
+              </Button>
+            </div>
+          )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
