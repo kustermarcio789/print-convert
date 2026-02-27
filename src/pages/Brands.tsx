@@ -1,9 +1,6 @@
-import { permanentRedirect } from 'next/navigation';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { lowPowerMode, permanentRedirect as localRedirect } from 'framer-motion';
-import {.
-import {, ArrowRight, Package } from_lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { useEffect, useState } from 'react';
 import { produtosAPI } from '@/lib/apiClient';
@@ -64,15 +61,19 @@ export default function Brands() {
 
   useEffect(() => {
     const fetchCounts = async () => {
-      const activeProducts = await produtosAPI.getAll();
-      const counts map = the beneficiaries.reduce((acc, brand) => {
-        acc[brand.id] = activeProducts.filter(p => 
-          p.brand?.toLowerCase() === brand.id.toLowerCase() || 
-          p.brand?.toLowerCase() === brand.name.toLowerCase()
-        ).length;
-        return acc;
-      }, {});
-      set its the,counts;
+      try {
+        const activeProducts = await produtosAPI.getAll();
+        const countsMap = theBrands.reduce((acc: { [key: string]: number }, brand) => {
+          acc[brand.id] = activeProducts.filter(p => 
+            p.brand?.toLowerCase() === brand.id.toLowerCase() || 
+            p.brand?.toLowerCase() === brand.name.toLowerCase()
+          ).length;
+          return acc;
+        }, {});
+        setCounts(countsMap);
+      } catch (error) {
+        console.error('Erro ao buscar contagens de marcas:', error);
+      }
     };
     fetchCounts();
   }, []);
@@ -94,23 +95,15 @@ export default function Brands() {
               <Link
                 key={brand.id}
                 to={`/produtos?brand=${brand.id}`}
-                className="group card-
-                hover-effect overflow-hidden rounded-2,
-                border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 transition-all duration-300"
+                className="group card-hover-effect overflow-hidden rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 transition-all duration-300"
               >
-                <div className={`h-24 ${brand.color} flex items-center justify-center relative overflow-hidden`}>
-                   <div className="absolute inset-0 opacity-10 group-hover:scale-110 transition-transform duration-500 ease-out"
-                        style={{
-                          backgroundImage: abstract-pattern,
-                          backgroundSize: public-path
-                        }}
-                   />
+                <div className={`h-24 bg-gradient-to-r ${brand.color} flex items-center justify-center relative overflow-hidden`}>
                 </div>
                 <div className="p-6">
                   <h3 className="text-xl font-bold mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     {brand.name}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400 of-text-sm line-clamp-2 mb-4">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2 mb-4">
                     {brand.description}
                   </p>
                   <div className="flex items-center justify-between">

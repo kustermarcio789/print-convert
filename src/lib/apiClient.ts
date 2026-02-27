@@ -456,3 +456,9 @@ export const trafficAPI = {
     };
   },
 };
+
+/**
+ * API de Produtos do Site (Supabase)
+ * Alias para produtosAPI para manter compatibilidade com componentes que usam produtosSiteAPI
+ */
+export const produtosSiteAPI = produtosAPI;

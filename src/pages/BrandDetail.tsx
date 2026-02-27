@@ -13,7 +13,7 @@ import {
 import {
   produtosAPI
 } from '../lib/apiClient';
-import Layout from '../components/layout/Layout';
+import { Layout } from '../components/layout/Layout';
 
 const actualBrandsData: Record < string, {
   name: string;

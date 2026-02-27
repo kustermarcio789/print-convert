@@ -492,7 +492,7 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Estoque Baixo (<5 un.)</CardTitle>
+                    <CardTitle>Estoque Baixo (&lt; 5 un.)</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {lowStockProducts.length > 0 ? (

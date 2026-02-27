@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   LayoutDashboard, ClipboardList, Package, Users, TrendingUp,
   Clock, CheckCircle, AlertCircle, BarChart3, Settings,
   LogOut, ExternalLink, Box, Truck, Database,
-  FileText, UserCheck, Factory, Search, Filter, Eye, Copy, Edit, Trash2, Mail, Phone, MapPin, Star
+  UserCheck, Search, Eye, Trash2, Mail, Phone, MapPin, Star, ShoppingCart
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { prestadoresAPI } from '@/lib/apiClient'; // Supondo que você tenha uma API para prestadores
+import { prestadoresAPI } from '@/lib/apiClient';
 
 interface Prestador {
   id: string;
@@ -29,7 +30,7 @@ interface Prestador {
   servicos: string[];
   experiencia: string;
   portfolio?: string;
-  data_cadastro: string; // Alterado para data_cadastro para consistência com Supabase
+  data_cadastro: string;
   status: 'pendente' | 'aprovado' | 'recusado';
   avaliacao?: number;
 }
@@ -45,7 +46,7 @@ export default function AdminPrestadores() {
     const fetchPrestadores = async () => {
       try {
         setLoading(true);
-        const data = await prestadoresAPI.getAll(); // Buscar todos os prestadores
+        const data = await prestadoresAPI.getAll();
         setPrestadores(data);
       } catch (error) {
         console.error('Erro ao carregar prestadores:', error);
@@ -117,7 +118,7 @@ export default function AdminPrestadores() {
 
   const handleUpdateStatus = async (id: string, newStatus: 'aprovado' | 'recusado') => {
     try {
-      await prestadoresAPI.updateStatus(id, newStatus);
+      await prestadoresAPI.update(id, { status: newStatus });
       setPrestadores(prev => prev.map(prest => prest.id === id ? { ...prest, status: newStatus } : prest));
     } catch (error) {
       console.error(`Erro ao atualizar status do prestador ${id}:`, error);
@@ -137,7 +138,6 @@ export default function AdminPrestadores() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
         <div className="p-6 border-b border-gray-100">
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -175,7 +175,6 @@ export default function AdminPrestadores() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
         <header className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
           <div className="flex justify-between items-center max-w-7xl mx-auto">
@@ -201,7 +200,6 @@ export default function AdminPrestadores() {
             <p className="text-gray-600">Visualize e gerencie todos os prestadores de serviço cadastrados.</p>
           </motion.div>
 
-          {/* Filtros */}
           <Card className="mb-6">
             <CardContent className="pt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -230,7 +228,6 @@ export default function AdminPrestadores() {
             </CardContent>
           </Card>
 
-          {/* Lista de Prestadores */}
           {loading ? (
             <div className="grid grid-cols-1 gap-4">
               {[1, 2, 3].map(i => (
@@ -280,7 +277,7 @@ export default function AdminPrestadores() {
                             </p>
 
                             <div className="flex flex-wrap gap-2 mb-2">
-                              {prest.servicos.map((servico) => (
+                              {prest.servicos?.map((servico) => (
                                 <span
                                   key={servico}
                                   className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
@@ -352,11 +349,11 @@ export default function AdminPrestadores() {
                             Excluir
                           </Button>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                );
-              })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
             </div>
           ) : (
             <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
