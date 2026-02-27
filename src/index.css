@@ -248,6 +248,17 @@
   .stagger-children > *:nth-child(4) { animation-delay: 0.4s; }
   .stagger-children > *:nth-child(5) { animation-delay: 0.5s; }
   .stagger-children > *:nth-child(6) { animation-delay: 0.6s; }
+
+  /* Smooth pulse animation */
+  @keyframes soft-pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.9; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .animate-soft-pulse {
+    animation: soft-pulse 3s infinite ease-in-out;
+  }
 }
 
 @layer utilities {

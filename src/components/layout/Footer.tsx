@@ -3,16 +3,16 @@ import { Mail, Phone, MapPin, Instagram, Facebook, Linkedin, Youtube } from 'luc
 
 const footerLinks = {
   produtos: [
+    { name: 'Catálogo Geral', href: '/produtos' },
     { name: 'Protótipos', href: '/produtos?categoria=prototipos' },
     { name: 'Peças Funcionais', href: '/produtos?categoria=pecas-funcionais' },
     { name: 'Miniaturas', href: '/produtos?categoria=miniaturas' },
-    { name: 'Personalizados', href: '/produtos?categoria=personalizados' },
   ],
   servicos: [
-    { name: 'Impressão 3D', href: '/servicos#impressao' },
-    { name: 'Modelagem 3D', href: '/servicos#modelagem' },
-    { name: 'Pintura Premium', href: '/servicos#pintura' },
-    { name: 'Manutenção', href: '/servicos#manutencao' },
+    { name: 'Impressão 3D', href: '/servicos' },
+    { name: 'Modelagem 3D', href: '/servicos' },
+    { name: 'Pintura Premium', href: '/servicos' },
+    { name: 'Manutenção', href: '/servicos' },
   ],
   empresa: [
     { name: 'Sobre Nós', href: '/sobre' },
