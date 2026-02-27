@@ -5,7 +5,8 @@ import {
   LayoutDashboard, ShoppingCart, Package, Users, TrendingUp,
   Clock, CheckCircle, AlertCircle, BarChart3, Settings,
   LogOut, ExternalLink, Box, Truck, ClipboardList, Database,
-  FileText, UserCheck, Factory, Search, Filter, Eye, Copy, Edit, Trash2
+  FileText, UserCheck, Factory, Search, Filter, Eye, Copy, Edit, Trash2,
+  Printer, Wrench
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

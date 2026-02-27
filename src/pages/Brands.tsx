@@ -9,7 +9,7 @@ const theBrands = [
   {
     id: 'creality',
     name: 'Creality',        
-    logo: '/images/p-r-o-d-u-c-t-s/creality-logo.png',
+    logo: '/images/brands/creality.jpg',
     description: 'Lider mundial em impressoras 3D acessiveis. Modelos como Ender 3, CR-10 e K1 sao referencia no mercado.',
     categories: ['Mesa PEI', 'Hotends', 'Bicos', 'Motores', 'Extrusoras'],
     color: 'from-blue-500/20 to-blue-600/10',
@@ -17,7 +17,7 @@ const theBrands = [
   {
     id: 'bambu-lab',
     name: 'Bambu Lab',
-    logo: '/images/p-r-o-d-u-c-t-s/bambulab-logo.png',
+    logo: '/images/brands/bambulab.jpeg',
     description: 'Famosa pela as suas impressoras de alta velocidade e a-u-t-o-m-a-t-i-z-a-d-a-s.',
     categories: ['A1 Series', 'P1 Series', 'X1 Series', 'Acessórios'],
     color: 'from-green-500/20 to-green-600/10',
@@ -25,7 +25,7 @@ const theBrands = [
   {
     id: 'prusa',
     name: 'Prusa Research',
-    logo: '/images/p-r-o-d-u-c-t-s/prusa-logo.png',
+    logo: '/images/brands/prusa.png',
     description: 'Referência mundial em robustez e de-s-e-m-p-e-n-h-o em hardware open-source.',
     categories: ['MK4', 'XL', 'MINI+', 'Peças de reposição'],    
     color: 'from-orange-500/20 to-orange-600/10',
@@ -33,7 +33,7 @@ const theBrands = [
   {
     id: 'anycubic',
     name: 'Anycubic',
-    logo: '/images/p-r-o-d-u-c-t-s/anycubic-logo.png',
+    logo: '/images/brands/anycubic.png',
     description: 'Líder em impressoras de resina acessíveis e de alta performance.',
     categories: ['Photon', 'Kobra', 'Resinas', 'Acessórios'],
     color: 'from-blue-500/20 to-blue-600/10',
@@ -41,7 +41,7 @@ const theBrands = [
   {
     id: 'voron',
     name: 'Voron Design',
-    logo: '/images/p-r-o-d-u-c-t-s/voron-logo.png',
+    logo: '/images/brands/voron.png',
     description: 'Projetos de em-impressoras 3D de alta performance de code aberto.',
     categories: ['V2.4', 'Trident', 'V0.2', 'Componentes'],
     color: 'from-red-500/20 to-red-600/10',
@@ -49,10 +49,18 @@ const theBrands = [
   {
     id: 'elegoo',
     name: 'Elegoo',
-    logo: '/images/p-r-o-d-u-c-t-s/elegoo-logo.png',
+    logo: '/images/brands/elegoo.jpg',
     description: 'Excelente custo-benefício em impressoras de resina documentadas e amigáveis.',
     categories: ['Mars', 'Saturn', 'Neptune', 'Acessórios'],
     color: 'from-red-500/20 to-red-600/10',
+  },
+  {
+    id: 'flashforge',
+    name: 'Flashforge',
+    logo: '/images/brands/flashforge.png',
+    description: 'Impressoras 3D profissionais e educacionais de alta confiabilidade.',
+    categories: ['Adventurer', 'Guider', 'Creator', 'Acessórios'],
+    color: 'from-indigo-500/20 to-indigo-600/10',
   }
 ];
 
@@ -97,7 +105,15 @@ export default function Brands() {
                 to={`/produtos?brand=${brand.id}`}
                 className="group card-hover-effect overflow-hidden rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 transition-all duration-300"
               >
-                <div className={`h-24 bg-gradient-to-r ${brand.color} flex items-center justify-center relative overflow-hidden`}>
+                <div className={`h-32 bg-gradient-to-r ${brand.color} flex items-center justify-center relative overflow-hidden p-6`}>
+                  <img 
+                    src={brand.logo} 
+                    alt={brand.name} 
+                    className="max-h-full max-w-full object-contain relative z-10 group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=' + brand.name;
+                    }}
+                  />
                 </div>
                 <div className="p-6">
                   <h3 className="text-xl font-bold mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">

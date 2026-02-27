@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   LayoutDashboard, ClipboardList, Package, Users, TrendingUp,
   Clock, CheckCircle, AlertCircle, BarChart3, Settings,
   LogOut, ExternalLink, Box, Truck, Database,
-  FileText, UserCheck, Factory, ShoppingCart, Search, Filter, Eye, Trash2, Plus, AlertTriangle
+  FileText, UserCheck, Factory, ShoppingCart, Search, Filter, Eye, Trash2, Plus, AlertTriangle,
+  Edit
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
