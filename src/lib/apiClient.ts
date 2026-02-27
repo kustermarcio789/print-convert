@@ -391,3 +391,68 @@ export const relatoriosAPI = {
     };
   },
 };
+
+/**
+ * API de Leads (Supabase)
+ */
+export const leadsAPI = {
+  getAll: async () => {
+    const { data, error } = await supabase.from('leads').select('*');
+    if (error) {
+      console.error('Erro ao buscar leads:', error);
+      return [];
+    }
+    return data || [];
+  },
+  create: async (data: any) => {
+    const { data: result, error } = await supabase.from('leads').insert([data]).select();
+    if (error) throw error;
+    return result[0];
+  },
+  update: async (id: string, data: any) => {
+    const { data: result, error } = await supabase.from('leads').update(data).eq('id', id).select();
+    if (error) throw error;
+    return result[0];
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase.from('leads').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  }
+};
+
+/**
+ * API de Tráfego (Simulada ou Supabase)
+ */
+export const trafficAPI = {
+  getDashboardStats: async () => {
+    // Simulação de dados de tráfego
+    return {
+      onlineNow: Math.floor(Math.random() * 10) + 1, // 1-10 online
+      today: Math.floor(Math.random() * 500) + 100, // 100-600 hoje
+      thisMonth: Math.floor(Math.random() * 5000) + 1000, // 1000-6000 este mês
+      trafficSources: [
+        { source: 'Direto', visits: Math.floor(Math.random() * 200) + 50 },
+        { source: 'Google', visits: Math.floor(Math.random() * 150) + 30 },
+        { source: 'Instagram', visits: Math.floor(Math.random() * 100) + 20 },
+        { source: 'Facebook', visits: Math.floor(Math.random() * 80) + 10 },
+      ],
+      topPages: [
+        { page: 'Início', visits: Math.floor(Math.random() * 100) + 20 },
+        { page: 'Catálogo', visits: Math.floor(Math.random() * 50) + 10 },
+        { page: '/admin', visits: Math.floor(Math.random() * 30) + 5 },
+        { page: '/produtos/xyz', visits: Math.floor(Math.random() * 20) + 5 },
+      ],
+      geoStates: [
+        { state: 'São Paulo', visits: Math.floor(Math.random() * 100) + 10 },
+        { state: 'Rio de Janeiro', visits: Math.floor(Math.random() * 70) + 5 },
+        { state: 'Minas Gerais', visits: Math.floor(Math.random() * 50) + 5 },
+      ],
+      geoCities: [
+        { city: 'São Paulo', visits: Math.floor(Math.random() * 50) + 10 },
+        { city: 'Rio de Janeiro', visits: Math.floor(Math.random() * 30) + 5 },
+        { city: 'Belo Horizonte', visits: Math.floor(Math.random() * 20) + 5 },
+      ],
+    };
+  },
+};
