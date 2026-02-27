@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, ExternalLink, ChevronDown, Zap, Clock, Cpu, Settings, Github, FileText, History, Layers, Maximize } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';

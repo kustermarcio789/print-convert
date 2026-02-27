@@ -9,7 +9,7 @@ const groups = [
     name: '3DKPRINT - Comunidade Geral',
     description: 'Espaço para trocar experiências, tirar dúvidas e compartilhar impressões com outros entusiastas.',
     members: '1.2k+',
-    link: 'https://chat.whatsapp.com/G5Z5oO6V3lI6Kz7m8n9p0q', // Link de exemplo corrigido para formato real
+    link: 'https://chat.whatsapp.com/G5Z5oO6V3lI6Kz7m8n9p0q', // Substitua pelos links reais se necessário
     icon: <Users className="w-6 h-6" />,
   },
   {

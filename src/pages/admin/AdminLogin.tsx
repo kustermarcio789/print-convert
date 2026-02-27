@@ -37,20 +37,21 @@ export default function AdminLogin() {
 
     setTimeout(() => {
       // 1. Verificar se é o Master Admin
-      if (email === MASTER_ADMIN_EMAIL && password === MASTER_ADMIN_PASS) {
+      if (email.trim() === MASTER_ADMIN_EMAIL && password === MASTER_ADMIN_PASS) {
         localStorage.setItem('admin_authenticated', 'true');
-        localStorage.setItem('admin_user', email);
+        localStorage.setItem('admin_user', email.trim());
         localStorage.setItem('admin_role', 'master');
-        localStorage.setItem('admin_permissions', JSON.all); // Master tem acesso a tudo
+        // Corrigido de JSON.all para uma string que representa acesso total
+        localStorage.setItem('admin_permissions', 'all'); 
         navigate('/admin/dashboard');
         return;
       }
 
       // 2. Verificar se é um funcionário
-      const staff = STAFF_ACCOUNTS.find(s => s.email === email && s.pass === password);
+      const staff = STAFF_ACCOUNTS.find(s => s.email === email.trim() && s.pass === password);
       if (staff) {
         localStorage.setItem('admin_authenticated', 'true');
-        localStorage.setItem('admin_user', email);
+        localStorage.setItem('admin_user', email.trim());
         localStorage.setItem('admin_role', staff.role);
         localStorage.setItem('admin_permissions', JSON.stringify(staff.screens));
         navigate('/admin/dashboard');
