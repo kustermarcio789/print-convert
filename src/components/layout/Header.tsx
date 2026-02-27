@@ -37,6 +37,8 @@ const mainNavigation = [
   { name: 'Serviços', href: '/servicos', hasDropdown: true, dropdownType: 'services' },
   { name: 'Orçamento', href: '/orcamento' },
   { name: 'Portfólio', href: '/portfolio' },
+  { name: 'Comunidade', href: '/comunidade' },
+  { name: 'Conhecimento', href: '/conhecimento' },
 ];
 
 function DropdownMenu({ type, onClose }: { type: string; onClose: () => void }) {
