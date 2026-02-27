@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, FileText, Check, ArrowRight, Info, AlertCircle, Thermometer, Shield, Layers, Droplets } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -98,63 +99,75 @@ const fdmMaterials: MaterialInfo[] = [
       { id: 'preto', name: 'Preto', hex: '#1a1a1a' },
     ],
     tempMax: '~120°C',
-    impactResistance: 'Muito Alta — extremamente resistente a impactos, quedas e desgaste. Material flexível que absorve energia',
-    applications: ['Engrenagens e peças mecânicas', 'Dobradiças e encaixes', 'Peças de substituição industrial', 'Ferramentas e gabaritos', 'Aplicações automotivas e aeroespaciais'],
-    details: 'O Nylon (Poliamida) é um dos filamentos mais resistentes para FDM. Excelente resistência ao desgaste, impacto e fadiga. Flexível o suficiente para absorver impactos sem quebrar. Absorve umidade, então precisa ser armazenado em local seco. Ideal para peças mecânicas de alta performance.',
+    impactResistance: 'Altíssima — extremamente difícil de quebrar, suporta grandes tensões e impactos sem falhar',
+    applications: ['Engrenagens', 'Dobradiças vivas', 'Peças de alta resistência', 'Aplicações industriais', 'Peças que sofrem atrito constante'],
+    details: 'O Nylon é um material de engenharia superior. Oferece a melhor combinação de resistência, flexibilidade e durabilidade. É autolubrificante, ideal para engrenagens. Requer cuidados especiais com umidade e alta temperatura de impressão.',
+  },
+  {
+    id: 'tpu', name: 'TPU (Flexível)', description: 'Elástico, flexível, resistente à abrasão',
+    priceMultiplier: 1.6,
+    colors: [
+      { id: 'preto', name: 'Preto', hex: '#1a1a1a' },
+      { id: 'branco', name: 'Branco', hex: '#FFFFFF' },
+      { id: 'vermelho', name: 'Vermelho', hex: '#DC2626' },
+      { id: 'azul', name: 'Azul', hex: '#2563EB' },
+      { id: 'transparente', name: 'Transparente', hex: '#E5E7EB' },
+    ],
+    tempMax: '~80°C',
+    impactResistance: 'Máxima — por ser elástico, absorve qualquer impacto sem sofrer danos permanentes',
+    applications: ['Capas de celular', 'Vedantes e juntas', 'Pneus de robôs', 'Amortecedores', 'Peças que precisam dobrar ou esticar'],
+    details: 'O TPU é um filamento elástico similar à borracha. Resistente à abrasão, óleos e graxas. Pode ser esticado e retorna à forma original. Ideal para peças que precisam de flexibilidade ou amortecimento de vibração.',
   },
 ];
 
-const resinaMaterials: MaterialInfo[] = [
+const resinMaterials: MaterialInfo[] = [
   {
-    id: 'resina-basica', name: 'Resina Básica (Standard)', description: 'Alta precisão, detalhes finos, custo acessível',
-    priceMultiplier: 2.0,
+    id: 'standard', name: 'Resina Standard', description: 'Alta resolução para modelos gerais',
+    priceMultiplier: 1.2,
     colors: [
-      { id: 'cinza', name: 'Cinza', hex: '#9CA3AF' },
+      { id: 'cinza', name: 'Cinza', hex: '#6B7280' },
       { id: 'branco', name: 'Branco', hex: '#FFFFFF' },
       { id: 'preto', name: 'Preto', hex: '#1a1a1a' },
       { id: 'transparente', name: 'Transparente', hex: '#E5E7EB' },
-      { id: 'verde', name: 'Verde', hex: '#16A34A' },
-      { id: 'azul', name: 'Azul', hex: '#2563EB' },
     ],
-    tempMax: '~50-60°C',
-    impactResistance: 'Baixa — material rígido e frágil após cura UV, não suporta quedas ou impactos fortes',
-    applications: ['Miniaturas e figuras detalhadas', 'Modelos conceituais', 'Joias e bijuterias (moldes)', 'Peças com detalhes finos', 'Protótipos visuais'],
-    details: 'A Resina Básica (Standard) é ideal para peças que exigem alta resolução e detalhes finos. Superfície lisa sem camadas visíveis. Custo acessível. Porém é frágil — não indicada para peças funcionais ou que sofram impacto. Necessita pós-cura UV e lavagem em álcool isopropílico.',
+    tempMax: '~50°C',
+    impactResistance: 'Baixa — material muito rígido e quebradiço, similar ao vidro ou cerâmica',
+    applications: ['Miniaturas detalhadas', 'Modelos conceituais', 'Protótipos visuais', 'Joalheria (modelos)', 'Action figures'],
+    details: 'A resina standard oferece o melhor custo-benefício para alta resolução. Superfície extremamente lisa, ideal para pintura. Frágil a impactos.',
   },
   {
-    id: 'resina-abs-like', name: 'Resina ABS-Like', description: 'Resistente a impactos, propriedades similares ao ABS',
-    priceMultiplier: 2.5,
+    id: 'tough', name: 'Resina Tough/ABS-like', description: 'Resistente a impactos e durável',
+    priceMultiplier: 1.6,
     colors: [
-      { id: 'cinza', name: 'Cinza', hex: '#9CA3AF' },
+      { id: 'cinza', name: 'Cinza', hex: '#6B7280' },
       { id: 'preto', name: 'Preto', hex: '#1a1a1a' },
-      { id: 'branco', name: 'Branco', hex: '#FFFFFF' },
-      { id: 'verde', name: 'Verde Translúcido', hex: '#22C55E' },
     ],
-    tempMax: '~70-80°C',
-    impactResistance: 'Média-Alta — significativamente mais resistente que resina básica, suporta quedas moderadas e estresse mecânico',
-    applications: ['Protótipos funcionais', 'Peças mecânicas de precisão', 'Encaixes e componentes', 'Peças que exigem resistência + detalhe', 'Ferramentas e gabaritos'],
-    details: 'A Resina ABS-Like combina a alta resolução da impressão em resina com propriedades mecânicas similares ao ABS. Muito mais resistente a impactos que a resina básica. Ideal para protótipos funcionais que precisam de detalhes finos E resistência mecânica. Necessita pós-cura UV.',
+    tempMax: '~60°C',
+    impactResistance: 'Média — muito superior à standard, aguenta quedas leves e algum estresse mecânico',
+    applications: ['Peças funcionais', 'Encaixes', 'Protótipos mecânicos', 'Peças que precisam de resistência extra'],
+    details: 'Desenvolvida para simular as propriedades do plástico ABS. Mais flexível que a standard, não quebra tão facilmente.',
   },
 ];
 
 const finishes = [
-  { id: 'raw', name: 'Bruto', description: 'Sem acabamento', priceAdd: 0 },
-  { id: 'sanded', name: 'Lixado', description: 'Superfície lisa', priceAdd: 20 },
-  { id: 'painted', name: 'Pintado', description: 'Pintura básica', priceAdd: 50 },
-  { id: 'premium', name: 'Premium', description: 'Pintura automotiva', priceAdd: 100 },
+  { id: 'raw', name: 'Bruto (Padrão)', priceAdd: 0 },
+  { id: 'sanded', name: 'Lixado', priceAdd: 15 },
+  { id: 'painted', name: 'Pintado (Cor Sólida)', priceAdd: 35 },
+  { id: 'premium', name: 'Pintura Premium / Detalhada', priceAdd: 75 },
 ];
 
 const urgencies = [
-  { id: 'normal', name: 'Normal (5-7 dias)', multiplier: 1 },
-  { id: 'fast', name: 'Rápido (3-4 dias)', multiplier: 1.3 },
-  { id: 'express', name: 'Expresso (1-2 dias)', multiplier: 1.8 },
+  { id: 'normal', name: 'Normal (3-5 dias úteis)', multiplier: 1 },
+  { id: 'fast', name: 'Rápido (1-2 dias úteis)', multiplier: 1.5 },
+  { id: 'urgent', name: 'Urgente (Mesmo dia / 24h)', multiplier: 2.5 },
 ];
 
-export default function QuotePage() {
+export default function Quote() {
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const [files, setFiles] = useState<File[]>([]);
   const [category, setCategory] = useState<PrintCategory | ''>('');
-  const [selectedColor, setSelectedColor] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -167,59 +180,42 @@ export default function QuotePage() {
     description: '',
     cep: '',
   });
-  const [estimate, setEstimate] = useState<number | null>(null);
-  const [isCalculating, setIsCalculating] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const currentMaterials = category === 'fdm' ? fdmMaterials : category === 'resina' ? resinaMaterials : [];
-  const selectedMaterial = currentMaterials.find(m => m.id === formData.material);
+  const [selectedColor, setSelectedColor] = useState('');
 
-  const handleCategoryChange = (value: string) => {
-    setCategory(value as PrintCategory);
-    setFormData({ ...formData, material: '' });
-    setSelectedColor('');
+  const currentMaterials = category === 'fdm' ? fdmMaterials : resinMaterials;
+  const selectedMaterial = currentMaterials.find((m) => m.id === formData.material);
+
+  useEffect(() => {
+    if (selectedMaterial && !selectedMaterial.colors.find(c => c.id === selectedColor)) {
+      setSelectedColor(selectedMaterial.colors[0].id);
+    }
+  }, [formData.material, selectedMaterial, selectedColor]);
+
+  const handleCategoryChange = (cat: PrintCategory) => {
+    setCategory(cat);
+    setFormData({ ...formData, material: cat === 'fdm' ? 'pla' : 'standard' });
   };
 
-  const handleMaterialChange = (value: string) => {
-    setFormData({ ...formData, material: value });
-    setSelectedColor('');
+  const handleMaterialChange = (matId: string) => {
+    setFormData({ ...formData, material: matId });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
-      setFiles((prev) => [...prev, ...newFiles]);
+      setFiles([...files, ...newFiles]);
     }
   };
 
   const removeFile = (index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const calculateEstimate = () => {
-    setIsCalculating(true);
-    setTimeout(() => {
-      const basePricePerCm3 = 0.15;
-      const estimatedVolume = 100;
-      const material = currentMaterials.find((m) => m.id === formData.material);
-      const finish = finishes.find((f) => f.id === formData.finish);
-      const urgency = urgencies.find((u) => u.id === formData.urgency);
-      if (!material || !finish || !urgency) { setIsCalculating(false); return; }
-      let price = basePricePerCm3 * estimatedVolume;
-      price *= material.priceMultiplier;
-      price += finish.priceAdd;
-      price *= urgency.multiplier;
-      price *= formData.quantity;
-      price = Math.max(price, 29.90);
-      setEstimate(price);
-      setIsCalculating(false);
-    }, 1500);
+    setFiles(files.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.material || !category) {
-      toast({ title: "Campos obrigatórios", description: "Por favor, preencha todos os campos obrigatórios.", variant: "destructive" });
+    if (!formData.email || !formData.material || !category) {
+      toast({ title: "Campos obrigatórios", description: "Por favor, preencha pelo menos o e-mail e os detalhes da peça.", variant: "destructive" });
       return;
     }
     
@@ -228,7 +224,7 @@ export default function QuotePage() {
       // Salvar orçamento no sistema (Supabase via dataStore)
       const orcamentoId = await salvarOrcamento({
         tipo: 'impressao',
-        cliente: formData.name,
+        cliente: formData.name || 'Cliente Interessado',
         email: formData.email,
         telefone: formData.phone || 'Não informado',
         detalhes: {
@@ -241,26 +237,14 @@ export default function QuotePage() {
           dimensoes: formData.dimensions,
           descricao: formData.description,
           cep: formData.cep,
-          estimativa: estimate,
         },
       });
       
       // Incrementar contador de orçamentos do usuário
       await incrementarOrcamentosUsuario(formData.email);
       
-      toast({ 
-        title: "Orçamento enviado!", 
-        description: `Seu orçamento #${orcamentoId} foi registrado. Em breve entraremos em contato com o valor final.` 
-      });
-
-      // Limpar formulário
-      setFormData({
-        name: '', email: '', phone: '', material: '', finish: 'raw',
-        quantity: 1, urgency: 'normal', dimensions: '', description: '', cep: ''
-      });
-      setFiles([]);
-      setCategory('');
-      setEstimate(null);
+      // Redirecionar para página de sucesso
+      navigate('/orcamento-sucesso');
     } catch (error) {
       console.error('Erro ao enviar orçamento:', error);
       toast({ title: "Erro no envio", description: "Ocorreu um erro ao enviar seu orçamento. Tente novamente.", variant: "destructive" });
@@ -277,7 +261,7 @@ export default function QuotePage() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl">
             <span className="inline-block text-accent font-semibold text-sm uppercase tracking-wider mb-4">Orçamento Rápido</span>
             <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-4">Receba seu orçamento em minutos</h1>
-            <p className="text-xl text-primary-foreground/80">Envie seu arquivo 3D ou descreva seu projeto. Calculamos automaticamente uma estimativa de preço.</p>
+            <p className="text-xl text-primary-foreground/80">Envie seu arquivo 3D ou descreva seu projeto. Nossa equipe analisará e enviará o valor final por e-mail.</p>
           </motion.div>
         </div>
       </section>
@@ -406,37 +390,29 @@ export default function QuotePage() {
                   )}
                 </div>
 
-                {/* Description */}
+                {/* Description and Contact */}
                 <div className="card-elevated p-6">
-                  <h2 className="text-xl font-semibold text-foreground mb-4">3. Descreva seu projeto</h2>
-                  <Textarea placeholder="Conte mais sobre seu projeto, uso pretendido, detalhes especiais..." rows={4} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
-                </div>
-
-                {/* Contact */}
-                <div className="card-elevated p-6">
-                  <h2 className="text-xl font-semibold text-foreground mb-4">4. Seus dados</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <h2 className="text-xl font-semibold text-foreground mb-4">3. Detalhes e Contato</h2>
+                  <div className="space-y-6">
                     <div>
-                      <Label className="mb-3 block">Nome completo *</Label>
-                      <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+                      <Label className="mb-3 block">Descreva seu projeto</Label>
+                      <Textarea placeholder="Conte mais sobre seu projeto, uso pretendido, detalhes especiais..." rows={4} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
                     </div>
-                    <div>
-                      <Label className="mb-3 block">E-mail *</Label>
-                      <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
-                    </div>
-                    <div>
-                      <Label className="mb-3 block">WhatsApp</Label>
-                      <Input type="tel" placeholder="(43) 9-9174-1518" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-                    </div>
-                    <div>
-                      <Label className="mb-3 block">CEP (para frete)</Label>
-                      <Input placeholder="00000-000" value={formData.cep} onChange={(e) => setFormData({ ...formData, cep: e.target.value })} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <Label className="mb-3 block">E-mail para retorno *</Label>
+                        <Input type="email" placeholder="seu@email.com" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
+                      </div>
+                      <div>
+                        <Label className="mb-3 block">WhatsApp (opcional)</Label>
+                        <Input type="tel" placeholder="(43) 9-9174-1518" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <Button type="submit" size="lg" disabled={isSubmitting} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                  {isSubmitting ? 'Enviando...' : 'Enviar Orçamento'} <ArrowRight className="ml-2 h-5 w-5" />
+                  {isSubmitting ? 'Enviando...' : 'Enviar Solicitação de Orçamento'} <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </form>
             </motion.div>
@@ -485,32 +461,6 @@ export default function QuotePage() {
                     </div>
                   </motion.div>
                 )}
-
-                {/* Estimate Card */}
-                <div className="card-elevated p-6">
-                  <h3 className="font-semibold text-foreground mb-4">Estimativa de Preço</h3>
-                  {formData.material ? (
-                    <>
-                      <Button onClick={calculateEstimate} disabled={isCalculating} className="w-full mb-4" variant="outline">
-                        {isCalculating ? 'Calculando...' : 'Calcular Estimativa'}
-                      </Button>
-                      {estimate !== null && (
-                        <div className="text-center py-4 border-t border-border">
-                          <p className="text-muted-foreground text-sm mb-2">Estimativa:</p>
-                          <p className="text-3xl font-bold text-accent">R$ {estimate.toFixed(2).replace('.', ',')}</p>
-                          <p className="text-xs text-muted-foreground mt-2 flex items-center justify-center gap-1">
-                            <Info className="w-3 h-3" /> Valor aproximado, sujeito a análise
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-center py-4 text-muted-foreground">
-                      <AlertCircle className="w-8 h-8 mx-auto mb-2 text-muted" />
-                      <p className="text-sm">Selecione a tecnologia e o material para calcular a estimativa</p>
-                    </div>
-                  )}
-                </div>
 
                 {/* Info Box */}
                 <div className="card-elevated p-6 bg-accent/5 border-accent/20">

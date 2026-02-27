@@ -8,6 +8,7 @@ import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
 import Services from "./pages/Services";
 import Quote from "./pages/Quote";
+import QuoteSuccess from "./pages/QuoteSuccess";
 import Portfolio from "./pages/Portfolio";
 import Blog from "./pages/Blog";
 import Login from "./pages/Login";
@@ -64,6 +65,7 @@ const App = () => (
           <Route path="/produtos/:id" element={<ProductDetail />} />
           <Route path="/servicos" element={<Services />} />
           <Route path="/orcamento" element={<Quote />} />
+          <Route path="/orcamento-sucesso" element={<QuoteSuccess />} />
           <Route path="/orcamento-pintura" element={<PaintQuote />} />
           <Route path="/orcamento-modelagem" element={<ModelingQuote />} />
           <Route path="/orcamento-manutencao" element={<MaintenanceQuote />} />

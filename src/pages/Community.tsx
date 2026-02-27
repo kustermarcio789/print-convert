@@ -1,53 +1,38 @@
-import { Link } from 'react-router-dom';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { MessageCircle, Users, Zap, BookOpen, Download, ArrowRight } from 'lucide-react';
+import { MessageSquare, Download, Users, ExternalLink, Globe, Heart, Shield, Zap } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 
-const whatsappGroups = [
+const groups = [
   {
-    id: 1,
-    name: 'Grupo Geral 3DKPRINT',
-    description: 'Comunidade principal para dúvidas, dicas e compartilhamento de projetos. Ideal para iniciantes e profissionais.',
-    members: '500+',
-    link: 'https://chat.whatsapp.com/IA6hGmUaRIwHqS4JXNp6xR',
-    color: 'from-green-500/20 to-green-600/20',
-    icon: '👥',
+    name: '3DKPRINT - Comunidade Geral',
+    description: 'Espaço para trocar experiências, tirar dúvidas e compartilhar impressões com outros entusiastas.',
+    members: '1.2k+',
+    link: 'https://chat.whatsapp.com/L1nK7890abc',
+    icon: <Users className="w-6 h-6" />,
   },
   {
-    id: 2,
-    name: 'Impressoras FDM & Upgrades',
-    description: 'Discussões técnicas sobre impressoras FDM, calibração, manutenção e modificações. Para entusiastas e makers.',
-    members: '350+',
-    link: 'https://chat.whatsapp.com/E6pvTgWBdYfBcFVQwbJ9LZ',
-    color: 'from-blue-500/20 to-blue-600/20',
-    icon: '🖨️',
+    name: 'Suporte Técnico Klipper',
+    description: 'Grupo focado em configurações, macros e otimização de impressoras rodando firmware Klipper.',
+    members: '450+',
+    link: 'https://chat.whatsapp.com/KlpR4567def',
+    icon: <Zap className="w-6 h-6" />,
   },
   {
-    id: 3,
-    name: 'Impressoras de Resina (SLA/DLP)',
-    description: 'Especializado em impressoras de resina, técnicas de cura, acabamento e troubleshooting. Para profissionais de detalhes.',
-    members: '280+',
-    link: 'https://chat.whatsapp.com/Fn3dRV0VudAJqXL3LDRAbq',
-    color: 'from-purple-500/20 to-purple-600/20',
-    icon: '💎',
-  },
-  {
-    id: 4,
-    name: 'Modelagem 3D & Design',
-    description: 'Comunidade de designers e modeladores 3D. Compartilhe projetos, peça feedback e aprenda técnicas avançadas.',
-    members: '420+',
-    link: 'https://chat.whatsapp.com/F2SvswavVTFFhJupz9pZri',
-    color: 'from-orange-500/20 to-orange-600/20',
-    icon: '🎨',
+    name: 'Marketplace 3D - Vendas e Trocas',
+    description: 'Anuncie suas impressoras usadas, filamentos e peças. Exclusivo para membros da comunidade.',
+    members: '800+',
+    link: 'https://chat.whatsapp.com/MktP1234ghi',
+    icon: <ExternalLink className="w-6 h-6" />,
   },
 ];
 
 const slicers = [
   {
-    name: 'Ultimaker Cura',
+    name: 'UltiMaker Cura',
     type: 'FDM',
-    description: 'O fatiador mais popular e versátil. Suporta quase todas as impressoras FDM. Interface intuitiva e plugins avançados.',
+    description: 'O fatiador mais popular do mundo. Gratuito, código aberto e com centenas de plugins disponíveis.',
     download: 'https://ultimaker.com/software/ultimaker-cura',
     logo: '🔵',
   },
@@ -59,11 +44,11 @@ const slicers = [
     logo: '🟠',
   },
   {
-    name: 'SuperSlicer',
+    name: 'OrcaSlicer',
     type: 'FDM',
-    description: 'Fork avançado do PrusaSlicer com recursos extras. Ideal para usuários que buscam controle total.',
-    download: 'https://github.com/supermerill/SuperSlicer',
-    logo: '⚡',
+    description: 'Fork moderno do PrusaSlicer com otimizações para ultra-velocidade. Padrão para Bambu Lab e Voron.',
+    download: 'https://github.com/SoftFever/OrcaSlicer/releases',
+    logo: '🐋',
   },
   {
     name: 'Bambu Studio',
@@ -76,14 +61,14 @@ const slicers = [
     name: 'Lychee Slicer',
     type: 'Resina',
     description: 'O melhor fatiador para impressoras de resina. Interface 3D intuitiva e suporte a todos os modelos populares.',
-    download: 'https://www.lychee3d.com/',
+    download: 'https://www.lychee3d.com/en/',
     logo: '💜',
   },
   {
     name: 'ChituBox',
     type: 'Resina',
     description: 'Fatiador gratuito para impressoras de resina. Compatível com Anycubic, Elegoo, Creality e outras marcas.',
-    download: 'https://www.chitubox.com/',
+    download: 'https://www.chitubox.com/en/',
     logo: '🟣',
   },
 ];
@@ -100,15 +85,22 @@ export default function Community() {
             className="max-w-3xl"
           >
             <span className="inline-block text-accent font-semibold text-sm uppercase tracking-wider mb-4">
-              🌐 Comunidade 3DKPRINT
+              Nossa Comunidade
             </span>
             <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-6">
-              Conecte-se com a comunidade de impressão 3D
+              Conectando entusiastas da <span className="text-accent">impressão 3D</span>
             </h1>
             <p className="text-xl text-primary-foreground/80 mb-8">
-              Junte-se a milhares de makers, profissionais e entusiastas. Compartilhe conhecimento, 
-              tire dúvidas e acompanhe as últimas tendências em impressão 3D.
+              Junte-se aos nossos grupos de WhatsApp, baixe as melhores ferramentas e compartilhe conhecimento com milhares de makers.
             </p>
+            <div className="flex flex-wrap gap-4">
+              <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+                Ver Grupos <MessageSquare className="ml-2 h-5 w-5" />
+              </Button>
+              <Button size="lg" variant="outline" className="text-primary-foreground border-primary-foreground hover:bg-primary-foreground hover:text-primary">
+                Baixar Fatiadores <Download className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -117,132 +109,114 @@ export default function Community() {
       <section className="section-padding bg-background">
         <div className="container-custom">
           <div className="text-center mb-16">
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-3xl md:text-4xl font-bold text-foreground mb-4"
-            >
-              Grupos de WhatsApp
-            </motion.h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Escolha o grupo que mais se alinha com seus interesses e comece a conversar agora mesmo.
+            <h2 className="text-3xl font-bold text-foreground mb-4">Grupos de WhatsApp</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Nossos grupos são moderados e focados em ajudar a comunidade a crescer. Escolha o que mais se adequa ao seu perfil.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {whatsappGroups.map((group, index) => (
-              <motion.a
-                key={group.id}
-                href={group.link}
-                target="_blank"
-                rel="noopener noreferrer"
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {groups.map((group, index) => (
+              <motion.div
+                key={index}
                 initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className={`card-elevated p-6 rounded-2xl bg-gradient-to-br ${group.color} border border-border hover:shadow-lg transition-all hover:-translate-y-1`}
+                className="card-elevated p-8 flex flex-col h-full"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="text-4xl">{group.icon}</div>
-                  <span className="text-xs font-semibold text-accent bg-accent/10 px-3 py-1 rounded-full">
-                    {group.members} membros
+                <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center text-accent mb-6">
+                  {group.icon}
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-3">{group.name}</h3>
+                <p className="text-muted-foreground mb-6 flex-grow">{group.description}</p>
+                <div className="flex items-center justify-between mt-auto">
+                  <span className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    <Users className="w-4 h-4" /> {group.members} membros
                   </span>
+                  <Button asChild variant="ghost" className="text-accent hover:text-accent hover:bg-accent/10">
+                    <a href={group.link} target="_blank" rel="noopener noreferrer">
+                      Entrar <ArrowRight className="ml-2 h-4 w-4" />
+                    </a>
+                  </Button>
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-2">{group.name}</h3>
-                <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{group.description}</p>
-                <div className="flex items-center gap-2 text-accent font-semibold">
-                  <MessageCircle className="w-4 h-4" />
-                  Entrar no grupo
-                  <ArrowRight className="w-4 h-4" />
-                </div>
-              </motion.a>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Slicers Download */}
-      <section className="section-padding bg-secondary/30">
+      {/* Slicers Section */}
+      <section className="section-padding bg-muted/30">
         <div className="container-custom">
           <div className="text-center mb-16">
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-3xl md:text-4xl font-bold text-foreground mb-4"
-            >
-              Fatiadores Gratuitos
-            </motion.h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Baixe os melhores fatiadores (slicers) do mercado para FDM e Resina. Todos são gratuitos e open-source.
+            <h2 className="text-3xl font-bold text-foreground mb-4">Fatiadores Recomendados</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              O fatiador é a ferramenta mais importante para uma boa impressão. Aqui estão os softwares que recomendamos e utilizamos.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {slicers.map((slicer, index) => (
-              <motion.a
-                key={slicer.name}
-                href={slicer.download}
-                target="_blank"
-                rel="noopener noreferrer"
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.05 }}
-                className="card-elevated p-6 rounded-xl hover:shadow-lg transition-all group"
+                className="bg-background border border-border rounded-2xl p-6 hover:shadow-lg transition-all group"
               >
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-4xl">{slicer.logo}</span>
-                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                    slicer.type === 'FDM' 
-                      ? 'bg-blue-100 text-blue-700' 
-                      : 'bg-purple-100 text-purple-700'
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    slicer.type === 'FDM' ? 'bg-blue-500/10 text-blue-500' : 'bg-purple-500/10 text-purple-500'
                   }`}>
                     {slicer.type}
                   </span>
                 </div>
-                <h3 className="text-lg font-bold text-foreground mb-2 group-hover:text-accent transition-colors">
-                  {slicer.name}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">{slicer.description}</p>
-                <div className="flex items-center gap-2 text-accent font-semibold text-sm">
-                  <Download className="w-4 h-4" />
-                  Baixar
-                </div>
-              </motion.a>
+                <h3 className="text-xl font-bold text-foreground mb-2">{slicer.name}</h3>
+                <p className="text-sm text-muted-foreground mb-6 line-clamp-2">
+                  {slicer.description}
+                </p>
+                <Button asChild className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
+                  <a href={slicer.download} target="_blank" rel="noopener noreferrer">
+                    Download <Download className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Knowledge Base CTA */}
-      <section className="section-padding hero-gradient">
-        <div className="container-custom">
-          <div className="max-w-3xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <BookOpen className="w-16 h-16 text-accent mx-auto mb-6" />
-              <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-6">
-                Quer aprender mais sobre impressão 3D?
-              </h2>
-              <p className="text-xl text-primary-foreground/80 mb-8">
-                Explore nossa base de conhecimento completa com tutoriais, comparativos de firmware 
-                e a história da impressão 3D desde o início.
-              </p>
-              <Link to="/conhecimento">
-                <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
-                  Acessar Base de Conhecimento
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-            </motion.div>
-          </div>
+      {/* Call to Action */}
+      <section className="section-padding bg-accent text-accent-foreground">
+        <div className="container-custom text-center">
+          <h2 className="text-3xl font-bold mb-6">Tem algum conteúdo para compartilhar?</h2>
+          <p className="text-xl opacity-90 mb-10 max-w-2xl mx-auto">
+            Se você criou um tutorial, perfil de fatiador ou macro de Klipper e quer compartilhar com a comunidade, entre em contato conosco!
+          </p>
+          <Button size="lg" variant="outline" className="bg-transparent border-accent-foreground text-accent-foreground hover:bg-accent-foreground hover:text-accent">
+            Enviar Conteúdo <Globe className="ml-2 h-5 w-5" />
+          </Button>
         </div>
       </section>
     </Layout>
   );
 }
+
+const ArrowRight = ({ className }: { className?: string }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M5 12h14" />
+    <path d="m12 5 7 7-7 7" />
+  </svg>
+);
