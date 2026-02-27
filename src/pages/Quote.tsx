@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Upload, FileText, Check, ArrowRight, Info, AlertCircle, Thermometer, Shield, Layers, Droplets } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Upload, FileText, Check, ArrowRight, Info, AlertCircle, Thermometer, Shield, Layers, Droplets, Box, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { salvarOrcamento, incrementarOrcamentosUsuario } from '@/lib/dataStore';
+import '@google/model-viewer';
+
+// Declaração global para o elemento customizado do model-viewer
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'model-viewer': any;
+    }
+  }
+}
 
 type PrintCategory = 'fdm' | 'resina';
 
@@ -167,6 +177,7 @@ export default function Quote() {
   const { toast } = useToast();
   const [category, setCategory] = useState<PrintCategory | ''>('');
   const [files, setFiles] = useState<File[]>([]);
+  const [modelUrl, setModelUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -202,14 +213,28 @@ export default function Quote() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files);
       setFiles([...files, ...newFiles]);
+      
+      // Criar URL para o primeiro arquivo (preferencialmente STL ou OBJ) para visualização
+      const file = newFiles[0];
+      const url = URL.createObjectURL(file);
+      setModelUrl(url);
     }
   };
 
   const removeFile = (index: number) => {
-    setFiles(files.filter((_, i) => i !== index));
+    const newFiles = files.filter((_, i) => i !== index);
+    setFiles(newFiles);
+    if (newFiles.length === 0) {
+      if (modelUrl) URL.revokeObjectURL(modelUrl);
+      setModelUrl(null);
+    } else {
+      // Atualiza o visualizador com o próximo arquivo disponível
+      const url = URL.createObjectURL(newFiles[0]);
+      setModelUrl(url);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -222,7 +247,7 @@ export default function Quote() {
     setIsSubmitting(true);
     try {
       // Salvar orçamento no sistema (Supabase via dataStore)
-      const orcamentoId = await salvarOrcamento({
+      await salvarOrcamento({
         tipo: 'impressao',
         cliente: formData.name || 'Cliente Interessado',
         email: formData.email,
@@ -273,30 +298,65 @@ export default function Quote() {
             {/* Form */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-2">
               <form onSubmit={handleSubmit} className="space-y-8">
-                {/* File Upload */}
+                {/* File Upload & 3D Viewer */}
                 <div className="card-elevated p-6">
                   <h2 className="text-xl font-semibold text-foreground mb-4">1. Envie seu arquivo 3D</h2>
-                  <p className="text-muted-foreground text-sm mb-4">Formatos aceitos: STL, OBJ, 3MF, STEP. Não tem o arquivo? Descreva seu projeto abaixo.</p>
-                  <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent transition-colors cursor-pointer" onClick={() => document.getElementById('file-upload')?.click()}>
-                    <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-foreground font-medium mb-2">Arraste arquivos aqui ou clique para selecionar</p>
-                    <p className="text-muted-foreground text-sm">Máximo 50MB por arquivo</p>
-                    <input id="file-upload" type="file" multiple accept=".stl,.obj,.3mf,.step,.stp" onChange={handleFileChange} className="hidden" />
-                  </div>
-                  {files.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      {files.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <FileText className="w-5 h-5 text-accent" />
-                            <span className="text-sm text-foreground">{file.name}</span>
-                            <span className="text-xs text-muted-foreground">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
-                          </div>
-                          <Button variant="ghost" size="sm" onClick={() => removeFile(index)} className="text-muted-foreground hover:text-destructive">Remover</Button>
-                        </div>
-                      ))}
+                  <p className="text-muted-foreground text-sm mb-4">Formatos aceitos: STL, OBJ, 3MF, STEP. Visualize sua peça em tempo real após o upload.</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-accent transition-colors cursor-pointer bg-muted/30" onClick={() => document.getElementById('file-upload')?.click()}>
+                        <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                        <p className="text-foreground font-medium text-sm mb-1">Clique ou arraste arquivos</p>
+                        <p className="text-muted-foreground text-xs">Máximo 50MB por arquivo</p>
+                        <input id="file-upload" type="file" multiple accept=".stl,.obj,.3mf,.step,.stp" onChange={handleFileChange} className="hidden" />
+                      </div>
+
+                      <AnimatePresence>
+                        {files.length > 0 && (
+                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-2">
+                            {files.map((file, index) => (
+                              <div key={index} className="flex items-center justify-between p-3 bg-accent/5 border border-accent/10 rounded-lg group">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                  <Box className="w-4 h-4 text-accent flex-shrink-0" />
+                                  <span className="text-xs text-foreground truncate font-medium">{file.name}</span>
+                                </div>
+                                <button type="button" onClick={() => removeFile(index)} className="p-1 text-muted-foreground hover:text-destructive transition-colors">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                  )}
+
+                    {/* 3D Viewer Container */}
+                    <div className="relative aspect-square md:aspect-auto bg-muted/50 rounded-xl border border-border overflow-hidden flex items-center justify-center">
+                      {modelUrl ? (
+                        <div className="w-full h-full relative">
+                          <model-viewer
+                            src={modelUrl}
+                            alt="Visualização 3D do arquivo enviado"
+                            auto-rotate
+                            camera-controls
+                            shadow-intensity="1"
+                            style={{ width: '100%', height: '100%', backgroundColor: 'transparent' }}
+                            interaction-prompt="auto"
+                            exposure="1"
+                          ></model-viewer>
+                          <div className="absolute bottom-2 right-2 bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-[10px] text-muted-foreground border border-border">
+                            Visualização Interativa
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center p-6">
+                          <Box className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                          <p className="text-sm text-muted-foreground">Aguardando upload do arquivo para visualização 3D</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Category Selection */}
