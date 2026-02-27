@@ -1,16 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Package, FileText, Settings, LogOut, Bell, Clock, CheckCircle, AlertCircle, Star, MessageSquare } from 'lucide-react';
+import { User, Package, FileText, Settings, LogOut, Bell, Clock, CheckCircle, AlertCircle, Star, MessageSquare, Save } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-
-const mockOrders = [
-  { id: '#001234', service: 'Impressão 3D - PLA Branco', status: 'em_producao', date: '05/02/2026', provider: 'PrintMaster_SP', value: 'R$ 89,90' },
-  { id: '#001198', service: 'Modelagem 3D - Peça técnica', status: 'aguardando_pagamento', date: '03/02/2026', provider: 'Design3D_Ana', value: 'R$ 150,00' },
-  { id: '#001156', service: 'Pintura Premium - Figura', status: 'entregue', date: '28/01/2026', provider: 'ArtPaint3D', value: 'R$ 120,00' },
-  { id: '#001099', service: 'Impressão 3D - PETG Preto', status: 'entregue', date: '20/01/2026', provider: '3DKPRINT', value: 'R$ 45,00' },
-];
+import { Input } from '@/components/ui/input';
 
 const statusMap: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
   aguardando_pagamento: { label: 'Aguardando Pagamento', color: 'text-yellow-600 bg-yellow-50', icon: Clock },
@@ -20,21 +14,31 @@ const statusMap: Record<string, { label: string; color: string; icon: typeof Che
   cancelado: { label: 'Cancelado', color: 'text-red-600 bg-red-50', icon: AlertCircle },
 };
 
-const mockNotifications = [
-  { id: 1, text: 'Seu pedido #001234 está em produção', time: 'Há 2 horas', read: false },
-  { id: 2, text: 'Nova proposta recebida para seu orçamento de pintura', time: 'Há 5 horas', read: false },
-  { id: 3, text: 'Pedido #001156 foi entregue. Confirme o recebimento!', time: 'Há 2 dias', read: true },
-];
-
 export default function MyAccount() {
   const [activeTab, setActiveTab] = useState('pedidos');
+  const [orders, setOrders] = useState<any[]>([]); // Inicialmente vazio
+  const [notifications, setNotifications] = useState<any[]>([]); // Inicialmente vazio
+  const [isEditing, setIsEditing] = useState(false);
+  
+  const [userData, setUserData] = useState({
+    name: 'Usuário Demo',
+    email: 'demo@email.com',
+    whatsapp: '(43) 9-9174-1518',
+    cep: '86000-000'
+  });
 
   const tabs = [
     { id: 'pedidos', label: 'Meus Pedidos', icon: Package },
     { id: 'orcamentos', label: 'Orçamentos', icon: FileText },
-    { id: 'notificacoes', label: 'Notificações', icon: Bell, badge: 2 },
+    { id: 'notificacoes', label: 'Notificações', icon: Bell, badge: notifications.filter(n => !n.read).length },
     { id: 'configuracoes', label: 'Configurações', icon: Settings },
   ];
+
+  const handleSaveProfile = () => {
+    setIsEditing(false);
+    // Aqui integraria com Supabase futuramente
+    alert('Perfil atualizado com sucesso!');
+  };
 
   return (
     <Layout>
@@ -70,7 +74,7 @@ export default function MyAccount() {
                       <tab.icon className="w-4 h-4" />
                       {tab.label}
                     </div>
-                    {tab.badge && (
+                    {tab.badge > 0 && (
                       <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{tab.badge}</span>
                     )}
                   </button>
@@ -87,47 +91,47 @@ export default function MyAccount() {
               {activeTab === 'pedidos' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <h2 className="text-xl font-bold text-foreground mb-6">Meus Pedidos</h2>
-                  <div className="space-y-4">
-                    {mockOrders.map((order) => {
-                      const status = statusMap[order.status];
-                      return (
-                        <div key={order.id} className="card-elevated p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-1">
-                              <span className="font-mono text-sm font-bold text-foreground">{order.id}</span>
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
-                                <status.icon className="w-3 h-3" />
-                                {status.label}
-                              </span>
+                  {orders.length > 0 ? (
+                    <div className="space-y-4">
+                      {orders.map((order) => {
+                        const status = statusMap[order.status];
+                        return (
+                          <div key={order.id} className="card-elevated p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-1">
+                                <span className="font-mono text-sm font-bold text-foreground">{order.id}</span>
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
+                                  <status.icon className="w-3 h-3" />
+                                  {status.label}
+                                </span>
+                              </div>
+                              <p className="text-sm text-foreground font-medium">{order.service}</p>
+                              <p className="text-xs text-muted-foreground">Prestador: {order.provider} · {order.date}</p>
                             </div>
-                            <p className="text-sm text-foreground font-medium">{order.service}</p>
-                            <p className="text-xs text-muted-foreground">Prestador: {order.provider} · {order.date}</p>
+                            <div className="flex items-center gap-4">
+                              <span className="text-lg font-bold text-foreground">{order.value}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <span className="text-lg font-bold text-foreground">{order.value}</span>
-                            {order.status === 'entregue' && (
-                              <Button size="sm" variant="outline" className="text-xs">
-                                <Star className="w-3 h-3 mr-1" /> Avaliar
-                              </Button>
-                            )}
-                            {order.status === 'em_producao' && (
-                              <Button size="sm" variant="outline" className="text-xs">
-                                <MessageSquare className="w-3 h-3 mr-1" /> Acompanhar
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="card-elevated p-12 text-center">
+                      <Package className="w-12 h-12 text-muted mx-auto mb-4 opacity-20" />
+                      <p className="text-muted-foreground">Você ainda não possui pedidos realizados.</p>
+                      <Link to="/produtos">
+                        <Button variant="link" className="text-accent mt-2">Explorar produtos</Button>
+                      </Link>
+                    </div>
+                  )}
                 </motion.div>
               )}
 
               {activeTab === 'orcamentos' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <h2 className="text-xl font-bold text-foreground mb-6">Meus Orçamentos</h2>
-                  <div className="card-elevated p-8 text-center">
-                    <FileText className="w-12 h-12 text-muted mx-auto mb-4" />
+                  <div className="card-elevated p-12 text-center">
+                    <FileText className="w-12 h-12 text-muted mx-auto mb-4 opacity-20" />
                     <p className="text-muted-foreground mb-4">Seus orçamentos solicitados aparecerão aqui</p>
                     <Link to="/orcamento">
                       <Button className="bg-accent text-accent-foreground hover:bg-accent/90">Solicitar Orçamento</Button>
@@ -139,36 +143,82 @@ export default function MyAccount() {
               {activeTab === 'notificacoes' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <h2 className="text-xl font-bold text-foreground mb-6">Notificações</h2>
-                  <div className="space-y-3">
-                    {mockNotifications.map((notif) => (
-                      <div key={notif.id} className={`card-elevated p-4 flex items-start gap-3 ${!notif.read ? 'border-accent/30 bg-accent/5' : ''}`}>
-                        <Bell className={`w-5 h-5 flex-shrink-0 mt-0.5 ${!notif.read ? 'text-accent' : 'text-muted-foreground'}`} />
-                        <div className="flex-1">
-                          <p className={`text-sm ${!notif.read ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{notif.text}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{notif.time}</p>
+                  {notifications.length > 0 ? (
+                    <div className="space-y-3">
+                      {notifications.map((notif) => (
+                        <div key={notif.id} className={`card-elevated p-4 flex items-start gap-3 ${!notif.read ? 'border-accent/30 bg-accent/5' : ''}`}>
+                          <Bell className={`w-5 h-5 flex-shrink-0 mt-0.5 ${!notif.read ? 'text-accent' : 'text-muted-foreground'}`} />
+                          <div className="flex-1">
+                            <p className={`text-sm ${!notif.read ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{notif.text}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{notif.time}</p>
+                          </div>
                         </div>
-                        {!notif.read && <span className="w-2 h-2 rounded-full bg-accent flex-shrink-0 mt-2" />}
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="card-elevated p-12 text-center">
+                      <Bell className="w-12 h-12 text-muted mx-auto mb-4 opacity-20" />
+                      <p className="text-muted-foreground">Sem novas notificações no momento.</p>
+                    </div>
+                  )}
                 </motion.div>
               )}
 
               {activeTab === 'configuracoes' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <h2 className="text-xl font-bold text-foreground mb-6">Configurações</h2>
-                  <div className="card-elevated p-6 space-y-6">
-                    <div>
-                      <h3 className="font-semibold text-foreground mb-4">Dados Pessoais</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <div><span className="text-muted-foreground">Nome:</span> <span className="font-medium text-foreground ml-2">Usuário Demo</span></div>
-                        <div><span className="text-muted-foreground">E-mail:</span> <span className="font-medium text-foreground ml-2">demo@email.com</span></div>
-                        <div><span className="text-muted-foreground">WhatsApp:</span> <span className="font-medium text-foreground ml-2">(43) 9-9174-1518</span></div>
-                        <div><span className="text-muted-foreground">CEP:</span> <span className="font-medium text-foreground ml-2">86000-000</span></div>
+                  <h2 className="text-xl font-bold text-foreground mb-6">Configurações da Conta</h2>
+                  <div className="card-elevated p-6 space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-muted-foreground">Nome Completo</label>
+                        <Input 
+                          value={userData.name} 
+                          onChange={(e) => setUserData({...userData, name: e.target.value})}
+                          disabled={!isEditing}
+                          className={!isEditing ? "bg-muted/30" : ""}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-muted-foreground">E-mail</label>
+                        <Input 
+                          value={userData.email} 
+                          disabled={true} // E-mail geralmente não muda fácil
+                          className="bg-muted/30"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-muted-foreground">WhatsApp</label>
+                        <Input 
+                          value={userData.whatsapp} 
+                          onChange={(e) => setUserData({...userData, whatsapp: e.target.value})}
+                          disabled={!isEditing}
+                          className={!isEditing ? "bg-muted/30" : ""}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-muted-foreground">CEP</label>
+                        <Input 
+                          value={userData.cep} 
+                          onChange={(e) => setUserData({...userData, cep: e.target.value})}
+                          disabled={!isEditing}
+                          className={!isEditing ? "bg-muted/30" : ""}
+                        />
                       </div>
                     </div>
-                    <div className="pt-4 border-t border-border">
-                      <Button variant="outline">Editar Dados</Button>
+
+                    <div className="pt-6 border-t border-border flex gap-4">
+                      {isEditing ? (
+                        <>
+                          <Button onClick={handleSaveProfile} className="bg-green-600 hover:bg-green-700">
+                            <Save className="w-4 h-4 mr-2" /> Salvar Alterações
+                          </Button>
+                          <Button variant="ghost" onClick={() => setIsEditing(false)}>Cancelar</Button>
+                        </>
+                      ) : (
+                        <Button variant="outline" onClick={() => setIsEditing(true)}>
+                          <Settings className="w-4 h-4 mr-2" /> Editar Perfil
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </motion.div>

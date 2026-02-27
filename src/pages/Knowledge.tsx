@@ -126,6 +126,13 @@ const history3D = [
 export default function Knowledge() {
   const [expandedComparison, setExpandedComparison] = useState<string | null>(null);
 
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <Layout>
       {/* Hero */}
@@ -146,12 +153,20 @@ export default function Knowledge() {
               Desde a história da tecnologia até os firmwares mais avançados. Tudo que você precisa saber 
               para dominar a impressão 3D FDM e Resina.
             </p>
+            <div className="flex flex-wrap gap-4">
+              <Button onClick={() => scrollToSection('tech-guides')} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                Ver Guias Técnicos
+              </Button>
+              <Button onClick={() => scrollToSection('tech-comparison')} variant="outline" className="text-primary-foreground border-primary-foreground">
+                Klipper vs Marlin
+              </Button>
+            </div>
           </motion.div>
         </div>
       </section>
 
       {/* Klipper vs Marlin */}
-      <section className="section-padding bg-background">
+      <section id="tech-comparison" className="section-padding bg-background">
         <div className="container-custom">
           <div className="text-center mb-16">
             <motion.h2
@@ -329,7 +344,7 @@ export default function Knowledge() {
       </section>
 
       {/* Documentação FDM & Resina */}
-      <section className="section-padding bg-background">
+      <section id="tech-guides" className="section-padding bg-background">
         <div className="container-custom">
           <div className="text-center mb-16">
             <motion.h2
@@ -382,9 +397,11 @@ export default function Knowledge() {
                   <span className="text-foreground">Upgrades e modificações</span>
                 </div>
               </div>
-              <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                <FileText className="mr-2 h-4 w-4" />
-                Ler Guia Completo
+              <Button asChild className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                <a href="https://all3dp.com/1/fdm-3d-printing-guide-how-it-works/" target="_blank" rel="noopener noreferrer">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Ler Guia Completo
+                </a>
               </Button>
             </motion.div>
 
@@ -425,9 +442,11 @@ export default function Knowledge() {
                   <span className="text-foreground">Troubleshooting de impressões</span>
                 </div>
               </div>
-              <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                <FileText className="mr-2 h-4 w-4" />
-                Ler Guia Completo
+              <Button asChild className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                <a href="https://all3dp.com/2/resin-3d-printing-guide-for-beginners/" target="_blank" rel="noopener noreferrer">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Ler Guia Completo
+                </a>
               </Button>
             </motion.div>
           </div>

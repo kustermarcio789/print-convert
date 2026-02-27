@@ -5,7 +5,7 @@ import {
   LayoutDashboard, ClipboardList, Package, Users, TrendingUp,
   Clock, CheckCircle, AlertCircle, BarChart3, Settings,
   LogOut, ExternalLink, Box, Truck, Database,
-  FileText, UserCheck, Factory, Search, Filter, Eye, Copy, Edit, Trash2, Plus
+  FileText, UserCheck, Factory, Search, Filter, Eye, Copy, Edit, Trash2, Plus, ShoppingCart
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { produtosAPI } from '@/lib/apiClient'; // Supondo que você tenha uma API para produtos
+import { produtosAPI } from '@/lib/apiClient';
 
 interface Produto {
   id: string;
@@ -39,8 +39,12 @@ export default function AdminProdutos() {
     const fetchProdutos = async () => {
       try {
         setLoading(true);
-        const data = await produtosAPI.getAll(); // Buscar todos os produtos
-        setProdutos(data);
+        // Proteção contra erro de API que trava a tela
+        const data = await produtosAPI.getAll().catch(err => {
+          console.error('Falha na API de produtos:', err);
+          return [];
+        });
+        setProdutos(data || []);
       } catch (error) {
         console.error('Erro ao carregar produtos:', error);
       } finally {
@@ -53,6 +57,8 @@ export default function AdminProdutos() {
   const handleLogout = () => {
     localStorage.removeItem('admin_authenticated');
     localStorage.removeItem('admin_user');
+    localStorage.removeItem('admin_role');
+    localStorage.removeItem('admin_permissions');
     navigate('/admin/login');
   };
 
@@ -70,11 +76,14 @@ export default function AdminProdutos() {
   ];
 
   const filteredProdutos = produtos.filter((produto) => {
-    const matchesSearch =
-      produto.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      produto.categoria.toLowerCase().includes(searchTerm.toLowerCase());
+    const nome = produto.nome || '';
+    const categoria = produto.categoria || '';
     
-    const matchesCategory = filterCategory === 'todos' || produto.categoria === filterCategory;
+    const matchesSearch =
+      nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      categoria.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = filterCategory === 'todos' || categoria === filterCategory;
 
     return matchesSearch && matchesCategory;
   });
@@ -221,13 +230,13 @@ export default function AdminProdutos() {
                               <span className="font-medium">Categoria:</span> {produto.categoria}
                             </p>
                             <p className="text-sm text-gray-600 mb-1">
-                              <span className="font-medium">Preço:</span> R$ {Number(produto.preco).toFixed(2).replace('.', ',')}
+                              <span className="font-medium">Preço:</span> R$ {Number(produto.preco || 0).toFixed(2).replace('.', ',')}
                             </p>
                             <p className="text-sm text-gray-600">
-                              <span className="font-medium">Estoque:</span> {produto.estoque}
+                              <span className="font-medium">Estoque:</span> {produto.estoque || 0}
                             </p>
                             <p className="text-xs text-gray-500 mt-2">
-                              Cadastrado em: {new Date(produto.created_at).toLocaleDateString('pt-BR')}
+                              Cadastrado em: {produto.created_at ? new Date(produto.created_at).toLocaleDateString('pt-BR') : 'N/A'}
                             </p>
                           </div>
                         </div>

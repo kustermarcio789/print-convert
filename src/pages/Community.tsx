@@ -31,6 +31,7 @@ const groups = [
 const slicers = [
   {
     name: 'PrusaSlicer',
+    brand: 'Prusa Research',
     type: 'FDM',
     description: 'Desenvolvido pela Prusa Research. Referência em qualidade e suporte a múltiplas marcas.',
     download: 'https://www.prusa3d.com/page/prusaslicer_424/',
@@ -38,6 +39,7 @@ const slicers = [
   },
   {
     name: 'OrcaSlicer',
+    brand: 'SoftFever',
     type: 'FDM',
     description: 'Fork moderno do PrusaSlicer com otimizações para ultra-velocidade e calibrações integradas.',
     download: 'https://github.com/SoftFever/OrcaSlicer/releases',
@@ -45,6 +47,7 @@ const slicers = [
   },
   {
     name: 'UltiMaker Cura',
+    brand: 'UltiMaker',
     type: 'FDM',
     description: 'O fatiador mais popular do mundo. Gratuito, código aberto e com centenas de plugins.',
     download: 'https://ultimaker.com/software/ultimaker-cura',
@@ -52,6 +55,7 @@ const slicers = [
   },
   {
     name: 'Bambu Studio',
+    brand: 'Bambu Lab',
     type: 'FDM',
     description: 'Fatiador oficial da Bambu Lab. Otimizado para ultra-velocidade e multi-cores.',
     download: 'https://bambulab.com/en/download/studio',
@@ -59,6 +63,7 @@ const slicers = [
   },
   {
     name: 'Lychee Slicer',
+    brand: 'Mango 3D',
     type: 'Resina',
     description: 'O melhor fatiador para resina. Interface intuitiva e suportes automáticos inteligentes.',
     download: 'https://mango3d.io/lychee-slicer-for-sla-3d-printers/',
@@ -66,6 +71,7 @@ const slicers = [
   },
   {
     name: 'ChituBox',
+    brand: 'CBD-Tech',
     type: 'Resina',
     description: 'Padrão da indústria para impressoras de resina. Compatível com as principais marcas.',
     download: 'https://www.chitubox.com/en/download/chitubox-free',
@@ -74,6 +80,13 @@ const slicers = [
 ];
 
 export default function Community() {
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <Layout>
       {/* Hero */}
@@ -94,10 +107,10 @@ export default function Community() {
               Junte-se aos nossos grupos de WhatsApp, baixe as melhores ferramentas e compartilhe conhecimento com milhares de makers.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+              <Button size="lg" onClick={() => scrollToSection('whatsapp-groups')} className="bg-accent text-accent-foreground hover:bg-accent/90">
                 Ver Grupos <MessageSquare className="ml-2 h-5 w-5" />
               </Button>
-              <Button size="lg" variant="outline" className="text-primary-foreground border-primary-foreground hover:bg-primary-foreground hover:text-primary">
+              <Button size="lg" onClick={() => scrollToSection('slicers-section')} variant="outline" className="text-primary-foreground border-primary-foreground hover:bg-primary-foreground hover:text-primary">
                 Baixar Fatiadores <Download className="ml-2 h-5 w-5" />
               </Button>
             </div>
@@ -106,7 +119,7 @@ export default function Community() {
       </section>
 
       {/* WhatsApp Groups */}
-      <section className="section-padding bg-background">
+      <section id="whatsapp-groups" className="section-padding bg-background">
         <div className="container-custom">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-foreground mb-4">Grupos de WhatsApp</h2>
@@ -146,7 +159,7 @@ export default function Community() {
       </section>
 
       {/* Slicers Section */}
-      <section className="section-padding bg-white">
+      <section id="slicers-section" className="section-padding bg-white">
         <div className="container-custom">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-foreground mb-4">Fatiadores Recomendados</h2>
@@ -175,11 +188,14 @@ export default function Community() {
                       }}
                     />
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase ${
-                    slicer.type === 'FDM' ? 'bg-blue-500/10 text-blue-600' : 'bg-purple-500/10 text-purple-600'
-                  }`}>
-                    {slicer.type}
-                  </span>
+                  <div className="text-right">
+                    <span className={`block px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase mb-1 ${
+                      slicer.type === 'FDM' ? 'bg-blue-500/10 text-blue-600' : 'bg-purple-500/10 text-purple-600'
+                    }`}>
+                      {slicer.type}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-medium">{slicer.brand}</span>
+                  </div>
                 </div>
                 <h3 className="text-xl font-bold text-foreground mb-3">{slicer.name}</h3>
                 <p className="text-sm text-muted-foreground mb-8 leading-relaxed">

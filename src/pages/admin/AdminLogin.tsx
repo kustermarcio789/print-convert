@@ -8,33 +8,27 @@ import { Input } from '@/components/ui/input';
 export default function AdminLogin() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Credenciais administrativas
-  const ADMIN_USERNAME = 'kuster789jose';
-  const ADMIN_PASSWORD = '1@9b8z5X';
+  // E-mail master do administrador
+  const MASTER_ADMIN_EMAIL = '3dk.print.br@gmail.com';
+  const MASTER_ADMIN_PASS = '1@9b8z5X';
 
-  // Auto-login se já estiver autenticado ou com query params
+  // Funcionários Mock (Simulando banco de dados para o teste solicitado)
+  const STAFF_ACCOUNTS = [
+    { email: 'atendimento@3dkprint.com.br', pass: 'atend123', role: 'atendimento', screens: ['dashboard', 'orcamentos'] },
+    { email: 'producao@3dkprint.com.br', pass: 'prod123', role: 'producao', screens: ['dashboard', 'producao', 'estoque'] }
+  ];
+
   useEffect(() => {
-    // Verificar se já está autenticado
     if (localStorage.getItem('admin_authenticated') === 'true') {
       navigate('/admin/dashboard');
       return;
     }
-
-    // Auto-login com query parameters (para acesso direto)
-    const autoUser = searchParams.get('u');
-    const autoPass = searchParams.get('p');
-    
-    if (autoUser === ADMIN_USERNAME && autoPass === ADMIN_PASSWORD) {
-      localStorage.setItem('admin_authenticated', 'true');
-      localStorage.setItem('admin_user', autoUser);
-      navigate('/admin/dashboard');
-    }
-  }, [navigate, searchParams]);
+  }, [navigate]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,13 +36,26 @@ export default function AdminLogin() {
     setLoading(true);
 
     setTimeout(() => {
-      if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        // Salvar sessão administrativa
+      // 1. Verificar se é o Master Admin
+      if (email === MASTER_ADMIN_EMAIL && password === MASTER_ADMIN_PASS) {
         localStorage.setItem('admin_authenticated', 'true');
-        localStorage.setItem('admin_user', username);
+        localStorage.setItem('admin_user', email);
+        localStorage.setItem('admin_role', 'master');
+        localStorage.setItem('admin_permissions', JSON.all); // Master tem acesso a tudo
+        navigate('/admin/dashboard');
+        return;
+      }
+
+      // 2. Verificar se é um funcionário
+      const staff = STAFF_ACCOUNTS.find(s => s.email === email && s.pass === password);
+      if (staff) {
+        localStorage.setItem('admin_authenticated', 'true');
+        localStorage.setItem('admin_user', email);
+        localStorage.setItem('admin_role', staff.role);
+        localStorage.setItem('admin_permissions', JSON.stringify(staff.screens));
         navigate('/admin/dashboard');
       } else {
-        setError('Usuário ou senha incorretos');
+        setError('E-mail ou senha incorretos. Acesso restrito a administradores.');
         setLoading(false);
       }
     }, 500);
@@ -62,7 +69,6 @@ export default function AdminLogin() {
         className="w-full max-w-md"
       >
         <div className="bg-card rounded-2xl shadow-2xl p-8 border border-border">
-          {/* Logo e Título */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
               <Lock className="w-8 h-8 text-primary" />
@@ -73,9 +79,7 @@ export default function AdminLogin() {
             <p className="text-muted-foreground">3DKPRINT - Acesso Restrito</p>
           </div>
 
-          {/* Formulário de Login */}
           <form onSubmit={handleLogin} className="space-y-6">
-            {/* Erro */}
             {error && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -87,26 +91,23 @@ export default function AdminLogin() {
               </motion.div>
             )}
 
-            {/* Usuário */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
-                Usuário
+                E-mail Administrativo
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Digite seu usuário"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
                   className="pl-10"
                   required
-                  autoComplete="username"
                 />
               </div>
             </div>
 
-            {/* Senha */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 Senha
@@ -120,23 +121,20 @@ export default function AdminLogin() {
                   placeholder="Digite sua senha"
                   className="pl-10"
                   required
-                  autoComplete="current-password"
                 />
               </div>
             </div>
 
-            {/* Botão de Login */}
             <Button
               type="submit"
               className="w-full"
               size="lg"
               disabled={loading}
             >
-              {loading ? 'Entrando...' : 'Entrar no Painel'}
+              {loading ? 'Autenticando...' : 'Entrar no Painel'}
             </Button>
           </form>
 
-          {/* Rodapé */}
           <div className="mt-8 pt-6 border-t border-border text-center">
             <p className="text-xs text-muted-foreground">
               © 2026 3DKPRINT - Todos os direitos reservados
