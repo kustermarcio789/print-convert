@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  LayoutDashboard, ClipboardList, Package, Users, TrendingUp,
-  Clock, CheckCircle, AlertCircle, BarChart3, Settings,
-  LogOut, ExternalLink, Box, Truck, Database,
-  FileText, UserCheck, Factory, ShoppingCart, Search, Filter as FilterIcon, Plus, Eye, Trash2, AlertTriangle,
-  Edit
+  Clock, CheckCircle, AlertCircle, Box, Factory, Search, Plus, Eye, Trash2, Edit
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -18,14 +14,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { producaoAPI } from '@/lib/apiClient'; // Supondo que você tenha uma API para produção
+import { producaoAPI } from '@/lib/apiClient';
+import Sidebar from '@/components/admin/Sidebar';
+import AdminHeader from '@/components/admin/AdminHeader';
 
 interface ProducaoRecord {
   id: string;
-  nome_peca: string; // Alterado para nome_peca
-  material_usado: string; // Alterado para material_usado
-  quantidade_produzida: number; // Alterado para quantidade_produzida
-  data_producao: string; // Alterado para data_producao
+  nome_peca: string;
+  material_usado: string;
+  quantidade_produzida: number;
+  data_producao: string;
   status: 'pendente' | 'em_producao' | 'concluida' | 'cancelada';
 }
 
@@ -40,8 +38,8 @@ export default function AdminProducao() {
     const fetchProducoes = async () => {
       try {
         setLoading(true);
-        const data = await producaoAPI.getAll(); // Buscar todos os registros de produção
-        setProducoes(data);
+        const data = await producaoAPI.getAll();
+        setProducoes(data || []);
       } catch (error) {
         console.error('Erro ao carregar produções:', error);
       } finally {
@@ -50,25 +48,6 @@ export default function AdminProducao() {
     };
     fetchProducoes();
   }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('admin_authenticated');
-    localStorage.removeItem('admin_user');
-    navigate('/admin/login');
-  };
-
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard', color: 'text-blue-600' },
-    { id: 'orcamentos', label: 'Orçamentos', icon: ClipboardList, path: '/admin/orcamentos', color: 'text-orange-600' },
-    { id: 'prestadores', label: 'Prestadores', icon: Truck, path: '/admin/prestadores', color: 'text-cyan-600' },
-    { id: 'usuarios', label: 'Usuários', icon: Users, path: '/admin/usuarios', color: 'text-pink-600' },
-    { id: 'produtos', label: 'Produtos', icon: Package, path: '/admin/produtos', color: 'text-green-600' },
-    { id: 'vendas', label: 'Vendas', icon: TrendingUp, path: '/admin/vendas', color: 'text-emerald-600' },
-    { id: 'estoque', label: 'Estoque', icon: Database, path: '/admin/estoque', color: 'text-purple-600' },
-    { id: 'produtos-site', label: 'Produtos do Site', icon: ShoppingCart, path: '/admin/produtos-site', color: 'text-indigo-600' },
-    { id: 'producao', label: 'Produção', icon: Box, path: '/admin/producao', color: 'text-yellow-600' },
-    { id: 'relatorios', label: 'Relatórios', icon: BarChart3, path: '/admin/relatorios', color: 'text-slate-600' },
-  ];
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -107,9 +86,9 @@ export default function AdminProducao() {
 
   const filteredProducoes = producoes.filter((producao) => {
     const matchesSearch =
-      producao.nome_peca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      producao.material_usado.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      producao.id.toLowerCase().includes(searchTerm.toLowerCase());
+      (producao.nome_peca || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (producao.material_usado || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (producao.id || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = filterStatus === 'todos' || producao.status === filterStatus;
 
@@ -129,59 +108,10 @@ export default function AdminProducao() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
-        <div className="p-6 border-b border-gray-100">
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Settings className="text-blue-600" />
-            3DKPRINT Admin
-          </h1>
-        </div>
-        <nav className="flex-1 mt-4 px-4 space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.id}
-                to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                  window.location.pathname === item.path 
-                  ? 'bg-blue-50 text-blue-700' 
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
-              >
-                <span className={item.color}><Icon size={20} /></span>
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="p-4 border-t border-gray-100">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-          >
-            <LogOut size={20} />
-            Sair do Painel
-          </button>
-        </div>
-      </aside>
+      <Sidebar />
 
-      {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
-        <header className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
-          <div className="flex justify-between items-center max-w-7xl mx-auto">
-            <h2 className="text-lg font-semibold text-gray-800">Produção</h2>
-            <div className="flex items-center gap-4">
-              <Link to="/" target="_blank" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
-                Ver Site <ExternalLink size={14} />
-              </Link>
-              <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
-                AD
-              </div>
-            </div>
-          </div>
-        </header>
+        <AdminHeader title="Produção" />
 
         <div className="p-8 max-w-7xl mx-auto">
           <Card className="mb-6">
@@ -227,7 +157,7 @@ export default function AdminProducao() {
           ) : filteredProducoes.length > 0 ? (
             <div className="space-y-4">
               {filteredProducoes.map((producao, index) => (
-                <div
+                <motion.div
                   key={producao.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -250,7 +180,7 @@ export default function AdminProducao() {
                               <span className="font-medium">Quantidade:</span> {producao.quantidade_produzida}
                             </p>
                             <p className="text-sm text-gray-600">
-                              <span className="font-medium">Data:</span> {new Date(producao.data_producao).toLocaleDateString('pt-BR')}
+                              <span className="font-medium">Data:</span> {producao.data_producao ? new Date(producao.data_producao).toLocaleDateString('pt-BR') : 'N/A'}
                             </p>
                             <div className="mt-2">
                               {getStatusBadge(producao.status)}
@@ -288,16 +218,13 @@ export default function AdminProducao() {
                       </div>
                     </CardContent>
                   </Card>
-                </div>
+                </motion.div>
               ))}
             </div>
           ) : (
             <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
               <Factory className="h-12 w-12 text-gray-400 mx-auto mb-4 opacity-20" />
-              <p className="text-gray-600 font-medium">Nenhum registro de produção encontrado com os filtros selecionados.</p>
-              <Button variant="link" onClick={() => { setSearchTerm(''); setFilterStatus('todos'); }} className="mt-2 text-blue-600">
-                Limpar todos os filtros
-              </Button>
+              <p className="text-gray-600 font-medium">Nenhum registro de produção encontrado.</p>
             </div>
           )}
         </div>

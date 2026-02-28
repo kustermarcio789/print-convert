@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  LayoutDashboard, ClipboardList, Package, Users, TrendingUp,
-  Clock, CheckCircle, AlertCircle, BarChart3, Settings,
-  LogOut, ExternalLink, Box, Truck, Database,
-  UserCheck, Search, Eye, Trash2, Mail, Phone, MapPin, Star, ShoppingCart
+  Clock, CheckCircle, AlertCircle, Truck, Search, Eye, Trash2, Mail, Phone, MapPin, UserCheck
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -18,6 +15,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { prestadoresAPI } from '@/lib/apiClient';
+import Sidebar from '@/components/admin/Sidebar';
+import AdminHeader from '@/components/admin/AdminHeader';
 
 interface Prestador {
   id: string;
@@ -47,7 +46,7 @@ export default function AdminPrestadores() {
       try {
         setLoading(true);
         const data = await prestadoresAPI.getAll();
-        setPrestadores(data);
+        setPrestadores(data || []);
       } catch (error) {
         console.error('Erro ao carregar prestadores:', error);
       } finally {
@@ -56,25 +55,6 @@ export default function AdminPrestadores() {
     };
     fetchPrestadores();
   }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('admin_authenticated');
-    localStorage.removeItem('admin_user');
-    navigate('/admin/login');
-  };
-
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard', color: 'text-blue-600' },
-    { id: 'orcamentos', label: 'Orçamentos', icon: ClipboardList, path: '/admin/orcamentos', color: 'text-orange-600' },
-    { id: 'prestadores', label: 'Prestadores', icon: Truck, path: '/admin/prestadores', color: 'text-cyan-600' },
-    { id: 'usuarios', label: 'Usuários', icon: Users, path: '/admin/usuarios', color: 'text-pink-600' },
-    { id: 'produtos', label: 'Produtos', icon: Package, path: '/admin/produtos', color: 'text-green-600' },
-    { id: 'vendas', label: 'Vendas', icon: TrendingUp, path: '/admin/vendas', color: 'text-emerald-600' },
-    { id: 'estoque', label: 'Estoque', icon: Database, path: '/admin/estoque', color: 'text-purple-600' },
-    { id: 'produtos-site', label: 'Produtos do Site', icon: ShoppingCart, path: '/admin/produtos-site', color: 'text-indigo-600' },
-    { id: 'producao', label: 'Produção', icon: Box, path: '/admin/producao', color: 'text-yellow-600' },
-    { id: 'relatorios', label: 'Relatórios', icon: BarChart3, path: '/admin/relatorios', color: 'text-slate-600' },
-  ];
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -106,24 +86,15 @@ export default function AdminPrestadores() {
 
   const filteredPrestadores = prestadores.filter((prest) => {
     const matchesSearch =
-      prest.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prest.apelido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prest.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prest.id.toLowerCase().includes(searchTerm.toLowerCase());
+      (prest.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (prest.apelido || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (prest.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (prest.id || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = filterStatus === 'todos' || prest.status === filterStatus;
 
     return matchesSearch && matchesStatus;
   });
-
-  const handleUpdateStatus = async (id: string, newStatus: 'aprovado' | 'recusado') => {
-    try {
-      await prestadoresAPI.update(id, { status: newStatus });
-      setPrestadores(prev => prev.map(prest => prest.id === id ? { ...prest, status: newStatus } : prest));
-    } catch (error) {
-      console.error(`Erro ao atualizar status do prestador ${id}:`, error);
-    }
-  };
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este prestador?')) {
@@ -138,57 +109,10 @@ export default function AdminPrestadores() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
-        <div className="p-6 border-b border-gray-100">
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Settings className="text-blue-600" />
-            3DKPRINT Admin
-          </h1>
-        </div>
-        <nav className="flex-1 mt-4 px-4 space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.id}
-                to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                  window.location.pathname === item.path 
-                  ? 'bg-blue-50 text-blue-700' 
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
-              >
-                <span className={item.color}><Icon size={20} /></span>
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="p-4 border-t border-gray-100">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-          >
-            <LogOut size={20} />
-            Sair do Painel
-          </button>
-        </div>
-      </aside>
+      <Sidebar />
 
       <main className="flex-1 overflow-y-auto">
-        <header className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
-          <div className="flex justify-between items-center max-w-7xl mx-auto">
-            <h2 className="text-lg font-semibold text-gray-800">Prestadores</h2>
-            <div className="flex items-center gap-4">
-              <Link to="/" target="_blank" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
-                Ver Site <ExternalLink size={14} />
-              </Link>
-              <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
-                AD
-              </div>
-            </div>
-          </div>
-        </header>
+        <AdminHeader title="Prestadores" />
 
         <div className="p-8 max-w-7xl mx-auto">
           <motion.div 
@@ -275,38 +199,10 @@ export default function AdminPrestadores() {
                               <MapPin className="w-3 h-3" />
                               {prest.cidade} - {prest.estado}
                             </p>
-
-                            <div className="flex flex-wrap gap-2 mb-2">
-                              {prest.servicos?.map((servico) => (
-                                <span
-                                  key={servico}
-                                  className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
-                                >
-                                  {servico}
-                                </span>
-                              ))}
-                            </div>
-
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Experiência:</span>{' '}
-                              {prest.experiencia}
-                            </p>
-
-                            {prest.avaliacao && (
-                              <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-                                <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                                <span className="font-medium">{Number(prest.avaliacao).toFixed(1)}</span>
-                              </p>
-                            )}
-
-                            <p className="text-xs text-gray-500 mt-2">
-                              Cadastrado em:{' '}
-                              {new Date(prest.data_cadastro).toLocaleDateString('pt-BR')}
-                            </p>
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
@@ -315,30 +211,6 @@ export default function AdminPrestadores() {
                             <Eye className="w-4 h-4 mr-2" />
                             Ver
                           </Button>
-
-                          {prest.status === 'pendente' && (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                onClick={() => handleUpdateStatus(prest.id, 'aprovado')}
-                              >
-                                <CheckCircle className="w-4 h-4 mr-2" />
-                                Aprovar
-                              </Button>
-
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => handleUpdateStatus(prest.id, 'recusado')}
-                              >
-                                <AlertCircle className="w-4 h-4 mr-2" />
-                                Recusar
-                              </Button>
-                            </>
-                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -357,11 +229,8 @@ export default function AdminPrestadores() {
             </div>
           ) : (
             <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
-              <UserCheck className="h-12 w-12 text-gray-400 mx-auto mb-4 opacity-20" />
-              <p className="text-gray-600 font-medium">Nenhum prestador encontrado com os filtros selecionados.</p>
-              <Button variant="link" onClick={() => { setSearchTerm(''); setFilterStatus('todos'); }} className="mt-2 text-blue-600">
-                Limpar todos os filtros
-              </Button>
+              <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4 opacity-20" />
+              <p className="text-gray-600 font-medium">Nenhum prestador encontrado.</p>
             </div>
           )}
         </div>
