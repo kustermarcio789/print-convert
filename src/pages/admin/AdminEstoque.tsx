@@ -1,61 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import {
-  Database, Search, Eye, Trash2, Plus, AlertTriangle, Edit
-} from 'lucide-react';
+import { Database, Search, Eye, Trash2, Plus, AlertTriangle, Edit } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { estoqueAPI } from '@/lib/apiClient';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/lib/supabase';
 import Sidebar from '@/components/admin/Sidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 
-interface Material {
+export interface RawMaterial {
   id: string;
-  nome: string;
-  tipo: string;
-  quantidade: number;
-  unidade: string;
-  estoque_minimo: number;
+  name: string;
+  type: string;
+  quantity: number;
+  unit: string;
+  min_stock: number;
+  cost_price?: number;
   created_at: string;
 }
 
 export default function AdminEstoque() {
   const navigate = useNavigate();
-  const [materiais, setMateriais] = useState<Material[]>([]);
+  const [materiais, setMateriais] = useState<RawMaterial[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('todos');
 
   useEffect(() => {
-    const fetchMateriais = async () => {
-      try {
-        setLoading(true);
-        const data = await estoqueAPI.getAll();
-        setMateriais(data || []);
-      } catch (error) {
-        console.error('Erro ao carregar materiais:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchMateriais();
   }, []);
 
+  const fetchMateriais = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('raw_materials')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (data) setMateriais(data);
+    } catch (error) {
+      console.error('Erro ao carregar materiais do Supabase:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredMateriais = materiais.filter((material) => {
     const matchesSearch =
-      (material.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (material.tipo || '').toLowerCase().includes(searchTerm.toLowerCase());
+      (material.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (material.type || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesType = filterType === 'todos' || material.tipo === filterType;
+    const matchesType = filterType === 'todos' || material.type === filterType;
 
     return matchesSearch && matchesType;
   });
@@ -63,7 +62,8 @@ export default function AdminEstoque() {
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este material do estoque?')) {
       try {
-        await estoqueAPI.delete(id);
+        const { error } = await supabase.from('raw_materials').delete().eq('id', id);
+        if (error) throw error;
         setMateriais(prev => prev.filter(material => material.id !== id));
       } catch (error) {
         console.error(`Erro ao excluir material ${id}:`, error);
@@ -121,76 +121,64 @@ export default function AdminEstoque() {
             </div>
           ) : filteredMateriais.length > 0 ? (
             <div className="space-y-4">
-              {filteredMateriais.map((material, index) => (
-                <motion.div
-                  key={material.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-4 flex-1">
-                          <div className="p-3 bg-purple-100 rounded-lg">
-                            <Database className="w-6 h-6 text-purple-600" />
+              {filteredMateriais.map((material, index) => {
+                const isCritical = material.quantity <= material.min_stock;
+                
+                return (
+                  <motion.div
+                    key={material.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <Card className={isCritical ? "border-red-200" : ""}>
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-4 flex-1">
+                            <div className={`p-3 rounded-lg ${isCritical ? 'bg-red-100' : 'bg-purple-100'}`}>
+                              <Database className={`w-6 h-6 ${isCritical ? 'text-red-600' : 'text-purple-600'}`} />
+                            </div>
+
+                            <div className="flex-1">
+                              <h3 className="text-lg font-semibold mb-1">{material.name}</h3>
+                              <p className="text-sm text-gray-600 mb-1">
+                                <span className="font-medium">Tipo:</span> {material.type}
+                              </p>
+                              <p className="text-sm text-gray-600 mb-1">
+                                <span className="font-medium">Quantidade:</span> {material.quantity} {material.unit}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Estoque Mínimo:</span> {material.min_stock} {material.unit}
+                              </p>
+                              {isCritical && (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-500/10 text-red-600 rounded-full text-xs font-medium mt-2">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  Estoque Crítico / Baixo
+                                </span>
+                              )}
+                              <p className="text-xs text-gray-500 mt-2">
+                                Cadastrado em: {material.created_at ? new Date(material.created_at).toLocaleDateString('pt-BR') : 'N/A'}
+                              </p>
+                            </div>
                           </div>
 
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold mb-1">{material.nome}</h3>
-                            <p className="text-sm text-gray-600 mb-1">
-                              <span className="font-medium">Tipo:</span> {material.tipo}
-                            </p>
-                            <p className="text-sm text-gray-600 mb-1">
-                              <span className="font-medium">Quantidade:</span> {material.quantidade} {material.unidade}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Estoque Mínimo:</span> {material.estoque_minimo}
-                            </p>
-                            {material.quantidade <= material.estoque_minimo && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-500/10 text-red-600 rounded-full text-xs font-medium mt-2">
-                                <AlertTriangle className="w-3 h-3" />
-                                Estoque Baixo
-                              </span>
-                            )}
-                            <p className="text-xs text-gray-500 mt-2">
-                              Cadastrado em: {material.created_at ? new Date(material.created_at).toLocaleDateString('pt-BR') : 'N/A'}
-                            </p>
+                          <div className="flex flex-wrap gap-2">
+                            <Button variant="outline" size="sm" onClick={() => navigate(`/admin/estoque/${material.id}`)}>
+                              <Eye className="w-4 h-4 mr-2" /> Ver
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => navigate(`/admin/estoque/${material.id}/editar`)}>
+                              <Edit className="w-4 h-4 mr-2" /> Editar
+                            </Button>
+                            <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(material.id)}>
+                              <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                            </Button>
                           </div>
                         </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate(`/admin/estoque/${material.id}`)}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            Ver
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate(`/admin/estoque/${material.id}/editar`)}
-                          >
-                            <Edit className="w-4 h-4 mr-2" />
-                            Editar
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleDelete(material.id)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Excluir
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
