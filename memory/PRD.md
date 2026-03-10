@@ -87,6 +87,12 @@ Auditoria do arquivo zip do site 3DKPRINT para encontrar falhas e erros. O paine
 5. /app/frontend/src/App.tsx (nova rota)
 6. /app/frontend/index.html (CSP corrigido)
 7. /app/frontend/src/components/home/ServicesSection.tsx (fix import)
+8. /app/frontend/src/components/BrandShowcase.tsx (corrigido para usar async/await)
+9. /app/frontend/src/pages/BrandDetail.tsx (corrigido para usar async/await)
+
+## Correção Adicional - 10/03/2026
+- **BrandShowcase.tsx**: Corrigido erro "brands.map is not a function" - funções getBrands() e getProductsByBrand() agora são async e o componente foi atualizado para usar useEffect e useState
+- **BrandDetail.tsx**: Mesma correção aplicada para getProductsByBrand()
 
 ## Data
 10 de Março de 2026

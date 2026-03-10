@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, Star, Gauge, Layers, ChevronDown, CheckCircle, XCircle } from 'lucide-react';
 import { Layout } from '../components/layout/Layout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getProductsByBrand, PRODUTOS } from '../lib/productsData';
+import { getProductsByBrand } from '../lib/productsData';
 
 const actualBrandsData: Record<string, {
   name: string;
@@ -84,9 +84,20 @@ export default function BrandDetail() {
     };
 
     const brandName = brandMap[brandId] || brandId;
-    const data = getProductsByBrand(brandName);
-    setProducts(data);
-    setLoading(false);
+    
+    const fetchProducts = async () => {
+      try {
+        const data = await getProductsByBrand(brandName);
+        setProducts(data);
+      } catch (error) {
+        console.error('Erro ao buscar produtos:', error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchProducts();
   }, [brandId]);
 
   const internalBrand = brandId ? actualBrandsData[brandId] : null;
