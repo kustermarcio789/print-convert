@@ -36,7 +36,10 @@ const mainNavigation = [
   { name: 'Serviços', href: '/servicos' },
   { name: 'Orçamento', href: '/orcamento' },
   { name: 'Portfólio', href: '/portfolio' },
-
+  { name: 'Calculadora', href: '/calculadora' },
+  { name: 'Consultor 3D', href: '/consultor-3d' },
+  { name: 'Conhecimento', href: '/conhecimento' },
+  { name: 'Comunidade', href: '/comunidade' },
 ];
 
 function DropdownMenu({ type, onClose }: { type: string; onClose: () => void }) {

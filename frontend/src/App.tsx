@@ -52,6 +52,9 @@ import Help from './pages/Help';
 import Calculator3D from './pages/Calculator3D';
 import Demo3D from './pages/Demo3D';
 import ModelViewerDocs from './pages/ModelViewerDocs';
+import Consultor3D from './pages/Consultor3D';
+import Knowledge from './pages/Knowledge';
+import Community from './pages/Community';
 
 
 
@@ -84,6 +87,9 @@ const App = () => (
           <Route path="/orcamento-modelagem" element={<ModelingQuote />} />
           <Route path="/orcamento-manutencao" element={<MaintenanceQuote />} />
           <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/consultor-3d" element={<Consultor3D />} />
+          <Route path="/conhecimento" element={<Knowledge />} />
+          <Route path="/comunidade" element={<Community />} />
 
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Register />} />
