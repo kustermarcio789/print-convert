@@ -394,6 +394,8 @@ export default function AdminProdutoDetalhe() {
               <button
                 onClick={() => navigate('/admin/produtos')}
                 className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                title="Voltar aos Produtos"
+                data-testid="back-to-products"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
