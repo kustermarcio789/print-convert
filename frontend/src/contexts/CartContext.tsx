@@ -22,19 +22,18 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
-
-  // Carregar carrinho do localStorage
-  useEffect(() => {
+  const [items, setItems] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem('3dkprint_cart');
     if (saved) {
       try {
-        setItems(JSON.parse(saved));
+        return JSON.parse(saved);
       } catch (e) {
         console.error('Erro ao carregar carrinho:', e);
+        return [];
       }
     }
-  }, []);
+    return [];
+  });
 
   // Salvar carrinho no localStorage
   useEffect(() => {
