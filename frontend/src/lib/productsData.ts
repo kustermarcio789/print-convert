@@ -216,8 +216,77 @@ const localCatalog: Product[] = [
   },
 ];
 
+// ==================== SINCRONIZAÇÃO COM ADMIN ====================
+
 /**
- * Obter produto por ID - tenta Supabase primeiro, depois catálogo local
+ * Aplica os overrides do admin (localStorage) sobre os produtos do catálogo
+ */
+function applyAdminOverrides(products: Product[]): Product[] {
+  try {
+    const catalogOverrides = JSON.parse(localStorage.getItem('admin_catalog_overrides') || '{}');
+    const imageOverrides = JSON.parse(localStorage.getItem('admin_image_overrides') || '{}');
+    const deletedIds: string[] = JSON.parse(localStorage.getItem('admin_deleted_catalog_ids') || '[]');
+    const customProdutos = JSON.parse(localStorage.getItem('admin_custom_produtos') || '[]');
+
+    // Filtrar produtos deletados pelo admin
+    let result = products.filter(p => !deletedIds.includes(p.id));
+
+    // Aplicar overrides de preço, estoque, status
+    result = result.map(p => {
+      const override = catalogOverrides[p.id];
+      const imgOverride = imageOverrides[p.id];
+      if (!override && !imgOverride) return p;
+
+      const updated = { ...p };
+      if (override) {
+        if (override.preco !== undefined) updated.price = override.preco;
+        if (override.estoque !== undefined) updated.stock = override.estoque;
+        if (override.ativo !== undefined) updated.active = override.ativo;
+        if (override.destaque !== undefined) updated.featured = override.destaque;
+        if (override.descricao) updated.description = override.descricao;
+        if (override.nome) updated.name = override.nome;
+        if (override.marca) updated.brand = override.marca;
+        if (override.categoria) updated.category_name = override.categoria;
+        if (override.modelo3d) updated.modelo_3d = override.modelo3d;
+        if (override.imagem) updated.images = [override.imagem, ...(updated.images || []).slice(1)];
+        if (override.imagemBase64) updated.images = [override.imagemBase64, ...(updated.images || []).slice(1)];
+      }
+      if (imgOverride) {
+        updated.images = [imgOverride, ...(updated.images || []).slice(1)];
+      }
+      return updated;
+    });
+
+    // Adicionar produtos customizados criados pelo admin
+    const customProducts: Product[] = customProdutos
+      .filter((cp: any) => cp.ativo !== false)
+      .map((cp: any) => ({
+        id: cp.id,
+        name: cp.nome,
+        brand: cp.marca || '3DKPRINT',
+        category_name: cp.categoria || 'FDM',
+        description: cp.descricao || '',
+        price: cp.preco || 0,
+        stock: cp.estoque || 0,
+        images: cp.imagemBase64 ? [cp.imagemBase64] : cp.imagem ? [cp.imagem] : [],
+        modelo_3d: cp.modelo3d || undefined,
+        specifications: {
+          ...(cp.tipo ? { 'Arquitetura': cp.tipo } : {}),
+          ...(cp.velocidade ? { 'Velocidade Máxima': cp.velocidade } : {}),
+          ...(cp.volume ? { 'Volume de Impressão': cp.volume } : {}),
+        },
+        featured: cp.destaque || false,
+        active: true,
+      }));
+
+    return [...result, ...customProducts];
+  } catch (e) {
+    return products;
+  }
+}
+
+/**
+ * Obter produto por ID - aplica overrides do admin
  */
 export const getProductById = async (id: string): Promise<Product | undefined> => {
   // Primeiro tenta buscar do Supabase
@@ -229,14 +298,16 @@ export const getProductById = async (id: string): Promise<Product | undefined> =
       .single();
 
     if (!error && data) {
-      return data as Product;
+      const products = applyAdminOverrides([data as Product]);
+      return products[0];
     }
   } catch (e) {
     console.log("Supabase não disponível, usando catálogo local");
   }
 
-  // Fallback para catálogo local
-  return localCatalog.find(p => p.id === id);
+  // Fallback para catálogo local com overrides
+  const allProducts = applyAdminOverrides(localCatalog);
+  return allProducts.find(p => p.id === id);
 };
 
 /**
@@ -250,13 +321,13 @@ export const getActiveProducts = async (): Promise<Product[]> => {
       .eq("active", true);
 
     if (!error && data && data.length > 0) {
-      return data as Product[];
+      return applyAdminOverrides(data as Product[]).filter(p => p.active);
     }
   } catch (e) {
     console.log("Supabase não disponível, usando catálogo local");
   }
 
-  return localCatalog.filter(p => p.active);
+  return applyAdminOverrides(localCatalog).filter(p => p.active);
 };
 
 /**
@@ -271,13 +342,13 @@ export const getProductsByBrand = async (brand: string): Promise<Product[]> => {
       .eq("active", true);
 
     if (!error && data && data.length > 0) {
-      return data as Product[];
+      return applyAdminOverrides(data as Product[]).filter(p => p.active);
     }
   } catch (e) {
     console.log("Supabase não disponível, usando catálogo local");
   }
 
-  return localCatalog.filter(p => p.brand.toLowerCase() === brand.toLowerCase() && p.active);
+  return applyAdminOverrides(localCatalog).filter(p => p.brand.toLowerCase() === brand.toLowerCase() && p.active);
 };
 
 /**
@@ -292,13 +363,13 @@ export const getProductsByCategory = async (category: string): Promise<Product[]
       .eq("active", true);
 
     if (!error && data && data.length > 0) {
-      return data as Product[];
+      return applyAdminOverrides(data as Product[]).filter(p => p.active);
     }
   } catch (e) {
     console.log("Supabase não disponível, usando catálogo local");
   }
 
-  return localCatalog.filter(p => p.category_name.toUpperCase() === category.toUpperCase() && p.active);
+  return applyAdminOverrides(localCatalog).filter(p => p.category_name.toUpperCase() === category.toUpperCase() && p.active);
 };
 
 /**

@@ -512,7 +512,11 @@ function EditModal({ produto, onSave, onClose, marcasDisponiveis }: {
               </div>
               <div>
                 <label className={labelClass}>Estoque (unidades)</label>
-                <input type="number" value={form.estoque} onChange={e => setForm({ ...form, estoque: parseInt(e.target.value) || 0 })} className={inputClass} placeholder="0" />
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setForm(prev => ({ ...prev, estoque: Math.max(0, prev.estoque - 1) }))} className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-lg text-white font-bold text-lg flex items-center justify-center transition-colors">-</button>
+                  <input type="number" min="0" value={form.estoque} onChange={e => setForm({ ...form, estoque: parseInt(e.target.value) || 0 })} className={`${inputClass} text-center`} placeholder="0" />
+                  <button type="button" onClick={() => setForm(prev => ({ ...prev, estoque: prev.estoque + 1 }))} className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-lg text-white font-bold text-lg flex items-center justify-center transition-colors">+</button>
+                </div>
               </div>
             </div>
             {form.valorPago && form.preco > 0 && (
@@ -544,6 +548,38 @@ function EditModal({ produto, onSave, onClose, marcasDisponiveis }: {
                 {form.destaque ? 'Em Destaque' : 'Sem Destaque'}
               </button>
             </div>
+          </div>
+
+          {/* Modelo 3D (Opcional) */}
+          <div>
+            <h4 className="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-3">Modelo 3D (Opcional)</h4>
+            <p className="text-xs text-gray-500 mb-3">Upload de arquivo .stl, .obj ou .glb para visualização 3D no site</p>
+            {form.modelo3d ? (
+              <div className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                <Check size={18} className="text-green-400" />
+                <span className="text-sm text-green-400 flex-1">{form.modelo3dNome || 'Modelo 3D carregado'}</span>
+                <button onClick={() => setForm({ ...form, modelo3d: undefined, modelo3dNome: undefined })} className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs rounded-lg transition-colors">
+                  Remover
+                </button>
+              </div>
+            ) : (
+              <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-400 rounded-lg cursor-pointer transition-colors">
+                <Upload size={16} />
+                <span className="text-sm">Carregar Modelo 3D</span>
+                <input type="file" accept=".stl,.obj,.glb,.gltf" className="hidden" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      const base64 = ev.target?.result as string;
+                      setForm(prev => ({ ...prev, modelo3d: base64, modelo3dNome: file.name }));
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                  if (e.target) e.target.value = '';
+                }} />
+              </label>
+            )}
           </div>
 
           {/* Variações */}
@@ -1042,7 +1078,11 @@ export default function AdminProdutos() {
                   </div>
                   <div>
                     <label className={labelClass}>Estoque</label>
-                    <input type="number" value={newProduct.estoque} onChange={(e) => setNewProduct({ ...newProduct, estoque: e.target.value })} placeholder="0" className={inputClass} />
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => setNewProduct(prev => ({ ...prev, estoque: String(Math.max(0, (parseInt(prev.estoque) || 0) - 1)) }))} className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-lg text-white font-bold text-lg flex items-center justify-center transition-colors">-</button>
+                      <input type="number" min="0" value={newProduct.estoque} onChange={(e) => setNewProduct({ ...newProduct, estoque: e.target.value })} placeholder="0" className={`${inputClass} text-center`} />
+                      <button type="button" onClick={() => setNewProduct(prev => ({ ...prev, estoque: String((parseInt(prev.estoque) || 0) + 1) }))} className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-lg text-white font-bold text-lg flex items-center justify-center transition-colors">+</button>
+                    </div>
                   </div>
                   <div className="md:col-span-2 lg:col-span-3">
                     <label className={labelClass}>Descrição</label>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -17,12 +17,16 @@ import {
   Truck,
   Package,
   Star,
+  Box,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getProductById, getRelatedProducts, Product } from '@/lib/productsData';
 import { useCart } from '@/contexts/CartContext';
+
+const ProductViewer3D = lazy(() => import('@/components/ProductViewer3D'));
 
 export function ProductDetails() {
   const { productId: id } = useParams<{ productId: string }>();
@@ -36,6 +40,7 @@ export function ProductDetails() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [viewMode, setViewMode] = useState<'images' | '3d'>('images');
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -195,12 +200,37 @@ export function ProductDetails() {
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Coluna 1 - Imagens */}
+            {/* Coluna 1 - Imagens / 3D */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               className="lg:col-span-2 flex flex-col gap-4"
             >
+              {/* Abas Fotos / 3D */}
+              {product.modelo_3d && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setViewMode('images')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${viewMode === 'images' ? 'bg-blue-600 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                  >
+                    <ImageIcon size={16} /> Fotos
+                  </button>
+                  <button
+                    onClick={() => setViewMode('3d')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${viewMode === '3d' ? 'bg-blue-600 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                  >
+                    <Box size={16} /> Visualizar 3D
+                  </button>
+                </div>
+              )}
+
+              {viewMode === '3d' && product.modelo_3d ? (
+                <div className="bg-muted rounded-2xl overflow-hidden aspect-[4/3]">
+                  <Suspense fallback={<div className="flex items-center justify-center h-full text-muted-foreground">Carregando visualizador 3D...</div>}>
+                    <ProductViewer3D fileUrl={product.modelo_3d} />
+                  </Suspense>
+                </div>
+              ) : (
               <div className="bg-muted rounded-2xl overflow-hidden aspect-[4/3] flex items-center justify-center relative">
                 <img
                   src={product.images[currentImageIndex] || '/placeholder-product.svg'}
@@ -242,6 +272,7 @@ export function ProductDetails() {
                   )}
                 </div>
               </div>
+              )}
               
               {/* Miniaturas */}
               {product.images.length > 1 && (
