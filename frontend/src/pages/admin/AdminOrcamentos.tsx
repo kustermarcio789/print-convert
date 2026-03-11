@@ -75,6 +75,7 @@ export default function AdminOrcamentos() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showNewModal, setShowNewModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   
   // Novo orçamento manual
   const [novoOrcamento, setNovoOrcamento] = useState<NovoOrcamento>({
@@ -208,34 +209,53 @@ export default function AdminOrcamentos() {
     fetchOrcamentos();
   };
 
-  const handleSendEmail = (orc: Orcamento) => {
+  const handleSendEmail = async (orc: Orcamento) => {
     const email = orc.email || orc.client_email;
-    const subject = encodeURIComponent(`Proposta de Orçamento - 3DKPRINT - ${orc.id}`);
-    const body = encodeURIComponent(`
-Olá ${orc.cliente || orc.client_name},
+    if (!email) {
+      toast({ title: 'Erro', description: 'Email do cliente não informado.', variant: 'destructive' });
+      return;
+    }
 
-Segue nossa proposta de orçamento:
+    setSendingEmail(orc.id);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${apiUrl}/api/send-orcamento-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipient_email: email,
+          recipient_name: orc.cliente || orc.client_name || 'Cliente',
+          orcamento_id: orc.id,
+          tipo_servico: getTipoLabel(orc.tipo || orc.service_type || ''),
+          descricao: orc.descricao || 'Conforme solicitado',
+          material: orc.material || 'A definir',
+          quantidade: orc.quantidade || 1,
+          valor: typeof orc.valor === 'string' ? parseFloat(orc.valor) : (orc.valor || typeof orc.total === 'string' ? parseFloat(String(orc.total)) : (orc.total as number || 0)),
+          prazo: orc.prazo || 'A combinar',
+          observacoes: orc.observacoes || '',
+        }),
+      });
 
-Serviço: ${getTipoLabel(orc.tipo || orc.service_type || '')}
-Descrição: ${orc.descricao || 'Conforme solicitado'}
-Material: ${orc.material || 'A definir'}
-Quantidade: ${orc.quantidade || 1} unidade(s)
-Valor Total: ${formatCurrency(orc.valor || orc.total)}
-Prazo: ${orc.prazo || 'A combinar'}
+      const data = await response.json();
 
-Observações: ${orc.observacoes || 'Nenhuma'}
-
-Para aprovar este orçamento, responda este email ou entre em contato pelo WhatsApp.
-
-Atenciosamente,
-Equipe 3DKPRINT
-    `);
-    
-    window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
-    toast({
-      title: 'Email preparado',
-      description: 'O cliente de email foi aberto com a proposta.',
-    });
+      if (response.ok) {
+        toast({
+          title: 'Email enviado!',
+          description: `Proposta enviada para ${email} com sucesso.`,
+        });
+      } else {
+        throw new Error(data.detail || data.error || 'Erro ao enviar');
+      }
+    } catch (error: any) {
+      console.error('Erro ao enviar email:', error);
+      toast({
+        title: 'Erro ao enviar email',
+        description: error.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSendingEmail(null);
+    }
   };
 
   const handleSendWhatsApp = (orc: Orcamento) => {
@@ -556,8 +576,12 @@ Para aprovar, basta responder esta mensagem! ✅
                           <Eye className="w-4 h-4" />
                           Ver
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleSendEmail(orc)} className="gap-1">
-                          <Mail className="w-4 h-4" />
+                        <Button variant="outline" size="sm" onClick={() => handleSendEmail(orc)} className="gap-1" disabled={sendingEmail === orc.id}>
+                          {sendingEmail === orc.id ? (
+                            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Mail className="w-4 h-4" />
+                          )}
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => handleSendWhatsApp(orc)} className="gap-1 text-green-600 hover:text-green-700">
                           <MessageCircle className="w-4 h-4" />
@@ -834,9 +858,13 @@ Para aprovar, basta responder esta mensagem! ✅
 
                   {/* Ações */}
                   <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200">
-                    <Button onClick={() => handleSendEmail(selectedOrcamento)} className="gap-2 bg-blue-600 hover:bg-blue-700">
-                      <Mail className="w-4 h-4" />
-                      Enviar por Email
+                    <Button onClick={() => handleSendEmail(selectedOrcamento)} className="gap-2 bg-blue-600 hover:bg-blue-700" disabled={sendingEmail === selectedOrcamento.id}>
+                      {sendingEmail === selectedOrcamento.id ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Mail className="w-4 h-4" />
+                      )}
+                      {sendingEmail === selectedOrcamento.id ? 'Enviando...' : 'Enviar por Email'}
                     </Button>
                     <Button onClick={() => handleSendWhatsApp(selectedOrcamento)} className="gap-2 bg-green-600 hover:bg-green-700">
                       <MessageCircle className="w-4 h-4" />
