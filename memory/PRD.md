@@ -1,7 +1,7 @@
 # 3DKPRINT - PRD (Product Requirements Document)
 
 ## Problema Original
-Auditoria do arquivo zip do site 3DKPRINT para encontrar falhas e erros. O painel admin precisava estar 100% funcional com dados reais. Páginas específicas a corrigir e melhorar.
+Auditoria do arquivo zip do site 3DKPRINT para encontrar falhas e erros. O painel admin precisava estar 100% funcional com dados reais.
 
 ## Tecnologias
 - Frontend: React + TypeScript + Vite
@@ -11,58 +11,50 @@ Auditoria do arquivo zip do site 3DKPRINT para encontrar falhas e erros. O paine
 - Pagamento: Mercado Pago SDK
 - Email: Resend API
 - Analytics: Google Analytics GA4 (G-YFB2V50SNS)
-- Deploy: Vercel (frontend) + FastAPI backend (Emergent)
+- Deploy: Vercel (frontend)
 
 ## Credenciais
 - Admin: 3dk.print.br@gmail.com / 1@9b8z5X
-- Mercado Pago Test Public Key: TEST-4f42b5c0-4e27-4874-ab6e-5b00bede0c6e
-- Mercado Pago Test Access Token: TEST-6480666910248677-031103-adea33b15ed2df02bd73893bd9cdec48-287681490
+- Mercado Pago Test: TEST-4f42b5c0-4e27-4874-ab6e-5b00bede0c6e
 - Resend API Key: configurada no backend/.env
-- Google Analytics: G-YFB2V50SNS
+- GA4: G-YFB2V50SNS
 
 ## Status das Funcionalidades
 
 ### Implementado e Testado
 | Funcionalidade | Status | Data |
 |---|---|---|
-| Auditoria e correção de bugs | ✅ | 10/03/2026 |
-| Sidebar do Admin completa | ✅ | 10/03/2026 |
-| Página de Produtos Admin (CRUD) | ✅ | 10/03/2026 |
-| Página de Detalhe do Produto | ✅ | 10/03/2026 |
-| Menu Superior com Dropdowns | ✅ | 11/03/2026 |
-| Sistema de Carrinho + Checkout | ✅ | 11/03/2026 |
-| Integração Mercado Pago | ✅ | 11/03/2026 |
-| Páginas públicas (Consultor 3D, Conhecimento, Comunidade) | ✅ | 11/03/2026 |
-| Analytics no Dashboard Admin (dados estáticos) | ✅ | 11/03/2026 |
-| Materiais/Insumos na Produção | ✅ | 11/03/2026 |
-| Orçamentos (criação manual + gestão) | ✅ | 11/03/2026 |
-| Portfolio limpo | ✅ | 11/03/2026 |
-| Persistência do carrinho (localStorage) | ✅ | 11/03/2026 |
-| Envio de e-mail de orçamento (Resend API) | ✅ | 11/03/2026 |
-| Google Analytics GA4 | ✅ | 11/03/2026 |
-
-### Configuração Vercel
-- Root Directory: frontend
-- Framework Preset: Vite
-- Build Command: npm run build
-- Output Directory: dist
-- Install Command: npm install --legacy-peer-deps --no-frozen-lockfile
-- Variáveis de ambiente necessárias: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, RESEND_API_KEY, SENDER_EMAIL
+| Auditoria e correção de bugs | Done | 10/03 |
+| Painel Admin completo | Done | 10/03 |
+| Sistema de Carrinho + Checkout MP | Done | 11/03 |
+| Páginas públicas (Consultor 3D, Conhecimento, Comunidade) | Done | 11/03 |
+| Menu superior com dropdowns | Done | 11/03 |
+| Analytics Admin (estáticos) | Done | 11/03 |
+| Persistência do carrinho (localStorage) | Done | 11/03 |
+| Envio de e-mail de orçamento (Resend) | Done | 11/03 |
+| Google Analytics GA4 | Done | 11/03 |
+| CSP removida para compatibilidade MP | Done | 11/03 |
+| Título/Meta tags corrigidos | Done | 11/03 |
+| Deploy Vercel (overrides fix) | Done | 11/03 |
+| Sincronização Admin → Site Público | Done | 11/03 |
+| Campo estoque com +/- | Done | 11/03 |
+| Upload 3D opcional no formulário | Done | 11/03 |
+| Visualizador 3D na página de produto | Done | 11/03 |
+| Todos produtos compráveis (inStock fix) | Done | 11/03 |
 
 ## Backlog (P1)
+- Conectar Analytics do Admin ao Google Analytics Data API (precisa Service Account)
 - Criar tabelas no Supabase (producao, materiais, orcamentos)
-- Conectar dados do Admin ao Supabase (Analytics usa dados estáticos)
-- Verificar domínio no Resend para envio de emails para qualquer destinatário
+- Verificar domínio no Resend
 
 ## Backlog (P2)
-- Refatorar productsData.ts para usar Supabase como única fonte
-- Implementar envio de orçamentos por WhatsApp via API
+- Refatorar productsData.ts para Supabase como única fonte
 - Code splitting para reduzir bundle size
+- Envio de orçamento por WhatsApp API
 
 ## Arquivos Principais
-- /app/frontend/index.html - GA4 script integrado
-- /app/frontend/src/App.tsx - Rotas
+- /app/frontend/src/lib/productsData.ts - Dados + applyAdminOverrides
+- /app/frontend/src/pages/admin/AdminProdutos.tsx - Admin produtos
+- /app/frontend/src/pages/ProductDetails.tsx - Detalhes produto + 3D viewer
 - /app/frontend/src/contexts/CartContext.tsx - Carrinho
-- /app/frontend/src/pages/admin/AdminOrcamentos.tsx - Gestão de orçamentos
 - /app/backend/server.py - API de e-mail (Resend)
-- /app/frontend/api/send-email.js - Vercel serverless function para email
