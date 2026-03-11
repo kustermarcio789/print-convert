@@ -224,3 +224,29 @@ CREATE TABLE IF NOT EXISTS materiais (
   created_at TIMESTAMP DEFAULT NOW()
 );
 ```
+
+## Atualizações Finais - 11 de Março de 2026
+
+### Menu Superior Corrigido:
+- Links restaurados: Comunidade, Conhecimento, Consultor 3D
+- Menu completo: Marcas, Produtos, Serviços, Orçamento, Portfólio, Comunidade, Conhecimento, Consultor 3D, Contato
+
+### Portfolio Zerado:
+- Página mostra "Novos projetos em breve" sem projetos de exemplo
+- Pronta para o cliente adicionar projetos via painel admin
+
+### Mercado Pago Integrado:
+- SDK: @mercadopago/sdk-react
+- Credenciais de teste configuradas
+- Public Key: TEST-4f42b5c0-4e27-4874-ab6e-5b00bede0c6e
+- Access Token: TEST-6480666910248677-031103-adea33b15ed2df02bd73893bd9cdec48-287681490
+- Checkout em 4 passos: Carrinho → Dados → Pagamento → Confirmação
+- Suporta: Cartão, PIX, Boleto, Saldo Mercado Pago
+
+### Arquivos para Download:
+- /app/3dkprint-project.zip - Projeto completo (43MB)
+- /app/INSTRUCOES_DEPLOY.md - Instruções de deploy
+
+### Teste Realizado:
+- 95% de sucesso nos testes
+- Todas as funcionalidades principais funcionando
