@@ -5,14 +5,14 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const brands = [
-  { name: 'Anycubic', href: '/marcas/anycubic', icon: '/images/brands/anycubic.png' },
   { name: 'Creality', href: '/marcas/creality', icon: '/images/brands/creality.jpg' },
-  { name: 'Elegoo', href: '/marcas/elegoo', icon: '/images/brands/elegoo.jpg' },
-  { name: 'Flashforge', href: '/marcas/flashforge', icon: '/images/brands/flashforge.png' },
-  { name: 'Formlabs', href: '/marcas/formlabs', icon: '/images/brands/formlabs.png' },
-  { name: 'Phrozen', href: '/marcas/phrozen', icon: '/images/brands/phrozen.png' },
+  { name: 'Bambu Lab', href: '/marcas/bambu-lab', icon: '/images/brands/bambulab.jpeg' },
   { name: 'Prusa', href: '/marcas/prusa', icon: '/images/brands/prusa.png' },
+  { name: 'Anycubic', href: '/marcas/anycubic', icon: '/images/brands/anycubic.png' },
+  { name: 'Voron', href: '/marcas/voron', icon: '/images/brands/voron.png' },
+  { name: 'Elegoo', href: '/marcas/elegoo', icon: '/images/brands/elegoo.jpg' },
   { name: 'Sovol', href: '/marcas/sovol', icon: '/images/brands/sovol.png' },
+  { name: 'Flashforge', href: '/marcas/flashforge', icon: '/images/brands/flashforge.png' },
 ];
 
 const serviceItems = [
