@@ -157,7 +157,7 @@ export function ProductDetails() {
     return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
-  const inStock = product.stock === null || product.stock === undefined || product.stock > 0;
+  const inStock = product.active !== false;
 
   return (
     <Layout>
@@ -332,7 +332,7 @@ export function ProductDetails() {
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
-                    {product.stock > 0 && (
+                    {product.stock != null && product.stock > 0 && (
                       <span className="text-sm text-muted-foreground ml-2">
                         ({product.stock} disponíveis)
                       </span>
