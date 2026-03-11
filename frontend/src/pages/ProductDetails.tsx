@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -6,30 +5,37 @@ import {
   ArrowLeft,
   Check,
   Zap,
-  Layers,
-  Thermometer,
   Shield,
   ShoppingCart,
   Heart,
   Share2,
   ChevronLeft,
   ChevronRight,
+  Plus,
+  Minus,
+  CreditCard,
+  Truck,
+  Package,
+  Star,
 } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getProductById, getRelatedProducts, Product } from '@/lib/productsData';
+import { useCart } from '@/contexts/CartContext';
 
 export function ProductDetails() {
   const { productId: id } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { addItem, totalItems } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -43,7 +49,6 @@ export function ProductDetails() {
             const fetchedRelatedProducts = await getRelatedProducts(fetchedProduct.id, 3);
             setRelatedProducts(fetchedRelatedProducts);
 
-            // Atualizar meta tags
             document.title = `${fetchedProduct.name} | 3DKPRINT - Impressoras 3D`;
             const metaDescription = document.querySelector('meta[name="description"]');
             if (metaDescription) {
@@ -72,8 +77,8 @@ export function ProductDetails() {
         <section className="section-padding bg-background">
           <div className="container-custom">
             <div className="text-center py-12">
-              <h1 className="text-3xl font-bold text-foreground mb-4">Carregando produto...</h1>
-              <p className="text-muted-foreground mb-6">Por favor, aguarde.</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Carregando produto...</p>
             </div>
           </div>
         </section>
@@ -97,12 +102,31 @@ export function ProductDetails() {
     );
   }
 
-  const handleAddToQuote = () => {
-    toast({
-      title: 'Produto adicionado',
-      description: `${product.name} foi adicionado ao seu orçamento.`,
+  const handleAddToCart = () => {
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: quantity,
+      image: product.images[0] || '/placeholder-product.svg',
+      brand: product.brand,
     });
-    navigate('/orcamento');
+    toast({
+      title: 'Adicionado ao carrinho!',
+      description: `${quantity}x ${product.name} foi adicionado ao seu carrinho.`,
+    });
+  };
+
+  const handleBuyNow = () => {
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: quantity,
+      image: product.images[0] || '/placeholder-product.svg',
+      brand: product.brand,
+    });
+    navigate('/checkout');
   };
 
   const handleShare = () => {
@@ -129,6 +153,12 @@ export function ProductDetails() {
     setCurrentImageIndex((prevIndex) => (prevIndex - 1 + product.images.length) % product.images.length);
   };
 
+  const formatPrice = (price: number) => {
+    return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  const inStock = product.stock > 0;
+
   return (
     <Layout>
       {/* Breadcrumb */}
@@ -144,8 +174,8 @@ export function ProductDetails() {
         </div>
       </section>
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-b from-primary/10 to-background py-8">
+      {/* Main Content */}
+      <section className="bg-background py-8">
         <div className="container-custom">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -164,25 +194,25 @@ export function ProductDetails() {
             <span className="text-sm text-muted-foreground">{product.brand}</span>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Imagem */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Coluna 1 - Imagens */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col gap-4"
+              className="lg:col-span-2 flex flex-col gap-4"
             >
-              <div className="bg-muted rounded-lg overflow-hidden aspect-square flex items-center justify-center relative">
+              <div className="bg-muted rounded-2xl overflow-hidden aspect-[4/3] flex items-center justify-center relative">
                 <img
                   src={product.images[currentImageIndex] || '/placeholder-product.svg'}
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain p-8"
                 />
                 {product.images.length > 1 && (
                   <>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/50 hover:bg-background/70"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background shadow-lg"
                       onClick={prevImage}
                     >
                       <ChevronLeft className="w-5 h-5" />
@@ -190,24 +220,40 @@ export function ProductDetails() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/50 hover:bg-background/70"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background shadow-lg"
                       onClick={nextImage}
                     >
                       <ChevronRight className="w-5 h-5" />
                     </Button>
                   </>
                 )}
+                
+                {/* Badges */}
+                <div className="absolute top-4 left-4 flex flex-col gap-2">
+                  {product.featured && (
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500 text-white flex items-center gap-1">
+                      <Star size={12} fill="currentColor" /> Destaque
+                    </span>
+                  )}
+                  {!inStock && (
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500 text-white">
+                      Esgotado
+                    </span>
+                  )}
+                </div>
               </div>
+              
+              {/* Miniaturas */}
               {product.images.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto">
+                <div className="flex gap-2 overflow-x-auto pb-2">
                   {product.images.map((img, idx) => (
                     <button
                       key={idx}
                       onClick={() => setCurrentImageIndex(idx)}
-                      className={`w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${
+                      className={`w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
                         currentImageIndex === idx
-                          ? 'border-accent'
-                          : 'border-border hover:border-accent/50'
+                          ? 'border-blue-500 ring-2 ring-blue-500/30'
+                          : 'border-border hover:border-blue-500/50'
                       }`}
                     >
                       <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
@@ -215,119 +261,181 @@ export function ProductDetails() {
                   ))}
                 </div>
               )}
+
+              {/* Especificações Detalhadas */}
+              {product.specifications && Object.keys(product.specifications).length > 0 && (
+                <div className="bg-muted/30 rounded-2xl p-6 mt-4">
+                  <h3 className="text-lg font-bold text-foreground mb-4">Especificações Técnicas</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {Object.entries(product.specifications).map(([key, value]) => (
+                      <div key={key} className="p-3 bg-background rounded-lg">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{key}</p>
+                        <p className="text-sm font-semibold text-foreground">{value || 'N/A'}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </motion.div>
 
-            {/* Detalhes */}
+            {/* Coluna 2 - Informações e Compra (Sidebar) */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="flex flex-col gap-6"
+              className="flex flex-col gap-4"
             >
-              {/* Título e Preço */}
-              <div>
-                <h1 className="text-4xl font-bold text-foreground mb-2">{product.name}</h1>
-                <p className="text-lg text-muted-foreground mb-4">{product.description}</p>
-                <div className="flex items-baseline gap-3">
-                  <span className="text-4xl font-bold text-accent">
-                    R$ {product.price.toFixed(2).replace('.', ',')}
-                  </span>
-                  {product.original_price && (
-                    <span className="text-lg text-muted-foreground line-through">
-                      R$ {product.original_price.toFixed(2).replace('.', ',')}
+              {/* Card Principal de Compra */}
+              <div className="bg-background border border-border rounded-2xl p-6 shadow-lg sticky top-20">
+                {/* Nome e Marca */}
+                <div className="mb-4">
+                  <p className="text-sm text-blue-500 font-semibold mb-1">{product.brand}</p>
+                  <h1 className="text-2xl font-bold text-foreground">{product.name}</h1>
+                  <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{product.description}</p>
+                </div>
+
+                {/* Preço */}
+                <div className="mb-6 pb-4 border-b border-border">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-green-600">
+                      {formatPrice(product.price)}
                     </span>
-                  )}
+                    {product.original_price && product.original_price > product.price && (
+                      <span className="text-lg text-muted-foreground line-through">
+                        {formatPrice(product.original_price)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    ou 12x de {formatPrice(product.price / 12)} sem juros
+                  </p>
                 </div>
-              </div>
 
-              {/* Especificações Técnicas */}
-              {product.specifications && Object.keys(product.specifications).length > 0 && (
-                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
-                  {Object.entries(product.specifications).map(([key, value]) => (
-                    <div key={key}>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">{key}</p>
-                      <p className="text-sm font-semibold text-foreground">{value || 'N/A'}</p>
-                    </div>
-                  ))}
+                {/* Quantidade */}
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-foreground mb-2 block">Quantidade</label>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      disabled={quantity <= 1}
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
+                    <span className="text-xl font-bold w-12 text-center">{quantity}</span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setQuantity(Math.min(product.stock || 99, quantity + 1))}
+                      disabled={quantity >= (product.stock || 99)}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                    {product.stock > 0 && (
+                      <span className="text-sm text-muted-foreground ml-2">
+                        ({product.stock} disponíveis)
+                      </span>
+                    )}
+                  </div>
                 </div>
-              )}
 
-              {/* Informações Adicionais (garantia, envio, suporte) */}
-              <div className="space-y-3 p-4 bg-accent/5 rounded-lg border border-accent/20">
-                {product.min_stock && (
-                  <div className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-foreground text-sm">Estoque Mínimo: {product.min_stock}</p>
-                    </div>
-                  </div>
-                )}
-                {product.unit && (
-                  <div className="flex items-start gap-3">
-                    <Zap className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-foreground text-sm">Unidade: {product.unit}</p>
-                    </div>
-                  </div>
-                )}
-                {product.cost_price && (
-                  <div className="flex items-start gap-3">
-                    <Shield className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-foreground text-sm">Preço de Custo: R$ {product.cost_price.toFixed(2).replace('.', ',')}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Botões de Ação */}
-              <div className="flex flex-col gap-3">
-                <Button
-                  onClick={handleAddToQuote}
-                  size="lg"
-                  className="w-full gap-2 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white"
-                >
-                  <ShoppingCart className="w-5 h-5" />
-                  Solicitar Orçamento
-                </Button>
-                <div className="flex gap-3">
+                {/* Botões de Ação */}
+                <div className="space-y-3">
                   <Button
+                    onClick={handleBuyNow}
+                    size="lg"
+                    className="w-full gap-2 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white text-lg py-6"
+                    disabled={!inStock}
+                  >
+                    <CreditCard className="w-5 h-5" />
+                    Comprar Agora
+                  </Button>
+                  
+                  <Button
+                    onClick={handleAddToCart}
                     variant="outline"
                     size="lg"
+                    className="w-full gap-2 border-blue-500 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 py-6"
+                    disabled={!inStock}
+                  >
+                    <ShoppingCart className="w-5 h-5" />
+                    Adicionar ao Carrinho
+                    {totalItems > 0 && (
+                      <span className="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                        {totalItems}
+                      </span>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Ações Secundárias */}
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setIsFavorite(!isFavorite)}
-                    className={isFavorite ? 'text-accent' : ''}
+                    className={`flex-1 ${isFavorite ? 'text-red-500' : ''}`}
                   >
-                    <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
+                    <Heart className={`w-4 h-4 mr-2 ${isFavorite ? 'fill-current' : ''}`} />
+                    Favorito
                   </Button>
                   <Button
-                    variant="outline"
-                    size="lg"
+                    variant="ghost"
+                    size="sm"
                     onClick={handleShare}
+                    className="flex-1"
                   >
-                    <Share2 className="w-5 h-5" />
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Compartilhar
                   </Button>
+                </div>
+
+                {/* Info de Entrega */}
+                <div className="mt-6 pt-4 border-t border-border space-y-3">
+                  <div className="flex items-center gap-3 text-sm">
+                    <Truck className="w-5 h-5 text-green-500" />
+                    <div>
+                      <p className="font-medium text-foreground">Frete Grátis</p>
+                      <p className="text-muted-foreground text-xs">Para compras acima de R$ 500</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <Shield className="w-5 h-5 text-blue-500" />
+                    <div>
+                      <p className="font-medium text-foreground">Garantia de 12 meses</p>
+                      <p className="text-muted-foreground text-xs">Contra defeitos de fabricação</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <Package className="w-5 h-5 text-purple-500" />
+                    <div>
+                      <p className="font-medium text-foreground">Embalagem Segura</p>
+                      <p className="text-muted-foreground text-xs">Entrega com total proteção</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>
           </div>
-        </div>
-      </section>
 
-      {/* Produtos Relacionados */}
-      {relatedProducts.length > 0 && (
-        <section className="section-padding bg-muted/30">
-          <div className="container-custom">
-            <h2 className="text-3xl font-bold text-foreground mb-8">Produtos Relacionados</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {relatedProducts.map((relatedProduct) => (
-                <motion.div
-                  key={relatedProduct.id}
-                  whileHover={{ y: -4 }}
-                  onClick={() => navigate(`/produto/${relatedProduct.id}`)}
-                  className="cursor-pointer group"
-                >
-                  <div className="bg-background rounded-lg overflow-hidden border border-border hover:border-accent/50 transition-all">
-                    <div className="aspect-square bg-muted overflow-hidden flex items-center justify-center">
+          {/* Produtos Relacionados */}
+          {relatedProducts.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mt-16"
+            >
+              <h2 className="text-2xl font-bold text-foreground mb-6">Produtos Relacionados</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {relatedProducts.map((relatedProduct) => (
+                  <Link
+                    key={relatedProduct.id}
+                    to={`/produto/${relatedProduct.id}`}
+                    className="group bg-background border border-border rounded-xl overflow-hidden hover:shadow-lg transition-all"
+                  >
+                    <div className="aspect-square bg-muted overflow-hidden">
                       <img
                         src={relatedProduct.images[0] || '/placeholder-product.svg'}
                         alt={relatedProduct.name}
@@ -335,21 +443,21 @@ export function ProductDetails() {
                       />
                     </div>
                     <div className="p-4">
-                      <p className="text-xs text-muted-foreground mb-1">{relatedProduct.brand}</p>
-                      <h3 className="font-semibold text-foreground mb-2 group-hover:text-accent transition-colors">
+                      <p className="text-sm text-muted-foreground">{relatedProduct.brand}</p>
+                      <h3 className="font-semibold text-foreground group-hover:text-blue-500 transition-colors">
                         {relatedProduct.name}
                       </h3>
-                      <p className="text-2xl font-bold text-accent">
-                        R$ {relatedProduct.price.toFixed(2).replace('.', ',')}
+                      <p className="text-lg font-bold text-green-600 mt-2">
+                        {formatPrice(relatedProduct.price)}
                       </p>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+                  </Link>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </div>
+      </section>
     </Layout>
   );
 }

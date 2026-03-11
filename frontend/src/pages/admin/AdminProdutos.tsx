@@ -5,7 +5,7 @@ import {
   Package, Search, Eye, Trash2, Plus, Save, X,
   Layers, CheckCircle, DollarSign, Upload, RotateCw,
   Scissors, Image as ImageIcon, FlipHorizontal, FlipVertical,
-  Pencil, ChevronDown, ChevronUp, GitBranch, Star, ToggleLeft, ToggleRight
+  Pencil, ChevronDown, ChevronUp, GitBranch, Star, ToggleLeft, ToggleRight, Check
 } from 'lucide-react';
 import Sidebar from '@/components/admin/Sidebar';
 
@@ -1059,6 +1059,39 @@ export default function AdminProdutos() {
                   <div>
                     <label className={labelClass}>Volume de Construção</label>
                     <input value={newProduct.volume} onChange={(e) => setNewProduct({ ...newProduct, volume: e.target.value })} placeholder="Ex: 256×256×256mm" className={inputClass} />
+                  </div>
+                </div>
+                {/* Modelo 3D */}
+                <div className="mt-4">
+                  <label className={labelClass}>Modelo 3D (Opcional)</label>
+                  <p className="text-xs text-gray-500 mb-2">Faça upload de um arquivo .stl, .obj ou .glb para visualização 3D no site</p>
+                  <div className="flex items-center gap-3">
+                    {newProduct.modelo3d ? (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-green-500/20 border border-green-500/30 rounded-lg">
+                        <Check size={16} className="text-green-400" />
+                        <span className="text-sm text-green-400">{newProduct.modelo3dNome || 'Modelo carregado'}</span>
+                        <button onClick={() => setNewProduct(prev => ({ ...prev, modelo3d: '', modelo3dNome: '' }))} className="ml-2 text-red-400 hover:text-red-300">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center gap-2 px-4 py-2.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-400 rounded-lg cursor-pointer transition-colors">
+                        <Upload size={16} />
+                        <span className="text-sm">Carregar Modelo 3D</span>
+                        <input type="file" accept=".stl,.obj,.glb,.gltf" className="hidden" onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              const base64 = ev.target?.result as string;
+                              setNewProduct(prev => ({ ...prev, modelo3d: base64, modelo3dNome: file.name }));
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                          e.target.value = '';
+                        }} />
+                      </label>
+                    )}
                   </div>
                 </div>
                 {/* Fotos */}

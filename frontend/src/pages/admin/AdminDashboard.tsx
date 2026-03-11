@@ -15,6 +15,7 @@ import {
 import { getProductCountsByBrand } from '@/lib/productsData';
 import Sidebar, { menuItems } from '@/components/admin/Sidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
+import AnalyticsSection from '@/components/admin/AnalyticsSection';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -320,6 +321,9 @@ export default function AdminDashboard() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Analytics Section */}
+              <AnalyticsSection />
 
               {/* Recent Orders Table */}
               <Card>
