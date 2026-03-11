@@ -157,7 +157,7 @@ export function ProductDetails() {
     return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
-  const inStock = product.stock > 0;
+  const inStock = product.stock === null || product.stock === undefined || product.stock > 0;
 
   return (
     <Layout>
