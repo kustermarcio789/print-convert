@@ -147,8 +147,8 @@ export default function Portfolio() {
       setProjetos(visiveis);
       setHasCustomProjects(visiveis.length > 0);
     } else {
-      // Usar projetos de exemplo se não houver projetos salvos
-      setProjetos(PROJETOS_EXEMPLO);
+      // Página zerada - sem projetos de exemplo
+      setProjetos([]);
       setHasCustomProjects(false);
     }
   }, []);

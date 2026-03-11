@@ -66,11 +66,13 @@ import QuoteConfirmation from './pages/QuoteConfirmation';
 import SEOContent from './pages/SEOContent';
 import NotFound from "./pages/NotFound";
 import { CartProvider } from './contexts/CartContext';
+import { MercadoPagoProvider } from './contexts/MercadoPagoContext';
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <MercadoPagoProvider>
     <CartProvider>
       <TooltipProvider>
         <Toaster />
@@ -79,7 +81,7 @@ const App = () => (
           <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/produtos" element={<Products />} />
-          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/servicos" element={<Services />} />
           <Route path="/orcamento" element={<Quote />} />
           <Route path="/orcamento-multi" element={<QuoteMultiple />} />
@@ -101,7 +103,6 @@ const App = () => (
           <Route path="/seo/:slug" element={<SEOContent />} />
           <Route path="/enviar-arquivo" element={<UploadFile />} />
           <Route path="/minha-conta" element={<MyAccount />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
           {/* Admin Routes */}
           <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
           <Route path="/admin/login" element={<AdminLogin />} />
@@ -147,6 +148,7 @@ const App = () => (
       </BrowserRouter>
       </TooltipProvider>
     </CartProvider>
+    </MercadoPagoProvider>
   </QueryClientProvider>
 );
 
