@@ -30,16 +30,12 @@ const accountItems = [
 ];
 
 const mainNavigation = [
-  { name: 'Início', href: '/' },
   { name: 'Marcas', href: '/marcas', hasDropdown: true, dropdownType: 'brands' },
   { name: 'Produtos', href: '/produtos' },
-  { name: 'Serviços', href: '/servicos' },
+  { name: 'Serviços', href: '/servicos', hasDropdown: true, dropdownType: 'services' },
   { name: 'Orçamento', href: '/orcamento' },
   { name: 'Portfólio', href: '/portfolio' },
-  { name: 'Calculadora', href: '/calculadora' },
-  { name: 'Consultor 3D', href: '/consultor-3d' },
-  { name: 'Conhecimento', href: '/conhecimento' },
-  { name: 'Comunidade', href: '/comunidade' },
+  { name: 'Contato', href: '/contato' },
 ];
 
 function DropdownMenu({ type, onClose }: { type: string; onClose: () => void }) {

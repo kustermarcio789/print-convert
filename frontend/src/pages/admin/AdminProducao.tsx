@@ -574,17 +574,68 @@ function CalculadoraResina({ onSave }: { onSave: (data: Partial<ProducaoRecord>)
 
 // ============ COMPONENTE PRINCIPAL ============
 export default function AdminProducao() {
-  const [tab, setTab] = useState<'lista' | 'nova_fdm' | 'nova_resina'>('lista');
+  const [tab, setTab] = useState<'lista' | 'nova_fdm' | 'nova_resina' | 'materiais'>('lista');
   const [producoes, setProducoes] = useState<ProducaoRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('todos');
   const [filterTipo, setFilterTipo] = useState('todos');
   const [editingStatus, setEditingStatus] = useState<string | null>(null);
+  
+  // Estado para materiais/insumos
+  const [materiais, setMateriais] = useState<any[]>([]);
+  const [showAddMaterial, setShowAddMaterial] = useState(false);
+  const [novoMaterial, setNovoMaterial] = useState({
+    nome: '',
+    tipo: 'filamento',
+    marca: '',
+    cor: '',
+    quantidade: 0,
+    unidade: 'kg',
+    preco_unitario: 0,
+    impressora_compativel: '',
+    estoque_minimo: 1,
+  });
 
   useEffect(() => {
     const saved = localStorage.getItem('admin_producoes');
     if (saved) setProducoes(JSON.parse(saved));
+    
+    // Carregar materiais
+    const savedMateriais = localStorage.getItem('admin_materiais_producao');
+    if (savedMateriais) setMateriais(JSON.parse(savedMateriais));
   }, []);
+
+  const saveMateriais = (data: any[]) => {
+    setMateriais(data);
+    localStorage.setItem('admin_materiais_producao', JSON.stringify(data));
+  };
+
+  const handleAddMaterial = () => {
+    const newMaterial = {
+      id: `mat_${Date.now()}`,
+      ...novoMaterial,
+      data_cadastro: new Date().toISOString(),
+    };
+    saveMateriais([...materiais, newMaterial]);
+    setNovoMaterial({
+      nome: '',
+      tipo: 'filamento',
+      marca: '',
+      cor: '',
+      quantidade: 0,
+      unidade: 'kg',
+      preco_unitario: 0,
+      impressora_compativel: '',
+      estoque_minimo: 1,
+    });
+    setShowAddMaterial(false);
+  };
+
+  const handleDeleteMaterial = (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este material?')) {
+      saveMateriais(materiais.filter(m => m.id !== id));
+    }
+  };
 
   const saveProducoes = (data: ProducaoRecord[]) => {
     setProducoes(data);
@@ -727,14 +778,15 @@ export default function AdminProducao() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 border-b border-border">
+          <div className="flex gap-2 border-b border-border overflow-x-auto">
             {[
               { key: 'lista', label: 'Lista de Produção', icon: <Factory className="w-4 h-4" /> },
               { key: 'nova_fdm', label: '+ Nova FDM', icon: <Layers className="w-4 h-4" /> },
               { key: 'nova_resina', label: '+ Nova Resina', icon: <Droplets className="w-4 h-4" /> },
+              { key: 'materiais', label: 'Materiais/Insumos', icon: <Package className="w-4 h-4" /> },
             ].map(t => (
               <button key={t.key} onClick={() => setTab(t.key as typeof tab)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   tab === t.key ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}>
                 {t.icon} {t.label}
@@ -860,6 +912,246 @@ export default function AdminProducao() {
                   <p className="text-sm text-purple-600 font-medium">Calculadora Resina — Preencha os dados da peça e clique em "Registrar na Produção" para salvar com todos os custos calculados.</p>
                 </div>
                 <CalculadoraResina onSave={handleSaveProducao} />
+              </motion.div>
+            )}
+
+            {tab === 'materiais' && (
+              <motion.div key="materiais" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <div className="mb-4 p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-between">
+                  <p className="text-sm text-green-600 font-medium">
+                    <Package className="w-4 h-4 inline mr-2" />
+                    Cadastre os materiais e insumos utilizados na produção das suas impressoras.
+                  </p>
+                  <Button onClick={() => setShowAddMaterial(true)} size="sm" className="gap-2">
+                    <Plus className="w-4 h-4" />
+                    Adicionar Material
+                  </Button>
+                </div>
+
+                {/* Modal Adicionar Material */}
+                {showAddMaterial && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-6 bg-card border border-border rounded-xl p-6"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                        <Plus className="w-5 h-5 text-primary" />
+                        Adicionar Novo Material
+                      </h3>
+                      <button onClick={() => setShowAddMaterial(false)} className="text-muted-foreground hover:text-foreground">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-muted-foreground mb-1">Nome do Material *</label>
+                        <Input
+                          value={novoMaterial.nome}
+                          onChange={(e) => setNovoMaterial({ ...novoMaterial, nome: e.target.value })}
+                          placeholder="Ex: PLA Preto 1.75mm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-muted-foreground mb-1">Tipo</label>
+                        <select
+                          value={novoMaterial.tipo}
+                          onChange={(e) => setNovoMaterial({ ...novoMaterial, tipo: e.target.value })}
+                          className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background"
+                        >
+                          <option value="filamento">Filamento (FDM)</option>
+                          <option value="resina">Resina (SLA)</option>
+                          <option value="bico">Bico/Nozzle</option>
+                          <option value="hotend">Hotend</option>
+                          <option value="mesa">Mesa/Build Plate</option>
+                          <option value="fita">Fita Kapton/PEI</option>
+                          <option value="alcool">Álcool Isopropílico</option>
+                          <option value="luva">Luvas</option>
+                          <option value="outro">Outro</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-muted-foreground mb-1">Marca</label>
+                        <Input
+                          value={novoMaterial.marca}
+                          onChange={(e) => setNovoMaterial({ ...novoMaterial, marca: e.target.value })}
+                          placeholder="Ex: Elegoo, Creality"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-muted-foreground mb-1">Cor</label>
+                        <Input
+                          value={novoMaterial.cor}
+                          onChange={(e) => setNovoMaterial({ ...novoMaterial, cor: e.target.value })}
+                          placeholder="Ex: Preto, Branco, Cinza"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-muted-foreground mb-1">Quantidade</label>
+                        <Input
+                          type="number"
+                          value={novoMaterial.quantidade}
+                          onChange={(e) => setNovoMaterial({ ...novoMaterial, quantidade: parseFloat(e.target.value) })}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-muted-foreground mb-1">Unidade</label>
+                        <select
+                          value={novoMaterial.unidade}
+                          onChange={(e) => setNovoMaterial({ ...novoMaterial, unidade: e.target.value })}
+                          className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background"
+                        >
+                          <option value="kg">Quilogramas (kg)</option>
+                          <option value="g">Gramas (g)</option>
+                          <option value="ml">Mililitros (ml)</option>
+                          <option value="l">Litros (L)</option>
+                          <option value="un">Unidades</option>
+                          <option value="m">Metros</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-muted-foreground mb-1">Preço Unitário (R$)</label>
+                        <Input
+                          type="number"
+                          value={novoMaterial.preco_unitario}
+                          onChange={(e) => setNovoMaterial({ ...novoMaterial, preco_unitario: parseFloat(e.target.value) })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-muted-foreground mb-1">Impressora Compatível</label>
+                        <Input
+                          value={novoMaterial.impressora_compativel}
+                          onChange={(e) => setNovoMaterial({ ...novoMaterial, impressora_compativel: e.target.value })}
+                          placeholder="Ex: Elegoo Saturn, Ender 3"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-muted-foreground mb-1">Estoque Mínimo</label>
+                        <Input
+                          type="number"
+                          value={novoMaterial.estoque_minimo}
+                          onChange={(e) => setNovoMaterial({ ...novoMaterial, estoque_minimo: parseFloat(e.target.value) })}
+                          placeholder="1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border">
+                      <Button variant="outline" onClick={() => setShowAddMaterial(false)}>Cancelar</Button>
+                      <Button onClick={handleAddMaterial} disabled={!novoMaterial.nome} className="gap-2">
+                        <Save className="w-4 h-4" />
+                        Salvar Material
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Lista de Materiais */}
+                {materiais.length === 0 ? (
+                  <div className="text-center py-20 bg-card border border-dashed border-border rounded-xl">
+                    <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-30" />
+                    <p className="text-muted-foreground font-medium">Nenhum material cadastrado.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Clique em "Adicionar Material" para começar.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {materiais.map((mat) => (
+                      <motion.div
+                        key={mat.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-card border border-border rounded-xl p-4 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                              mat.tipo === 'filamento' ? 'bg-blue-100 text-blue-600' :
+                              mat.tipo === 'resina' ? 'bg-purple-100 text-purple-600' :
+                              'bg-gray-100 text-gray-600'
+                            }`}>
+                              {mat.tipo === 'filamento' ? <Layers className="w-6 h-6" /> :
+                               mat.tipo === 'resina' ? <Droplets className="w-6 h-6" /> :
+                               <Package className="w-6 h-6" />}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-foreground">{mat.nome}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {mat.marca && `${mat.marca} • `}
+                                {mat.cor && `${mat.cor} • `}
+                                {mat.tipo.charAt(0).toUpperCase() + mat.tipo.slice(1)}
+                              </p>
+                              {mat.impressora_compativel && (
+                                <p className="text-xs text-blue-500 mt-1">
+                                  Compatível: {mat.impressora_compativel}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-6">
+                            <div className="text-center">
+                              <p className="text-xs text-muted-foreground">Estoque</p>
+                              <p className={`text-xl font-bold ${
+                                mat.quantidade <= mat.estoque_minimo ? 'text-red-500' : 'text-green-500'
+                              }`}>
+                                {mat.quantidade} {mat.unidade}
+                              </p>
+                              {mat.quantidade <= mat.estoque_minimo && (
+                                <span className="text-xs text-red-500">Estoque baixo!</span>
+                              )}
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs text-muted-foreground">Preço Unit.</p>
+                              <p className="text-lg font-bold text-foreground">
+                                R$ {mat.preco_unitario?.toFixed(2)}
+                              </p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs text-muted-foreground">Valor Total</p>
+                              <p className="text-lg font-bold text-blue-600">
+                                R$ {(mat.quantidade * mat.preco_unitario).toFixed(2)}
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteMaterial(mat.id)}
+                              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+
+                    {/* Resumo */}
+                    <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-xl">
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Total de Itens</p>
+                          <p className="text-2xl font-bold text-primary">{materiais.length}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Estoque Baixo</p>
+                          <p className="text-2xl font-bold text-red-500">
+                            {materiais.filter(m => m.quantidade <= m.estoque_minimo).length}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Valor em Estoque</p>
+                          <p className="text-2xl font-bold text-green-500">
+                            R$ {materiais.reduce((acc, m) => acc + (m.quantidade * m.preco_unitario), 0).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
