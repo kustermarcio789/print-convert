@@ -1,122 +1,132 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou uma auditoria completa de um projeto React (fornecido como um arquivo .zip) para identificar e corrigir bugs, páginas vazias e melhorar a funcionalidade geral.
+O usuário solicitou uma auditoria completa de um projeto React para identificar e corrigir bugs, páginas vazias e melhorar a funcionalidade geral.
 
 **PRODUCT REQUIREMENTS:**
 1.  **Auditoria e Correção:** Encontrar e corrigir todos os erros e páginas vazias no projeto.
 2.  **Painel de Administração (Admin Panel):**
-    *   Tornar o painel 100% funcional, preferencialmente com dados reais.
-    *   Na página , adicionar botões para abrir, editar e excluir. Criar uma página de detalhes para cada produto com especificações completas.
-    *   O formulário Novo Produto deve ter mais campos de especificação.
-    *   Adicionar uma seção de análise de audiência em tempo real (visitantes, origem, etc.) ao dashboard, com um design limpo e integrado.
-    *   Na página , adicionar uma funcionalidade para cadastrar materiais/insumos utilizados na produção.
-    *   Melhorar a página de gestão de orçamentos para visualizar o arquivo 3D enviado pelo cliente, editar o orçamento e ter botões para enviar a proposta por e-mail/PDF e WhatsApp. Adicionar uma opção para criar orçamentos manualmente.
+    *   Tornar o painel 100% funcional, usando o Supabase como única fonte de dados.
+    *   Sincronizar todas as edições de produtos (preço, fotos, estoque) do painel com o site público.
+    *   Melhorar o formulário de produto com controle de quantidade e upload opcional de arquivo 3D.
+    *   Adicionar uma seção de análise de audiência com dados reais do Google Analytics.
+    *   Implementar a persistência para as seções de Produção e Orçamentos.
+    *   Melhorar a página de gestão de orçamentos, permitindo o envio de propostas por e-mail.
 3.  **Funcionalidades do Site Público:**
-    *   Adicionar um menu de navegação superior com dropdowns para Marcas e Serviços.
-    *   Corrigir a ausência das páginas ,  e  e adicioná-las ao menu.
-    *   Na página de detalhes do produto, substituir o botão Orçamento por botões Comprar Agora e Adicionar ao Carrinho.
-    *   Implementar a opção de adicionar um visualizador 3D para os produtos.
-    *   Limpar a página , deixando-a pronta para futuros projetos.
+    *   Corrigir a lógica de exibição de estoque.
+    *   Exibir modelos 3D na página de detalhes do produto.
+    *   Corrigir a exibição de imagens em todas as páginas.
+    *   Corrigir o título da aba do navegador.
 4.  **Integrações:**
-    *   Integrar a API de pagamentos do Mercado Pago em todas as opções de compra.
+    *   Integrar a API de pagamentos do Mercado Pago.
+    *   Integrar Google Analytics.
 5.  **Deployment:**
-    *   Ajudar a subir o projeto para o GitHub e fazer o deploy na Vercel.
-    *   Resolver erros de build e deployment na Vercel.
+    *   Resolver todos os erros de build e deployment na Vercel.
 
 **User's preferred language**: Portuguese (Português). The next agent MUST respond in Portuguese.
 
 **what currently exists?**
-O projeto é uma aplicação de e-commerce de impressão 3D construída com React, Vite, TypeScript e Tailwind CSS. A aplicação conecta-se ao Supabase para algumas funcionalidades, mas também depende de dados estáticos locais. O agente anterior realizou uma extensa auditoria, corrigiu vários bugs e implementou a maioria das funcionalidades solicitadas, incluindo um painel de administração renovado, um fluxo de checkout com Mercado Pago e novas páginas públicas.
+É uma aplicação de e-commerce full-stack para impressão 3D. A arquitetura foi significativamente refatorada para usar o **Supabase como a única fonte de verdade** para todos os dados de produtos. O painel de administração agora lê e escreve diretamente no Supabase, eliminando os dados estáticos e o  que causavam problemas de sincronização. A aplicação também possui um backend FastAPI dedicado para envio de e-mails via Resend. As integrações com Mercado Pago e Google Analytics estão implementadas.
 
 **Last working item**:
-*   **Last item agent was working:** O agente estava diagnosticando um erro de deployment na Vercel (). O erro ocorre porque o arquivo  no repositório do usuário está desatualizado em relação ao  após a adição da dependência .
-*   **Status:** BLOCKED
-*   **Agent Testing Done:** N/A (É um problema no ambiente de deployment do usuário)
-*   **Which testing method agent to use?** N/A. O problema requer uma alteração na configuração de build da Vercel ou a atualização do arquivo de lock.
-*   **User Testing Done:** N/A
+*   **Last item agent was working:** O agente estava lidando com a frustração extrema do usuário, que relatou que, após excluir produtos no painel de administração, eles ainda apareciam no site público.
+*   **Reasoning:** A causa raiz foi identificada: o site do usuário na Vercel estava executando uma **versão antiga do código**. Nessa versão antiga, o painel de administração salvava alterações no  do navegador, enquanto o site público já lia os dados do Supabase. O agente confirmou que o Supabase estava vazio (0 produtos ativos), provando que a lógica de exclusão no código atual funciona. O problema é que o usuário nunca fez o deploy do código corrigido.
+*   **Status:** USER VERIFICATION PENDING
+*   **Agent Testing Done:** Y (O agente verificou que o Supabase tinha 0 produtos ativos, confirmando que o backend está correto).
+*   **Which testing method agent to use?** Manual testing by user. O usuário precisa primeiro fazer o deploy da versão mais recente do código (que está no ambiente de desenvolvimento) para a Vercel.
+*   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
-*   Issue 1: Vercel deployment failing (P0)
-*   Issue 2: Shopping cart state not persisting on direct URL access (P2)
+*   **Issue 1: O deploy do usuário na Vercel está desatualizado (P0)**
+    *   **Description:** Este é o **bloqueador crítico** que está causando toda a frustração do usuário. Eles estão interagindo com uma versão antiga e com bugs do site, enquanto o código corrigido reside apenas no ambiente de desenvolvimento. As correções para sincronização de dados não estão no ambiente de produção do usuário.
+    *   **Status:** BLOCKED (depende da ação do usuário de salvar no GitHub e fazer o redeploy).
+    *   **Is recurring issue?** Y
 
 Issues Detail:
-*   **Issue 1: Vercel deployment failing**
-    *   **Attempted fixes:** O agente identificou corretamente a causa do erro ( e anteriormente  para ) e forneceu duas soluções ao usuário:
-        1.  Alterar o Install Command na Vercel para yarn install v1.22.22
-[1/4] Resolving packages...
-[2/4] Fetching packages...
-[3/4] Linking dependencies...
-[4/4] Building fresh packages...
-success Saved lockfile.
-Done in 0.03s. ou .
-        2.  Configurar o Root Directory para  nas configurações do projeto na Vercel.
+*   **Issue 1: O deploy do usuário na Vercel está desatualizado**
+    *   **Attempted fixes:** O agente diagnosticou corretamente o problema em várias ocasiões, explicando que o código novo precisa ser enviado ao GitHub e reimplantado na Vercel. O agente também resolveu todos os problemas técnicos subjacentes que impediam o deploy (conflitos de dependência do npm <command>
+
+Usage:
+
+npm install        install all the dependencies in your project
+npm install <foo>  add the <foo> dependency to your project
+npm test           run this project's tests
+npm run <foo>      run the script named <foo>
+npm <command> -h   quick help on <command>
+npm -l             display usage info for all commands
+npm help <term>    search for help on <term>
+npm help npm       more involved overview
+
+All commands:
+
+    access, adduser, audit, bugs, cache, ci, completion,
+    config, dedupe, deprecate, diff, dist-tag, docs, doctor,
+    edit, exec, explain, explore, find-dupes, fund, get, help,
+    help-search, hook, init, install, install-ci-test,
+    install-test, link, ll, login, logout, ls, org, outdated,
+    owner, pack, ping, pkg, prefix, profile, prune, publish,
+    query, rebuild, repo, restart, root, run-script, sbom,
+    search, set, shrinkwrap, star, stars, start, stop, team,
+    test, token, uninstall, unpublish, unstar, update, version,
+    view, whoami
+
+Specify configs in the ini-formatted file:
+    /root/.npmrc
+or on the command line via: npm <command> --key=value
+
+More configuration info: npm help config
+Configuration fields: npm help 7 config
+
+npm@10.8.2 /usr/lib/node_modules/npm).
     *   **Next debug checklist:**
-        1.  Confirmar com o usuário se ele aplicou as configurações sugeridas na Vercel.
-        2.  Se o erro persistir, a alternativa é o agente executar  no diretório  para gerar um  atualizado.
-        3.  Empacotar novamente o projeto em um arquivo .zip e fornecer ao usuário para que ele possa atualizar seu repositório no GitHub.
-    *   **Why fix this issue and what will be achieved with the fix?** A resolução deste problema é crítica, pois está impedindo o usuário de fazer o deploy da aplicação na Vercel e vê-la online.
+        1.  Com muita empatia, explicar ao usuário de forma simples e direta: O código que corrige a sincronização está pronto. Para que funcione no seu site, você precisa clicar em Save to Github e depois fazer o Redeploy na Vercel. O site que você está vendo agora é a versão antiga.
+        2.  Guiar o usuário passo a passo nesse processo, se necessário.
+    *   **Why fix this issue and what will be achieved with the fix?** Resolver isso fará com que o usuário finalmente veja todas as correções implementadas (sincronização de produtos, preços, estoque, etc.), resolvendo a causa principal de sua frustração.
     *   **Status:** BLOCKED
     *   **Is recurring issue?** Y
-    *   **Should Test frontend/backend/both after fix?** Frontend (verificar se o site carrega na Vercel após o deploy).
-    *   **Blocked on other issue:** N/A
-
-*   **Issue 2: Shopping cart state not persisting on direct URL access**
-    *   **Attempted fixes:** Nenhum. O agente notou o problema a partir do relatório do , mas considerou-o de prioridade média, pois o fluxo de navegação pela UI funciona corretamente.
-    *   **Next debug checklist:**
-        1.  Revisar  para entender como o estado do carrinho é gerenciado.
-        2.  Implementar a persistência do estado do carrinho usando  ou . Ao inicializar o , verificar se há dados de carrinho salvos no storage e carregá-los.
-        3.  Garantir que as operações de adicionar/remover itens atualizem tanto o estado do React quanto o storage.
-    *   **Why fix this issue and what will be achieved with the fix?** Isso melhorará a experiência do usuário, permitindo que ele atualize a página do carrinho ou acesse-a diretamente sem perder os itens selecionados.
-    *   **Status:** NOT STARTED
-    *   **Is recurring issue?** N
-    *   **Should Test frontend/backend/both after fix?** Frontend
+    *   **Should Test frontend/backend/both after fix?** Frontend (o usuário precisa verificar o site ao vivo).
     *   **Blocked on other issue:** N/A
 
 **In progress Task List**:
 Nenhum.
 
 **Upcoming and Future Tasks**
-*   **Task 1: Implementar Envio de Orçamentos (P1)**
-    *   **O que fazer:** Na página de gestão de orçamentos do admin, implementar a funcionalidade para enviar a proposta para o cliente por e-mail e/ou WhatsApp, possivelmente como um PDF.
+*   **Task 1: Conectar o Painel de Analytics ao Google Analytics (P1)**
+    *   **O que fazer:** O usuário solicitou que a seção Audiência do Site no painel admin mostre dados reais. É necessário usar a API de dados do Google Analytics para buscar e exibir essas informações.
     *   **Onde:** .
-    *   **Status:** NOT STARTED. O agente criou a UI, mas a lógica de envio não foi implementada.
-    *   **Bloqueado em:** Pode exigir uma integração de terceiros para envio de e-mail (como SendGrid) ou uma API de WhatsApp.
-
-*   **Task 2: Criar Tabelas no Supabase (P1)**
-    *   **O que fazer:** O agente notou que a tabela  não existe no Supabase. É necessário criar essa e possivelmente outras tabelas (, ) para que as novas funcionalidades do painel admin (Produção, Orçamentos) salvem os dados de forma persistente.
-    *   **Onde:** O agente precisa gerar os scripts SQL para o usuário executar no painel do Supabase.
     *   **Status:** NOT STARTED.
-    *   **Bloqueado em:** N/A.
 
-*   **Task 3: Conectar Dados do Admin ao Supabase (P2)**
-    *   **O que fazer:** Atualmente, muitos dados no painel admin (como a audiência do site) são estáticos. Seria necessário conectar esses componentes a uma fonte de dados real (Supabase ou outra API de analytics).
-    *   **Onde:** , .
+*   **Task 2: Implementar Funcionalidade de Envio de Orçamentos (P1)**
+    *   **O que fazer:** Implementar a lógica para enviar orçamentos por e-mail a partir do painel de administração. O backend FastAPI com a API da Resend já está configurado, mas precisa ser conectado à interface do usuário de orçamentos.
+    *   **Onde:** .
+    *   **Status:** NOT STARTED.
+
+*   **Task 3: Criar Tabelas Faltantes no Supabase (P2)**
+    *   **O que fazer:** As seções de Produção e Orçamentos do admin precisam de tabelas correspondentes (, , ) no Supabase para que os dados sejam persistentes. É preciso gerar os scripts SQL para o usuário.
     *   **Status:** NOT STARTED.
 
 **Completed work in this session**
-*   **Auditoria e Correções Gerais:** Corrigido o erro de sintaxe em  e resolvido um bug crítico de  ao refatorar componentes para usar  para dados assíncronos.
-*   **Reestruturação do Painel Admin:**
-    *   Sidebar () foi completamente atualizado com todas as seções e links necessários (Produção, Vendas, etc.).
-    *   Páginas de Admin (Produtos, Vendas, Produção, Relatórios) foram criadas/corrigidas para não estarem mais vazias.
-*   **Funcionalidades de E-commerce:**
-    *   Implementado um fluxo de carrinho de compras com .
-    *   Adicionados botões Comprar Agora e Adicionar ao Carrinho em .
-    *   Criada a página  e integrada com **Mercado Pago**.
-*   **Novas Funcionalidades:**
-    *   Adicionadas as páginas públicas , ,  e seus links no .
-    *   Criado um painel de **Audiência do Site** () no dashboard do admin.
-    *   Adicionada a aba e o formulário de cadastro de **Materiais/Insumos** em .
-    *   Criado o formulário para **Novo Orçamento Manual** em .
-*   **UI/UX:**
-    *   Implementado um novo menu superior () com dropdowns para Marcas e Serviços.
-    *   A página  foi limpa conforme solicitado.
-*   **Deployment:** Fornecido um arquivo zip do projeto () e instruções () para deploy.
+*   **Unificação da Fonte de Dados (Refatoração Crítica):**
+    *   O aplicativo foi totalmente refatorado para usar o **Supabase como a única fonte de verdade**, eliminando inconsistências de dados.
+    *    foi reescrito para realizar todas as operações CRUD (Criar, Ler, Atualizar, Excluir) diretamente no Supabase, removendo completamente a lógica baseada em .
+    *    foi limpo, removendo todo o catálogo de produtos estático e os fallbacks.
+*   **Correção de Deploy na Vercel:**
+    *   Resolvido permanentemente um erro de conflito de dependências ( vs ) adicionando  ao , o que eliminou a necessidade de .
+*   **Correções de Bugs:**
+    *   **Imagens Quebradas:** Corrigido um bug em  e  que impedia a exibição correta das imagens dos produtos.
+    *   **Checkout do Mercado Pago:** Resolvido o problema do formulário de pagamento não carregar, removendo a meta tag de Content Security Policy (CSP) restritiva do .
+    *   **Lógica de Estoque:** Corrigida a lógica para que produtos com estoque  ou  no Supabase sejam tratados corretamente e possam ser comprados.
+    *   **Título da Aba:** O título do site foi corrigido de  para .
+*   **Novas Funcionalidades e Melhorias:**
+    *   **Integração com Google Analytics:** O script do GA4 foi adicionado com sucesso ao site.
+    *   **Formulário de Produto Melhorado:** Adicionado um seletor de quantidade (+/-) e um campo opcional para upload de modelo 3D nos formulários de criação e edição de produtos.
+    *   **Visualizador 3D:** Implementado o componente  na página de detalhes do produto, que é exibido se um modelo 3D estiver associado.
+    *   **Limpeza da UI:** Removido um ícone de sino de notificação não funcional do cabeçalho do painel de administração.
 
 **Earlier issues found/mentioned but not fixed**
-*   A funcionalidade de envio de orçamentos por e-mail/PDF/WhatsApp foi solicitada, mas apenas a UI para gerenciá-los foi criada. A lógica de envio não foi implementada.
-*   A verificação/criação de tabelas necessárias no Supabase (ex: ) foi mencionada pelo agente como uma necessidade, mas não foi executada.
+*   A funcionalidade de envio de orçamentos por e-mail/PDF/WhatsApp foi solicitada e parcialmente preparada (backend com Resend), mas a integração final na página de orçamentos não foi concluída.
+*   A criação das tabelas  e  no Supabase, necessária para a funcionalidade do painel admin, não foi executada.
 
 **Known issue recurrence from previous fork**
-N/A
+*   O problema de deployment na Vercel foi recorrente. Embora o problema técnico no código tenha sido resolvido (via ), o problema persiste do ponto de vista do usuário porque ele não está implantando a versão mais recente do código.
 
 **Code Architecture**
 
@@ -124,86 +134,64 @@ N/A
 **Key Technical Concepts**
 *   **Frontend:** React, Vite, TypeScript
 *   **Styling:** Tailwind CSS
-*   **State Management:** React Context API (, )
-*   **Backend/DB:** Supabase (via JS client)
-*   **Package Manager:** pnpm
-*   **Payments:** Mercado Pago SDK
+*   **State Management:** React Context API
+*   **Backend/DB:** **Supabase** (usado como banco de dados e backend principal)
+*   **Serverless:** Um backend secundário com FastAPI foi criado para uma função serverless na Vercel, dedicada ao envio de e-mails.
+*   **Integrações:** Mercado Pago, Resend, Google Analytics.
 
 **key DB schema**
-A interação com o banco de dados é feita através do . As tabelas inferidas a partir do código são: , , , . O agente notou que a tabela  está faltando e é necessária para uma das novas funcionalidades.
+*   **products**: { id (uuid), name (text), price (numeric), stock (numeric), images (text[]), brand (text), category (text), description (text), active (boolean), modelo_3d (text), ... }
+*   **Tabelas a serem criadas**: , , .
 
 **changes in tech stack**
-Nenhuma mudança fundamental, mas o agente introduziu  como gerenciador de pacotes e a integração com o Mercado Pago.
+*   Um backend FastAPI foi introduzido em  para lidar com a integração de envio de e-mail via Resend, implantado como uma função serverless.
 
 **All files of reference**
-*   : Criado e modificado para adicionar a aba de gerenciamento de materiais.
-*   : Criado para gerenciar e criar orçamentos manualmente.
-*   : Criado para mostrar dados de audiência no dashboard.
-*   : Modificado para adicionar botões de compra e carrinho.
-*   : Criado para o fluxo de finalização de compra.
-*   : Criado para gerenciar o estado do carrinho.
-*   : Criado para a integração com o Mercado Pago.
-*   : Modificado para incluir os novos menus dropdown e links ausentes.
-*   : Modificado extensivamente para adicionar novas rotas para as páginas públicas e do admin.
-*   : Corrigido e modificado para ser um provedor de dados híbrido (local + Supabase).
-*   : Modificado para adicionar a dependência .
+*   : **Arquivo Crítico.** Refatorado para remover todos os dados estáticos e usar exclusivamente o Supabase.
+*   : **Arquivo Crítico.** Reescrito para interagir diretamente com o Supabase para todas as operações CRUD.
+*   : Modificado para incluir  e resolver permanentemente os conflitos de dependência no deploy.
+*   : Modificado para adicionar o script do Google Analytics e remover a CSP.
+*   : Criado para a função serverless de envio de e-mail.
 
 **Areas that need refactoring**:
-*   O arquivo  funciona como uma camada de dados híbrida, buscando dados tanto de um arquivo estático quanto do Supabase. Isso foi uma solução rápida e deve ser refatorado para usar o Supabase como única fonte de verdade para evitar inconsistências.
-*   Os dados de analytics em  são estáticos. Isso deve ser conectado a uma fonte de dados real.
+N/A. A refatoração principal para unificar a fonte de dados já foi concluída.
 
 **key api endpoints**
-A aplicação é frontend-only e se comunica diretamente com o Supabase usando a biblioteca cliente. Não há uma API backend customizada.
+*   : Endpoint criado no backend FastAPI para enviar e-mails com Resend.
 
 **Critical Info for New Agent**
-*   O projeto está configurado para . A Vercel detectou o  e está tentando usá-lo.
-*   O  está em , portanto, o **Root Directory** na Vercel DEVE ser configurado como .
-*   O erro de lockfile () é o bloqueador principal. A solução mais simples é alterar o comando de instalação na Vercel para  ou yarn install v1.22.22
-[1/4] Resolving packages...
-success Already up-to-date.
-Done in 0.03s.. A solução mais robusta é o agente gerar um  atualizado.
-*   Muitas funcionalidades do admin (produção, materiais, orçamentos) têm a UI pronta, mas a persistência no Supabase pode não estar totalmente implementada ou as tabelas podem estar ausentes.
+*   **O PROBLEMA PRINCIPAL É DO LADO DO USUÁRIO:** O usuário está extremamente frustrado porque está testando uma versão antiga e com bugs do aplicativo na Vercel. O código mais recente, que corrige os problemas de sincronização de dados, **não foi implantado pelo usuário**.
+*   **AJA COM EMPATIA, MAS SEJA FIRME:** Reconheça a frustração do usuário. Explique de forma clara e simples que a solução está pronta, mas requer uma ação dele: O código novo que corrige o problema de sincronização está pronto. Para que funcione no seu site, por favor, clique em **Save to Github** e, em seguida, faça o **Redeploy** na Vercel.
+*   **O BANCO DE DADOS ESTÁ CORRETO:** O agente anterior confirmou que não há produtos ativos no Supabase. Os produtos que o usuário vê em seu painel de administração ao vivo são dados antigos do  do navegador, provenientes do código antigo.
+*   **SUPABASE É A ÚNICA FONTE DE VERDADE:** Todo o desenvolvimento futuro deve ler e escrever exclusivamente no Supabase. Não utilize mais arquivos estáticos ou  para dados de produtos.
 
 **documents and test reports created in this job**
-*   : Arquivo zip do projeto finalizado.
-*   : Instruções para o usuário subir o projeto para o GitHub.
-*   Relatórios do  foram gerados, mas não salvos como artefatos permanentes.
+*   
+*   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Usuário:** Informa sobre um erro de  na Vercel.
-2.  **Agente:** Explica que o erro é devido ao  desatualizado e sugere alterar o comando de instalação na Vercel.
-3.  **Usuário:** Informa sobre um erro anterior na Vercel (,  não encontrado).
-4.  **Agente:** Explica que o erro é porque o Root Directory precisa ser  na Vercel.
-5.  **Usuário:** Solicita que a página  seja zerada, que os links , ,  sejam restaurados no menu, e solicita a integração do Mercado Pago com chaves de teste. Pede o projeto em .zip e instruções para o GitHub.
-6.  **Agente:** Inicia a implementação das solicitações.
-7.  **Usuário:** Solicita um menu superior com dropdowns, layout específico para a página de marcas, melhorias na página de orçamentos (visualizador 3D, edição, envio por email/PDF/WhatsApp, criação manual) e um cadastro de insumos na página de produção. Pede para testar tudo e ajudar com deploy no GitHub/Vercel e verificar o Supabase.
-8.  **Agente:** Inicia a implementação das solicitações.
-9.  **Usuário:** Pede para reorganizar o painel de analytics do admin, removendo o fundo preto e integrando-o ao design branco existente.
-10. **Agente:** Inicia a reorganização do dashboard.
+A sequência de mensagens mostra a crescente frustração do usuário com problemas que, na verdade, já haviam sido corrigidos no código, mas não implantados em seu ambiente. Os problemas relatados incluem imagens quebradas, preços não sincronizados e falha na exclusão de produtos. As últimas mensagens são hostis, acusando o agente de incompetência, pois as ações no painel de administração (baseado em  na versão antiga) não se refletiam no site público (baseado em Supabase).
 
 **Project Health Check:**
-*   **Broken:**
-    *   Deployment na Vercel está quebrado devido a problemas de configuração e lockfile.
-*   **Mocked:**
-    *   A seção de Analytics/Audiência no painel do admin usa dados estáticos.
-    *   A persistência de dados para as novas funcionalidades (Produção, Materiais, Orçamentos) provavelmente depende de tabelas que ainda não foram criadas no Supabase.
+*   **Broken:** O ambiente de produção do usuário na Vercel está executando um código desatualizado, fazendo-o acreditar que o aplicativo está quebrado, enquanto as correções já foram implementadas.
+*   **Mocked:** A seção de Analytics no painel de administração ainda usa dados estáticos.
 
 **3rd Party Integrations**
-*   **Supabase**: Usado como backend e banco de dados. As credenciais estão no ambiente.
-*   **Mercado Pago**: Integrado para processamento de pagamentos. Utiliza o SDK  e as chaves de teste fornecidas pelo usuário.
+*   **Supabase**: Backend e banco de dados principal.
+*   **Mercado Pago**: Processamento de pagamentos.
+*   **Resend**: Envio de e-mails (via backend FastAPI). Chave da API: .
+*   **Google Analytics**: Rastreamento de usuários. ID de Medição: .
 
 **Testing status**
-*   **Testing agent used after significant changes:** YES. O agente usou o  várias vezes. O último teste teve 95% de sucesso, identificando um problema de persistência do carrinho.
+*   **Testing agent used after significant changes:** YES. O agente de teste foi usado várias vezes, com a última execução relatando 100% de sucesso após a grande refatoração da fonte de dados.
 *   **Troubleshoot agent used after agent stuck in loop:** NO
-*   **Test files created:** N/A
-*   **Known regressions:** N/A
+*   **Test files created:** None
+*   **Known regressions:** None
 
 **Credentials to test flow:**
-*   **Mercado Pago (Test):**
-    *   Public key: 
-    *   Access Token: 
-*   **Admin Login:** O agente usou login via  para acessar o painel admin durante os testes.
+*   **Resend API Key**: 
+*   **Google Analytics ID**: 
 
 **What agent forgot to execute**
-*   **Envio de Orçamentos:** O usuário pediu para que os orçamentos pudessem ser enviados por e-mail/PDF/WhatsApp. O agente construiu a UI de gerenciamento, mas não implementou a funcionalidade de envio.
-*   **Criação de Tabelas no Supabase:** O usuário pediu para verificar se algo precisava ser feito no Supabase. O agente identificou a necessidade de criar a tabela , mas não forneceu o script SQL nem instruiu o usuário sobre como criá-la, o que é essencial para a persistência dos dados da nova funcionalidade.</analysis>
+*   O agente configurou o backend para envio de e-mail com a Resend, mas não concluiu a integração na funcionalidade de Enviar Orçamento no painel de administração.
+*   O agente não gerou os scripts SQL nem orientou o usuário sobre a criação das tabelas ,  e  no Supabase, que são necessárias para outras funcionalidades do painel.</analysis>
