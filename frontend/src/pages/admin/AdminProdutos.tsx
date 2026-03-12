@@ -1,153 +1,16 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package, Search, Eye, Trash2, Plus, Save, X,
   Layers, CheckCircle, DollarSign, Upload, RotateCw,
   Scissors, Image as ImageIcon, FlipHorizontal, FlipVertical,
-  Pencil, ChevronDown, ChevronUp, GitBranch, Star, ToggleLeft, ToggleRight, Check
+  Pencil, ChevronDown, ChevronUp, GitBranch, Star, ToggleLeft, ToggleRight, Check, Loader2
 } from 'lucide-react';
 import Sidebar from '@/components/admin/Sidebar';
+import { supabase } from '@/lib/supabase';
 
 // ==================== CATÁLOGO BASE ====================
-const catalogoImpressoras = [
-  {
-    id: 'elegoo-centauri',
-    nome: 'Elegoo Centauri Carbon',
-    marca: 'Elegoo',
-    categoria: 'FDM',
-    tipo: 'CoreXY',
-    preco: 4360,
-    velocidade: '500 mm/s',
-    volume: '256×256×256mm',
-    imagem: '/images/printers/elegoo-centauri.png',
-    destaque: true,
-    ativo: true,
-    estoque: 3,
-    descricao: 'Impressora 3D de carbono CoreXY com impressão de alta velocidade e nivelamento automático.',
-  },
-  {
-    id: 'elegoo-orangestorm-giga',
-    nome: 'Elegoo OrangeStorm Giga',
-    marca: 'Elegoo',
-    categoria: 'FDM',
-    tipo: 'Cartesiana',
-    preco: 18900,
-    velocidade: '300 mm/s',
-    volume: '800×800×1000mm',
-    imagem: '/images/printers/elegoo-orangestorm-giga.png',
-    destaque: true,
-    ativo: true,
-    estoque: 1,
-    descricao: 'Impressora 3D FDM de nível industrial com volume gigante de 800×800×1000mm. Ideal para peças de grande escala.',
-  },
-  {
-    id: 'sovol-sv08-max',
-    nome: 'Sovol SV08 MAX',
-    marca: 'Sovol',
-    categoria: 'FDM',
-    tipo: 'CoreXY',
-    preco: 15000,
-    velocidade: '700 mm/s',
-    volume: '500×500×500mm',
-    imagem: '/images/printers/sovol-sv08-max.png',
-    destaque: true,
-    ativo: true,
-    estoque: 1,
-    descricao: 'CoreXY de código aberto Voron 2.4 com volume de construção profissional.',
-  },
-  {
-    id: 'sovol-sv08',
-    nome: 'Sovol SV08',
-    marca: 'Sovol',
-    categoria: 'FDM',
-    tipo: 'CoreXY',
-    preco: 6800,
-    velocidade: '700 mm/s',
-    volume: '350×350×350mm',
-    imagem: '/images/printers/sovol-sv08.png',
-    destaque: false,
-    ativo: true,
-    estoque: 2,
-    descricao: 'CoreXY de código aberto Voron 2.4 com impressão de alta velocidade.',
-  },
-  {
-    id: 'elegoo-saturn4-ultra-12k',
-    nome: 'Elegoo Saturn 4 Ultra 12K',
-    marca: 'Elegoo',
-    categoria: 'Resina',
-    tipo: 'MSLA',
-    preco: 4800,
-    velocidade: '150 mm/h',
-    volume: '218.88×122.88×220mm',
-    imagem: '/images/printers/elegoo-saturn4-ultra-12k.png',
-    destaque: true,
-    ativo: true,
-    estoque: 2,
-    descricao: 'Impressora 3D de resina profissional SLA com resolução 12K.',
-  },
-  {
-    id: 'elegoo-saturn4-ultra-16k',
-    nome: 'Elegoo Saturn 4 Ultra 16K',
-    marca: 'Elegoo',
-    categoria: 'Resina',
-    tipo: 'MSLA',
-    preco: 5900,
-    velocidade: '150 mm/h',
-    volume: '218.88×122.88×220mm',
-    imagem: '/images/printers/elegoo-saturn4-ultra-16k.png',
-    destaque: true,
-    ativo: true,
-    estoque: 1,
-    descricao: 'Impressora 3D de resina profissional SLA com resolução 16K - máxima qualidade.',
-  },
-  {
-    id: 'sovol-zero',
-    nome: 'Sovol Zero',
-    marca: 'Sovol',
-    categoria: 'FDM',
-    tipo: 'CoreXY',
-    preco: 4900,
-    velocidade: '1200 mm/s',
-    volume: '235×235×250mm',
-    imagem: '/images/printers/sovol-zero.png',
-    destaque: true,
-    ativo: true,
-    estoque: 2,
-    descricao: 'CoreXY ultra-rápida com digitalização Eddy, detecção de pressão, bocal 350°C.',
-  },
-  {
-    id: 'elegoo-mars5-ultra',
-    nome: 'Elegoo Mars 5 Ultra 9K',
-    marca: 'Elegoo',
-    categoria: 'Resina',
-    tipo: 'MSLA',
-    preco: 2900,
-    velocidade: '150 mm/h',
-    volume: '153.36×77.76×165mm',
-    imagem: '/images/products/mars-5-ultra-9k.jpg',
-    destaque: false,
-    ativo: true,
-    estoque: 3,
-    descricao: 'Resina compacta 9K ideal para iniciantes. Tecnologia de inclinação, câmera IA e impressão via WiFi.',
-  },
-  {
-    id: 'elegoo-saturn3-ultra-12k',
-    nome: 'Elegoo Saturn 3 Ultra 12K',
-    marca: 'Elegoo',
-    categoria: 'Resina',
-    tipo: 'MSLA',
-    preco: 3700,
-    velocidade: '150 mm/h',
-    volume: '219×123×260mm',
-    imagem: '/images/printers/elegoo-saturn3-ultra.png',
-    destaque: false,
-    ativo: true,
-    estoque: 3,
-    descricao: 'Mono MSLA 12K com LCD de 10 polegadas e alta velocidade de impressão.',
-  },
-];
-
 // ==================== TIPOS ====================
 interface Variacao {
   id: string;
@@ -752,17 +615,11 @@ export default function AdminProdutos() {
   const [editingProduct, setEditingProduct] = useState<ProdutoAdmin | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTarget, setUploadTarget] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Overrides de preço/dados do catálogo (persistidos no localStorage)
-  const [catalogOverrides, setCatalogOverrides] = useState<Record<string, Partial<ProdutoAdmin>>>(() => {
-    const saved = localStorage.getItem('admin_catalog_overrides');
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  const [customProdutos, setCustomProdutos] = useState<ProdutoAdmin[]>(() => {
-    const saved = localStorage.getItem('admin_custom_produtos');
-    return saved ? JSON.parse(saved) : [];
-  });
+  // Produtos carregados do Supabase
+  const [produtos, setProdutos] = useState<ProdutoAdmin[]>([]);
 
   const [newProduct, setNewProduct] = useState({
     nome: '', marca: '', categoria: 'FDM', preco: '', valorPago: '', estoque: '', descricao: '',
@@ -772,42 +629,49 @@ export default function AdminProdutos() {
 
   const [novaMarca, setNovaMarca] = useState('');
   const [showNovaMarca, setShowNovaMarca] = useState(false);
-  const marcasDisponiveis = ['Elegoo', 'Sovol', 'Creality', 'Bambu Lab', 'Prusa', 'Anycubic', 'Voron', 'Flashforge', ...(() => {
-    const saved = localStorage.getItem('admin_marcas_custom');
-    return saved ? JSON.parse(saved) : [];
-  })()];
+  const marcasDisponiveis = ['Elegoo', 'Sovol', 'Creality', 'Bambu Lab', 'Prusa', 'Anycubic', 'Voron', 'Flashforge'];
 
-  const [imageOverrides, setImageOverrides] = useState<Record<string, string>>(() => {
-    const saved = localStorage.getItem('admin_image_overrides');
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  // IDs de produtos do catálogo ocultados (excluídos localmente)
-  const [deletedCatalogIds, setDeletedCatalogIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem('admin_deleted_catalog_ids');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // Produto pendente de exclusão (abre o dialog)
+  // Produto pendente de exclusão
   const [deletingProduct, setDeletingProduct] = useState<ProdutoAdmin | null>(null);
 
-  // Montar lista completa com overrides aplicados
-  const allProdutos: ProdutoAdmin[] = [
-    ...catalogoImpressoras
-      .filter(p => !deletedCatalogIds.includes(p.id))
-      .map(p => ({
-        ...p,
-        ...(catalogOverrides[p.id] || {}),
-        source: 'catalogo' as const,
-      })),
-    ...customProdutos.map(p => ({
-      ...p,
-      source: 'custom' as const,
-      imagem: p.imagem || p.imagemBase64 || '',
-    })),
-  ];
+  // ==================== CARREGAR DO SUPABASE ====================
+  const loadProducts = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.from('products').select('*').order('name');
+      if (error) throw error;
+      if (data) {
+        const mapped: ProdutoAdmin[] = data.map((p: any) => ({
+          id: p.id,
+          nome: p.name,
+          marca: p.brand || '',
+          categoria: p.category_name || 'FDM',
+          tipo: p.specifications?.tipo || '',
+          preco: p.price || 0,
+          valorPago: p.cost_price || undefined,
+          estoque: p.stock || 0,
+          ativo: p.active !== false,
+          destaque: p.featured || false,
+          descricao: p.description || '',
+          imagem: p.images?.[0] || '',
+          imagens: p.images || [],
+          modelo3d: p.modelo_3d || undefined,
+          velocidade: p.specifications?.velocidade || '',
+          volume: p.specifications?.volume || '',
+          source: 'catalogo' as const,
+        }));
+        setProdutos(mapped);
+      }
+    } catch (e) {
+      console.error('Erro ao carregar produtos:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredProdutos = allProdutos.filter((produto) => {
+  useEffect(() => { loadProducts(); }, []);
+
+  const filteredProdutos = produtos.filter((produto) => {
     const matchesSearch =
       produto.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       produto.marca.toLowerCase().includes(searchTerm.toLowerCase());
@@ -816,77 +680,140 @@ export default function AdminProdutos() {
     return matchesSearch && matchesMarca && matchesCategoria;
   });
 
-  const handleSaveEdit = (updated: ProdutoAdmin) => {
-    if (updated.source === 'catalogo') {
-      // Salvar override para produto do catálogo
-      const { source, ...rest } = updated;
-      const newOverrides = { ...catalogOverrides, [updated.id]: rest };
-      setCatalogOverrides(newOverrides);
-      localStorage.setItem('admin_catalog_overrides', JSON.stringify(newOverrides));
-      // Também atualizar no productStore global para refletir no site
-      try {
-        const storeKey = 'admin_product_overrides_v2';
-        const storeOverrides = JSON.parse(localStorage.getItem(storeKey) || '{}');
-        storeOverrides[updated.id] = { preco: updated.preco, precoLabel: `R$ ${updated.preco.toLocaleString('pt-BR')}`, estoque: updated.estoque, ativo: updated.ativo, destaque: updated.destaque, variacoes: updated.variacoes };
-        localStorage.setItem(storeKey, JSON.stringify(storeOverrides));
-      } catch {}
-    } else {
-      // Atualizar produto customizado
-      const idx = customProdutos.findIndex(p => p.id === updated.id);
-      if (idx >= 0) {
-        const newCustom = [...customProdutos];
-        newCustom[idx] = updated;
-        setCustomProdutos(newCustom);
-        localStorage.setItem('admin_custom_produtos', JSON.stringify(newCustom));
+  // ==================== SALVAR NO SUPABASE ====================
+  const handleSaveEdit = async (updated: ProdutoAdmin) => {
+    setSaving(true);
+    try {
+      const updateData: any = {
+        name: updated.nome,
+        brand: updated.marca,
+        category_name: updated.categoria,
+        description: updated.descricao,
+        price: updated.preco,
+        cost_price: updated.valorPago || 0,
+        stock: updated.estoque,
+        active: updated.ativo,
+        featured: updated.destaque,
+        modelo_3d: updated.modelo3d || null,
+        specifications: {
+          tipo: updated.tipo || updated.categoria,
+          velocidade: updated.velocidade || '',
+          volume: updated.volume || '',
+        },
+        updated_at: new Date().toISOString(),
+      };
+
+      // Se tem imagem base64 nova, salvar
+      if (updated.imagemBase64) {
+        updateData.images = [updated.imagemBase64, ...(updated.imagens || []).slice(1)];
+      } else if (updated.imagem) {
+        updateData.images = [updated.imagem, ...(updated.imagens || []).slice(1)];
       }
+
+      const { error } = await supabase.from('products').update(updateData).eq('id', updated.id);
+      if (error) throw error;
+
+      // Atualizar estado local
+      setProdutos(prev => prev.map(p => p.id === updated.id ? { ...updated } : p));
+      setEditingProduct(null);
+    } catch (e: any) {
+      console.error('Erro ao salvar:', e);
+      alert('Erro ao salvar: ' + (e.message || 'Tente novamente'));
+    } finally {
+      setSaving(false);
     }
-    setEditingProduct(null);
   };
 
-  const handleAddProduct = () => {
+  // ==================== ADICIONAR NOVO PRODUTO ====================
+  const handleAddProduct = async () => {
     if (!newProduct.nome || !newProduct.marca || !newProduct.preco) return;
-    const mainImage = newProduct.imagem || (newProduct.imagens[0] || '');
-    const allImages = newProduct.imagens.length > 0 ? newProduct.imagens : (mainImage ? [mainImage] : []);
-    const produto: ProdutoAdmin = {
-      id: `custom-${Date.now()}`,
-      nome: newProduct.nome,
-      marca: newProduct.marca,
-      categoria: newProduct.categoria,
-      preco: parseFloat(newProduct.preco),
-      valorPago: newProduct.valorPago ? parseFloat(newProduct.valorPago) : undefined,
-      estoque: parseInt(newProduct.estoque) || 0,
-      ativo: true,
-      destaque: newProduct.destaque,
-      descricao: newProduct.descricao,
-      imagem: mainImage,
-      imagens: allImages,
-      modelo3d: newProduct.modelo3d || undefined,
-      modelo3dNome: newProduct.modelo3dNome || undefined,
-      velocidade: newProduct.velocidade || undefined,
-      volume: newProduct.volume || undefined,
-      tipo: newProduct.tipo || undefined,
-    };
-    const updated = [...customProdutos, produto];
-    setCustomProdutos(updated);
-    localStorage.setItem('admin_custom_produtos', JSON.stringify(updated));
-    setNewProduct({ nome: '', marca: '', categoria: 'FDM', preco: '', valorPago: '', estoque: '', descricao: '', imagem: '', imagens: [], modelo3d: '', modelo3dNome: '', velocidade: '', volume: '', tipo: '', destaque: false });
-    setShowAddForm(false);
-  };
+    setSaving(true);
+    try {
+      const mainImage = newProduct.imagem || (newProduct.imagens[0] || '');
+      const allImages = newProduct.imagens.length > 0 ? newProduct.imagens : (mainImage ? [mainImage] : []);
 
-  const handleDeleteConfirmed = () => {
-    if (!deletingProduct) return;
-    if (deletingProduct.source === 'catalogo') {
-      const updated = [...deletedCatalogIds, deletingProduct.id];
-      setDeletedCatalogIds(updated);
-      localStorage.setItem('admin_deleted_catalog_ids', JSON.stringify(updated));
-    } else {
-      const updated = customProdutos.filter(p => p.id !== deletingProduct.id);
-      setCustomProdutos(updated);
-      localStorage.setItem('admin_custom_produtos', JSON.stringify(updated));
+      const insertData: any = {
+        name: newProduct.nome,
+        brand: newProduct.marca,
+        category_name: newProduct.categoria,
+        description: newProduct.descricao,
+        price: parseFloat(newProduct.preco),
+        cost_price: newProduct.valorPago ? parseFloat(newProduct.valorPago) : 0,
+        stock: parseInt(newProduct.estoque) || 0,
+        active: true,
+        featured: newProduct.destaque,
+        images: allImages,
+        modelo_3d: newProduct.modelo3d || null,
+        specifications: {
+          tipo: newProduct.tipo || newProduct.categoria,
+          velocidade: newProduct.velocidade || '',
+          volume: newProduct.volume || '',
+        },
+      };
+
+      const { data, error } = await supabase.from('products').insert(insertData).select().single();
+      if (error) throw error;
+
+      // Recarregar produtos
+      await loadProducts();
+      setShowAddForm(false);
+      setNewProduct({ nome: '', marca: '', categoria: 'FDM', preco: '', valorPago: '', estoque: '', descricao: '', imagem: '', imagens: [], modelo3d: '', modelo3dNome: '', velocidade: '', volume: '', tipo: '', destaque: false });
+    } catch (e: any) {
+      console.error('Erro ao adicionar:', e);
+      alert('Erro ao adicionar: ' + (e.message || 'Tente novamente'));
+    } finally {
+      setSaving(false);
     }
-    setDeletingProduct(null);
   };
 
+  // ==================== EXCLUIR PRODUTO ====================
+  const handleConfirmDelete = async () => {
+    if (!deletingProduct) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('products').update({ active: false }).eq('id', deletingProduct.id);
+      if (error) throw error;
+      setProdutos(prev => prev.filter(p => p.id !== deletingProduct.id));
+      setDeletingProduct(null);
+    } catch (e: any) {
+      console.error('Erro ao excluir:', e);
+      alert('Erro ao excluir: ' + (e.message || 'Tente novamente'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ==================== UPLOAD E EDITOR DE IMAGEM ====================
+  const handleImageUpload = (productId: string, file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      setEditingImage({ productId, data: base64 });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageEditorSave = async (base64: string) => {
+    if (!editingImage) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('products').update({
+        images: [base64],
+        updated_at: new Date().toISOString(),
+      }).eq('id', editingImage.productId);
+      if (error) throw error;
+
+      setProdutos(prev => prev.map(p =>
+        p.id === editingImage.productId ? { ...p, imagem: base64, imagemBase64: base64 } : p
+      ));
+      setEditingImage(null);
+    } catch (e: any) {
+      console.error('Erro ao salvar imagem:', e);
+      alert('Erro ao salvar imagem: ' + (e.message || 'Tente novamente'));
+    } finally {
+      setSaving(false);
+    }
+  };
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, targetId: string | null) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -903,33 +830,15 @@ export default function AdminProdutos() {
     e.target.value = '';
   };
 
-  const handleImageEditorSave = (editedData: string) => {
-    if (!editingImage) return;
-    const productId = editingImage.productId;
-    const customIdx = customProdutos.findIndex(p => p.id === productId);
-    if (customIdx >= 0) {
-      const updated = [...customProdutos];
-      updated[customIdx] = { ...updated[customIdx], imagem: editedData, imagemBase64: editedData };
-      setCustomProdutos(updated);
-      localStorage.setItem('admin_custom_produtos', JSON.stringify(updated));
-    } else {
-      const newOverrides = { ...imageOverrides, [productId]: editedData };
-      setImageOverrides(newOverrides);
-      localStorage.setItem('admin_image_overrides', JSON.stringify(newOverrides));
-    }
-    setEditingImage(null);
-  };
-
   const getProductImage = (produto: ProdutoAdmin) => {
-    if (imageOverrides[produto.id]) return imageOverrides[produto.id];
     if (produto.imagemBase64) return produto.imagemBase64;
     return produto.imagem;
   };
 
-  const totalProdutos = allProdutos.length;
-  const totalAtivos = allProdutos.filter(p => p.ativo !== false).length;
-  const totalEstoque = allProdutos.reduce((sum, p) => sum + (p.estoque || 0), 0);
-  const valorTotal = allProdutos.reduce((sum, p) => sum + (p.preco * (p.estoque || 0)), 0);
+  const totalProdutos = produtos.length;
+  const totalAtivos = produtos.filter(p => p.ativo !== false).length;
+  const totalEstoque = produtos.reduce((sum, p) => sum + (p.estoque || 0), 0);
+  const valorTotal = produtos.reduce((sum, p) => sum + (p.preco * (p.estoque || 0)), 0);
 
   const inputClass = "w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-blue-500";
   const labelClass = "text-sm font-medium text-gray-300 mb-1 block";
@@ -957,7 +866,7 @@ export default function AdminProdutos() {
         {deletingProduct && (
           <DeleteConfirmDialog
             produto={deletingProduct}
-            onConfirm={handleDeleteConfirmed}
+            onConfirm={handleConfirmDelete}
             onCancel={() => setDeletingProduct(null)}
           />
         )}
