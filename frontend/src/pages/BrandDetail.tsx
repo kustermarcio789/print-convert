@@ -178,7 +178,7 @@ export default function BrandDetail() {
                   {/* Image */}
                   <div className="aspect-square overflow-hidden bg-gray-50 relative">
                     <img
-                      src={product.image}
+                      src={product.images?.[0] || '/placeholder-product.svg'}
                       alt={product.name}
                       className="w-full h-full object-contain p-8 group-hover:scale-110 transition-transform duration-500"
                     />

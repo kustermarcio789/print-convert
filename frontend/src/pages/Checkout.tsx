@@ -989,7 +989,7 @@ export default function Checkout() {
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sticky top-24">
                 <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4 mb-4 flex items-center justify-center">
-                  <img src={product.image} alt={product.name} className="max-h-40 object-contain"
+                  <img src={product.images?.[0] || product.image || '/images/placeholder.png'} alt={product.name} className="max-h-40 object-contain"
                     onError={(e) => { (e.target as HTMLImageElement).src = '/images/placeholder.png'; }} />
                 </div>
                 <div className="mb-4">
