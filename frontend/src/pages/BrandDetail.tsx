@@ -66,6 +66,7 @@ export default function BrandDetail() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
 
   useEffect(() => {
     if (!brandId) return;
@@ -101,6 +102,18 @@ export default function BrandDetail() {
   }, [brandId]);
 
   const internalBrand = brandId ? actualBrandsData[brandId] : null;
+
+  // Filtro client-side por categoria
+  const filteredProducts = selectedCategory === 'Todos'
+    ? products
+    : products.filter((p) => {
+        const haystack = [
+          p.category,
+          p.subcategory,
+          ...(p.tags ?? []),
+        ].join(' ').toLowerCase();
+        return haystack.includes(selectedCategory.toLowerCase());
+      });
 
   if (!internalBrand) {
     return (
@@ -144,7 +157,12 @@ export default function BrandDetail() {
               {internalBrand.categories.map((cat) => (
                 <button
                   key={cat}
-                  className="px-4 py-2 rounded-full border border-border hover:border-accent hover:text-accent transition-all text-sm font-medium"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-2 rounded-full border transition-all text-sm font-medium ${
+                    selectedCategory === cat
+                      ? 'border-accent bg-accent text-accent-foreground'
+                      : 'border-border hover:border-accent hover:text-accent'
+                  }`}
                 >
                   {cat}
                 </button>
@@ -158,9 +176,9 @@ export default function BrandDetail() {
                 <div key={i} className="h-80 bg-muted animate-pulse rounded-2xl"></div>
               ))}
             </div>
-          ) : products.length > 0 ? (
+          ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <motion.div
                   key={product.id}
                   layout

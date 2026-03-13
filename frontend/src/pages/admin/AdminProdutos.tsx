@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Package, Search, Eye, Trash2, Plus, Save, X,
+  Package, Search, Eye, EyeOff, Trash2, Plus, Save, X,
   Layers, CheckCircle, DollarSign, Upload, RotateCw,
   Scissors, Image as ImageIcon, FlipHorizontal, FlipVertical,
   Pencil, ChevronDown, ChevronUp, GitBranch, Star, ToggleLeft, ToggleRight, Check, Loader2
@@ -783,6 +783,44 @@ export default function AdminProdutos() {
     }
   };
 
+  // ==================== TOGGLE ATIVO/INATIVO ====================
+  const handleToggleActive = async (produto: ProdutoAdmin) => {
+    const novoStatus = !produto.ativo;
+    try {
+      const { error } = await supabase.from('products').update({
+        active: novoStatus,
+        updated_at: new Date().toISOString(),
+      }).eq('id', produto.id);
+      if (error) throw error;
+      setProdutos(prev => prev.map(p => p.id === produto.id ? { ...p, ativo: novoStatus } : p));
+    } catch (e: any) {
+      console.error('Erro ao alterar status:', e);
+      alert('Erro ao alterar status: ' + (e.message || 'Tente novamente'));
+    }
+  };
+
+  // ==================== ATIVAR TODOS ====================
+  const handleActivateAll = async () => {
+    const inativos = produtos.filter(p => !p.ativo);
+    if (inativos.length === 0) return;
+    if (!confirm(`Ativar todos os ${inativos.length} produtos inativos? Eles aparecerão na loja.`)) return;
+    setSaving(true);
+    try {
+      const ids = inativos.map(p => p.id);
+      const { error } = await supabase.from('products').update({
+        active: true,
+        updated_at: new Date().toISOString(),
+      }).in('id', ids);
+      if (error) throw error;
+      setProdutos(prev => prev.map(p => ({ ...p, ativo: true })));
+    } catch (e: any) {
+      console.error('Erro ao ativar todos:', e);
+      alert('Erro ao ativar todos: ' + (e.message || 'Tente novamente'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // ==================== UPLOAD E EDITOR DE IMAGEM ====================
   const handleImageUpload = (productId: string, file: File) => {
     const reader = new FileReader();
@@ -932,6 +970,16 @@ export default function AdminProdutos() {
               <button onClick={() => setShowAddForm(true)} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap">
                 <Plus size={16} />Novo Produto
               </button>
+              {produtos.filter(p => !p.ativo).length > 0 && (
+                <button
+                  onClick={handleActivateAll}
+                  disabled={saving}
+                  className="px-5 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap"
+                  title={`${produtos.filter(p => !p.ativo).length} produtos inativos — nenhum aparece na loja`}
+                >
+                  <CheckCircle size={16} />Ativar Todos ({produtos.filter(p => !p.ativo).length})
+                </button>
+              )}
             </div>
           </div>
 
@@ -1148,8 +1196,16 @@ export default function AdminProdutos() {
                           <p className="text-[10px] text-gray-500">Estoque: {produto.estoque || 0} un.</p>
                         </div>
                         <div className="flex gap-1.5">
-                          <button onClick={() => navigate(`/admin/produtos/${produto.id}`)} className="h-8 w-8 flex items-center justify-center rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-colors" title="Ver detalhes">
-                            <Eye size={14} />
+                          <button
+                            onClick={() => handleToggleActive(produto)}
+                            className={`h-8 w-8 flex items-center justify-center rounded-lg transition-colors ${
+                              produto.ativo !== false
+                                ? 'bg-green-500/20 hover:bg-red-500/20 text-green-400 hover:text-red-400'
+                                : 'bg-red-500/20 hover:bg-green-500/20 text-red-400 hover:text-green-400'
+                            }`}
+                            title={produto.ativo !== false ? 'Clique para desativar (ocultar da loja)' : 'Clique para ativar (exibir na loja)'}
+                          >
+                            {produto.ativo !== false ? <Eye size={14} /> : <EyeOff size={14} />}
                           </button>
                           <button onClick={() => setEditingProduct(produto)} className="h-8 w-8 flex items-center justify-center rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-colors" title="Editar produto">
                             <Pencil size={14} />

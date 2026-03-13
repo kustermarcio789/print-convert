@@ -20,31 +20,38 @@ export interface AuthResponse {
   error?: string;
 }
 
-// Credenciais administrativas
-const ADMIN_CREDENTIALS = [
-  {
-    email: '3dk.print.br@gmail.com',
-    password: '1@9b8z5X',
-    user: {
-      id: 'admin-master-001',
-      email: '3dk.print.br@gmail.com',
-      role: 'master' as const,
-      permissions: ['dashboard', 'orcamentos', 'produtos', 'usuarios', 'configuracoes', 'relatorios'],
-      createdAt: '2024-01-01T00:00:00Z',
-    }
-  },
-  {
-    email: 'kuster789jose',
-    password: '1@9b8z5X',
-    user: {
-      id: 'admin-master-002',
-      email: 'kuster789jose',
-      role: 'master' as const,
-      permissions: ['dashboard', 'orcamentos', 'produtos', 'usuarios', 'configuracoes', 'relatorios'],
-      createdAt: '2024-01-01T00:00:00Z',
-    }
+// Credenciais administrativas — lidas das variáveis de ambiente (VITE_ADMIN_CRED_N_EMAIL / VITE_ADMIN_CRED_N_PASS)
+// Configure essas variáveis no arquivo .env (veja .env.example)
+function buildAdminCredentials() {
+  const credentials = [];
+  let index = 1;
+  while (true) {
+    const email = import.meta.env[`VITE_ADMIN_CRED_${index}_EMAIL`] as string | undefined;
+    const password = import.meta.env[`VITE_ADMIN_CRED_${index}_PASS`] as string | undefined;
+    if (!email || !password) break;
+    credentials.push({
+      email,
+      password,
+      user: {
+        id: `admin-master-00${index}`,
+        email,
+        role: 'master' as const,
+        permissions: ['dashboard', 'orcamentos', 'produtos', 'usuarios', 'configuracoes', 'relatorios'],
+        createdAt: '2024-01-01T00:00:00Z',
+      }
+    });
+    index++;
   }
-];
+  if (credentials.length === 0 && import.meta.env.DEV) {
+    console.warn(
+      '[3DK Print] Nenhuma credencial de administrador encontrada.\n' +
+      'Defina VITE_ADMIN_CRED_1_EMAIL e VITE_ADMIN_CRED_1_PASS no arquivo .env.'
+    );
+  }
+  return credentials;
+}
+
+const ADMIN_CREDENTIALS = buildAdminCredentials();
 
 /**
  * Gera um token JWT simples para a sessão

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Printer, Box, Zap, ShieldCheck } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
+import { Button } from '@/components/ui/button';
 import { getBrands, getProductCountByBrand } from '@/lib/productsData';
 
 interface BrandData {
@@ -43,8 +44,6 @@ export default function Brands() {
           'Elegoo': { id: 'elegoo', logo: '/images/brands/elegoo.jpg', description: 'Dominando o mercado de resina com a linha Saturn e Mars. Tecnologia acessível para hobbistas e profissionais.', categories: ['Mars', 'Saturn', 'Neptune', 'Acessórios'], color: 'from-[#1ABC9C]/20 to-[#1ABC9C]/5', accentColor: '#1ABC9C' },
           'Flashforge': { id: 'flashforge', logo: '/images/brands/flashforge.png', description: 'Soluções fechadas e seguras para educação e indústria. Confiabilidade alemã com facilidade de uso.', categories: ['Adventurer', 'Guider', 'Creator', 'Acessórios'], color: 'from-[#9B59B6]/20 to-[#9B59B6]/5', accentColor: '#9B59B6' },
           'Sovol': { id: 'sovol', logo: '/images/brands/sovol.png', description: 'Inovação acessível com foco em grandes volumes de impressão e sistemas de extrusão direta eficientes.', categories: ['SV06', 'SV07', 'Peças'], color: 'from-[#34495E]/20 to-[#34495E]/5', accentColor: '#34495E' },
-          'Formlabs': { id: 'formlabs', logo: '/images/brands/formlabs.png', description: 'Referência mundial em impressão 3D SLA profissional. Qualidade industrial com acabamento impecável.', categories: ['Form 3+', 'Form 4', 'Resinas'], color: 'from-[#2C3E50]/20 to-[#2C3E50]/5', accentColor: '#2C3E50' },
-          'Phrozen': { id: 'phrozen', logo: '/images/brands/phrozen.png', description: 'Impressoras de resina de alta resolução com telas mono LCD de última geração para detalhes ultra finos.', categories: ['Sonic Mini', 'Sonic Mega', 'Resinas'], color: 'from-[#8E44AD]/20 to-[#8E44AD]/5', accentColor: '#8E44AD' },
         };
 
         const brandInfo = mockBrandData[brandName as keyof typeof mockBrandData] || {

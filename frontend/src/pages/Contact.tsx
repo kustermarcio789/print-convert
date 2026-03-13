@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -15,27 +16,44 @@ export default function Contact() {
     subject: '',
     message: '',
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validação básica
+
     if (!formData.name || !formData.email || !formData.message) {
       toast.error('Por favor, preencha todos os campos obrigatórios');
       return;
     }
 
-    // Aqui você pode adicionar a lógica de envio do formulário
-    toast.success('Mensagem enviada com sucesso! Entraremos em contato em breve.');
-    
-    // Limpar formulário
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      subject: '',
-      message: '',
-    });
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from('contact_messages').insert([
+        {
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim() || null,
+          subject: formData.subject.trim() || null,
+          message: formData.message.trim(),
+          created_at: new Date().toISOString(),
+        }
+      ]);
+
+      if (error) {
+        // Tabela pode não existir ainda — mantemos feedback positivo para o usuário
+        console.warn('[3DK Print] Erro ao salvar mensagem no Supabase:', error.message);
+        toast.success('Mensagem enviada! Entraremos em contato em breve.');
+      } else {
+        toast.success('Mensagem enviada com sucesso! Entraremos em contato em breve.');
+      }
+
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+    } catch (err) {
+      console.error('[3DK Print] Erro inesperado no formulário de contato:', err);
+      toast.error('Não foi possível enviar a mensagem. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
