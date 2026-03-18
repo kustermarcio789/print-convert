@@ -457,16 +457,22 @@ Para aprovar, basta responder esta mensagem! ✅
         <AdminHeader title="Orçamentos" />
 
         <div className="p-6">
-          {/* Header com botão de novo orçamento */}
+          {/* Header com botões de novo orçamento */}
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Gerenciar Orçamentos</h1>
               <p className="text-gray-500 text-sm">Visualize, edite e envie propostas para seus clientes</p>
             </div>
-            <Button onClick={() => setShowNewModal(true)} className="gap-2 bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4" />
-              Novo Orçamento Manual
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowNewModal(true)} variant="outline" className="gap-2">
+                <Plus className="w-4 h-4" />
+                Orçamento Rápido
+              </Button>
+              <Button onClick={() => navigate('/admin/orcamento/novo')} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                <FileText className="w-4 h-4" />
+                Novo Orçamento Completo
+              </Button>
+            </div>
           </div>
 
           {/* Filtros */}

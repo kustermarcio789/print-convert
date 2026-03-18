@@ -34,6 +34,7 @@ import AdminRelatorioProducao from './pages/admin/AdminRelatorioProducao';
 import AdminDashboardExecutivo from './pages/admin/AdminDashboardExecutivo';
 import AdminOrcamentoDetalhes from './pages/admin/AdminOrcamentoDetalhes';
 import AdminOrcamentoManual from './pages/admin/AdminOrcamentoManual';
+import AdminOrcamentoEditor from './pages/admin/AdminOrcamentoEditor';
 import AdminMarcas from './pages/admin/AdminMarcas';
 import AdminImpressoras from './pages/admin/AdminImpressoras';
 import AdminPortfolio from './pages/admin/AdminPortfolio';
@@ -110,6 +111,8 @@ const App = () => (
           <Route path="/admin/orcamentos" element={<ProtectedRoute><AdminOrcamentos /></ProtectedRoute>} />
           <Route path="/admin/orcamentos/:id" element={<ProtectedRoute><AdminOrcamentoDetalhes /></ProtectedRoute>} />
           <Route path="/admin/orcamento-manual" element={<ProtectedRoute><AdminOrcamentoManual /></ProtectedRoute>} />
+          <Route path="/admin/orcamento/novo" element={<ProtectedRoute><AdminOrcamentoEditor /></ProtectedRoute>} />
+          <Route path="/admin/orcamento/editar/:id" element={<ProtectedRoute><AdminOrcamentoEditor /></ProtectedRoute>} />
           <Route path="/admin/usuarios" element={<ProtectedRoute><AdminUsuarios /></ProtectedRoute>} />
           <Route path="/admin/produtos" element={<ProtectedRoute><AdminProdutos /></ProtectedRoute>} />
           <Route path="/admin/produtos/:id" element={<ProtectedRoute><AdminProdutoDetalhe /></ProtectedRoute>} />
