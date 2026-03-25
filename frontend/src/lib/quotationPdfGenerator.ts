@@ -10,7 +10,7 @@ import { COMPANY_INFO, STATUS_LABELS, SERVICE_TYPE_LABELS, PAYMENT_METHOD_LABELS
 import { formatCurrencyBRL } from './quotePricingEngine';
 
 // Logo 3DKPRINT
-import logo3dkprint from '@/assets/logo-3dkprint.png';
+frontend/public/logo-3dkprint.png
 
 // Cores
 const COLORS = {
