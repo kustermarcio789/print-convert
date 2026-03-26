@@ -15,7 +15,7 @@ import {
 import { formatCurrencyBRL } from './quotePricingEngine';
 
 // Logo servida via pasta public
-const logo3dkprint = '/logo-3dkprint.png';
+const logo3dkprint = `${window.location.origin}/logo-3dkprint.png`;
 
 const COLORS = {
   primary: [15, 23, 42] as [number, number, number],      // azul escuro
