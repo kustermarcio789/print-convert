@@ -166,6 +166,106 @@ export const orcamentosAPI = {
 };
 
 /**
+ * API de Clientes (Supabase)
+ */
+export const clientesAPI = {
+  getAll: async (opts?: { ativo?: boolean; busca?: string }) => {
+    let q = supabase.from('clientes').select('*').order('created_at', { ascending: false });
+    if (opts?.ativo !== undefined) q = q.eq('ativo', opts.ativo);
+    if (opts?.busca) {
+      const s = opts.busca;
+      q = q.or(`nome.ilike.%${s}%,nome_fantasia.ilike.%${s}%,email.ilike.%${s}%,cpf_cnpj.ilike.%${s}%`);
+    }
+    const { data, error } = await q;
+    if (error) { console.error('clientes.getAll', error); return []; }
+    return data || [];
+  },
+  getById: async (id: string) => {
+    const { data, error } = await supabase.from('clientes').select('*').eq('id', id).single();
+    if (error) { console.error('clientes.getById', error); return null; }
+    return data;
+  },
+  create: async (payload: any) => {
+    const { data, error } = await supabase.from('clientes').insert([payload]).select().single();
+    if (error) throw error;
+    return data;
+  },
+  update: async (id: string, payload: any) => {
+    const { data, error } = await supabase.from('clientes').update(payload).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase.from('clientes').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  },
+  estatisticas: async (id: string) => {
+    const orcResp = await supabase
+      .from('orcamentos')
+      .select('id,valor_total,status,created_at')
+      .eq('cliente_id', id);
+    const orcs = orcResp.data || [];
+
+    let vendas: any[] = [];
+    try {
+      const v = await supabase
+        .from('vendas')
+        .select('id,valor_total,created_at')
+        .eq('cliente_id', id);
+      if (!v.error) vendas = v.data || [];
+    } catch { /* vendas pode não existir ou não ter cliente_id ainda */ }
+
+    const totalGasto = vendas.reduce((a, v) => a + (Number(v.valor_total) || 0), 0);
+    const ultima = [...vendas].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))[0];
+    return {
+      total_orcamentos: orcs.length,
+      total_vendas: vendas.length,
+      valor_total_gasto: totalGasto,
+      ultima_compra: ultima?.created_at,
+    };
+  },
+};
+
+/**
+ * API de Fornecedores (Supabase)
+ */
+export const fornecedoresAPI = {
+  getAll: async (opts?: { ativo?: boolean; categoria?: string; busca?: string }) => {
+    let q = supabase.from('fornecedores').select('*').order('razao_social');
+    if (opts?.ativo !== undefined) q = q.eq('ativo', opts.ativo);
+    if (opts?.categoria && opts.categoria !== 'todos') q = q.eq('categoria', opts.categoria);
+    if (opts?.busca) {
+      const s = opts.busca;
+      q = q.or(`razao_social.ilike.%${s}%,nome_fantasia.ilike.%${s}%,email.ilike.%${s}%,cpf_cnpj.ilike.%${s}%`);
+    }
+    const { data, error } = await q;
+    if (error) { console.error('fornecedores.getAll', error); return []; }
+    return data || [];
+  },
+  getById: async (id: string) => {
+    const { data, error } = await supabase.from('fornecedores').select('*').eq('id', id).single();
+    if (error) { console.error('fornecedores.getById', error); return null; }
+    return data;
+  },
+  create: async (payload: any) => {
+    const { data, error } = await supabase.from('fornecedores').insert([payload]).select().single();
+    if (error) throw error;
+    return data;
+  },
+  update: async (id: string, payload: any) => {
+    const { data, error } = await supabase.from('fornecedores').update(payload).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  delete: async (id: string) => {
+    const { error } = await supabase.from('fornecedores').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  },
+};
+
+/**
  * API de Prestadores (Supabase)
  */
 export const prestadoresAPI = {

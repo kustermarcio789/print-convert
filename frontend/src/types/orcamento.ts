@@ -50,6 +50,7 @@ export interface DadosEnvio {
 export interface OrcamentoV2 {
   id?: string;
   numero?: string;
+  cliente_id?: string;
   cliente_tipo: TipoPessoa;
   cliente_nome: string;
   cliente_email: string;

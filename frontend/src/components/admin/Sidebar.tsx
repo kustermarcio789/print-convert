@@ -5,7 +5,7 @@ import {
   Settings, LogOut, Box, Database, ShoppingCart, BarChart3,
   FileText, PieChart, Factory, FilePlus, ChevronDown, ChevronRight,
   Printer, ExternalLink, Tag, Image, Wrench, Mail, UserCog, Shield, X, Menu,
-  ShoppingBag, Layers
+  ShoppingBag, Layers, UserCheck, Truck
 } from 'lucide-react';
 
 export const menuItems = [
@@ -29,9 +29,13 @@ export const menuItems = [
   // Relatórios
   { id: 'relatorios', label: 'Relatórios', icon: BarChart3, path: '/admin/relatorios', color: 'text-teal-400', bg: 'bg-teal-500/20', section: 'relatorios' },
   
-  // Usuários
-  { id: 'usuarios', label: 'Usuários', icon: Users, path: '/admin/usuarios', color: 'text-pink-400', bg: 'bg-pink-500/20', section: 'usuarios' },
-  { id: 'leads', label: 'Leads', icon: Mail, path: '/admin/leads', color: 'text-sky-400', bg: 'bg-sky-500/20', section: 'usuarios' },
+  // Cadastros de pessoas/empresas
+  { id: 'clientes', label: 'Clientes', icon: UserCheck, path: '/admin/clientes', color: 'text-blue-400', bg: 'bg-blue-500/20', section: 'pessoas' },
+  { id: 'fornecedores', label: 'Fornecedores', icon: Truck, path: '/admin/fornecedores', color: 'text-orange-400', bg: 'bg-orange-500/20', section: 'pessoas' },
+  { id: 'leads', label: 'Leads', icon: Mail, path: '/admin/leads', color: 'text-sky-400', bg: 'bg-sky-500/20', section: 'pessoas' },
+
+  // Usuários do sistema
+  { id: 'usuarios', label: 'Usuários do site', icon: Users, path: '/admin/usuarios', color: 'text-pink-400', bg: 'bg-pink-500/20', section: 'usuarios' },
 ];
 
 const sections = [
@@ -40,7 +44,8 @@ const sections = [
   { id: 'vendas', label: 'VENDAS' },
   { id: 'producao', label: 'PRODUÇÃO' },
   { id: 'relatorios', label: 'RELATÓRIOS' },
-  { id: 'usuarios', label: 'USUÁRIOS' },
+  { id: 'pessoas', label: 'PESSOAS & EMPRESAS' },
+  { id: 'usuarios', label: 'USUÁRIOS DO SISTEMA' },
 ];
 
 export default function Sidebar() {

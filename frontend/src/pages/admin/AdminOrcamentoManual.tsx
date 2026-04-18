@@ -3,25 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, User, Package, Truck, DollarSign, Plus, Save, Loader2,
-  CheckCircle, MessageCircle, Mail, FileDown, Copy,
+  CheckCircle, MessageCircle, Mail, FileDown, Copy, UserCheck, X,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import Sidebar from '@/components/admin/Sidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
-import { orcamentosAPI } from '@/lib/apiClient';
+import { orcamentosAPI, clientesAPI } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import OrcamentoItemCard from '@/components/admin/orcamento/OrcamentoItemCard';
 import EnderecoCorreios from '@/components/admin/orcamento/EnderecoCorreios';
+import ClienteSearchSelect from '@/components/admin/orcamento/ClienteSearchSelect';
 import {
   novoOrcamentoVazio, novoItemVazio, calcularSubtotal,
   type OrcamentoV2, type OrcamentoItem,
 } from '@/types/orcamento';
+import type { Cliente } from '@/types/cliente';
 import { baixarOrcamentoPdf, formatarMensagemWhatsApp } from '@/lib/orcamentoPdf';
 
 function maskCPF(v: string) {
@@ -100,6 +103,50 @@ export default function AdminOrcamentoManual() {
       [next[idx], next[j]] = [next[j], next[idx]];
       return { ...prev, itens: next.map((it, i) => ({ ...it, ordem: i })) };
     });
+  };
+
+  const aplicarCliente = (c: Cliente) => {
+    setOrcamento(prev => ({
+      ...prev,
+      cliente_id: c.id,
+      cliente_tipo: c.tipo,
+      cliente_nome: c.nome,
+      cliente_email: c.email || '',
+      cliente_whatsapp: c.whatsapp || '',
+      cliente_telefone: c.telefone,
+      cliente_cpf_cnpj: c.cpf_cnpj,
+      endereco: c.endereco && Object.keys(c.endereco).length > 0 ? c.endereco : prev.endereco,
+    }));
+    toast({ title: 'Cliente aplicado', description: c.nome });
+  };
+
+  const desvincularCliente = () => {
+    setOrcamento(prev => ({ ...prev, cliente_id: undefined }));
+    toast({ title: 'Cliente desvinculado', description: 'Dados mantidos no orçamento.' });
+  };
+
+  const salvarComoCliente = async () => {
+    if (!orcamento.cliente_nome.trim()) {
+      toast({ title: 'Preencha o nome antes de cadastrar', variant: 'destructive' });
+      return;
+    }
+    try {
+      const novo = await clientesAPI.create({
+        tipo: orcamento.cliente_tipo,
+        nome: orcamento.cliente_nome,
+        cpf_cnpj: orcamento.cliente_cpf_cnpj,
+        email: orcamento.cliente_email,
+        whatsapp: orcamento.cliente_whatsapp,
+        telefone: orcamento.cliente_telefone,
+        endereco: orcamento.endereco,
+        origem: 'manual',
+        ativo: true,
+      });
+      setOrcamento(prev => ({ ...prev, cliente_id: novo.id }));
+      toast({ title: 'Cliente cadastrado', description: `Vinculado ao orçamento automaticamente.` });
+    } catch (err: any) {
+      toast({ title: 'Erro ao cadastrar cliente', description: err.message, variant: 'destructive' });
+    }
   };
 
   const validar = (): string | null => {
@@ -382,6 +429,39 @@ export default function AdminOrcamentoManual() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Cliente existente (linkado) */}
+                  {orcamento.cliente_id ? (
+                    <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-sm">
+                        <UserCheck className="w-4 h-4 text-emerald-600" />
+                        <span className="text-emerald-800 font-medium">Cliente vinculado:</span>
+                        <span className="text-emerald-700">{orcamento.cliente_nome}</span>
+                        <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700">
+                          {orcamento.cliente_tipo}
+                        </Badge>
+                      </div>
+                      <Button type="button" variant="ghost" size="sm" onClick={desvincularCliente} className="text-gray-500">
+                        <X className="w-4 h-4 mr-1" /> Desvincular
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <ClienteSearchSelect
+                        onSelect={aplicarCliente}
+                        triggerLabel="Selecionar cliente cadastrado"
+                        compact
+                      />
+                      <Button type="button" variant="ghost" size="sm" onClick={salvarComoCliente}
+                              disabled={!orcamento.cliente_nome.trim()}
+                              className="text-blue-700">
+                        <Plus className="w-4 h-4 mr-1" /> Cadastrar este cliente
+                      </Button>
+                      <p className="text-xs text-blue-700 w-full mt-1">
+                        💡 Selecione um cliente já cadastrado pra preencher tudo automaticamente, ou preencha abaixo e clique "Cadastrar este cliente" pra salvar no sistema.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="flex gap-2">
                     <Button
                       type="button"

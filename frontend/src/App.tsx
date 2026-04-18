@@ -43,6 +43,8 @@ import AdminGerenciarUsuarios from './pages/admin/AdminGerenciarUsuarios';
 import AdminAuditoria from './pages/admin/AdminAuditoria';
 import AdminPedidos from './pages/admin/AdminPedidos';
 import AdminProdutoDetalhe from './pages/admin/AdminProdutoDetalhe';
+import AdminClientes from './pages/admin/AdminClientes';
+import AdminFornecedores from './pages/admin/AdminFornecedores';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 import About from './pages/About';
 import Contact from './pages/Contact';
@@ -114,6 +116,8 @@ const App = () => (
           <Route path="/admin/orcamento/novo" element={<ProtectedRoute><AdminOrcamentoManual /></ProtectedRoute>} />
           <Route path="/admin/orcamento/editar/:id" element={<ProtectedRoute><AdminOrcamentoEditor /></ProtectedRoute>} />
           <Route path="/admin/usuarios" element={<ProtectedRoute><AdminUsuarios /></ProtectedRoute>} />
+          <Route path="/admin/clientes" element={<ProtectedRoute><AdminClientes /></ProtectedRoute>} />
+          <Route path="/admin/fornecedores" element={<ProtectedRoute><AdminFornecedores /></ProtectedRoute>} />
           <Route path="/admin/produtos" element={<ProtectedRoute><AdminProdutos /></ProtectedRoute>} />
           <Route path="/admin/produtos/:id" element={<ProtectedRoute><AdminProdutoDetalhe /></ProtectedRoute>} />
           <Route path="/admin/vendas" element={<ProtectedRoute><AdminVendas /></ProtectedRoute>} />
