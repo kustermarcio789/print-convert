@@ -1,195 +1,243 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  FilePlus, Save, ArrowLeft, User, Mail, Phone, MapPin,
-  Package, Ruler, Hash, DollarSign, FileText, CheckCircle,
-  Printer, Layers, Clock, Calculator
+  ArrowLeft, User, Package, Truck, DollarSign, Plus, Save, Loader2,
+  CheckCircle, MessageCircle, Mail, FileDown, Copy,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import Sidebar from '@/components/admin/Sidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import { orcamentosAPI } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
+import OrcamentoItemCard from '@/components/admin/orcamento/OrcamentoItemCard';
+import EnderecoCorreios from '@/components/admin/orcamento/EnderecoCorreios';
+import {
+  novoOrcamentoVazio, novoItemVazio, calcularSubtotal,
+  type OrcamentoV2, type OrcamentoItem,
+} from '@/types/orcamento';
+import { baixarOrcamentoPdf, formatarMensagemWhatsApp } from '@/lib/orcamentoPdf';
 
-const materiais = [
-  { id: 'pla', nome: 'PLA', preco_kg: 120 },
-  { id: 'abs', nome: 'ABS', preco_kg: 130 },
-  { id: 'petg', nome: 'PETG', preco_kg: 140 },
-  { id: 'tpu', nome: 'TPU (Flexível)', preco_kg: 180 },
-  { id: 'nylon', nome: 'Nylon', preco_kg: 200 },
-  { id: 'asa', nome: 'ASA', preco_kg: 160 },
-  { id: 'pc', nome: 'Policarbonato', preco_kg: 220 },
-  { id: 'resina_std', nome: 'Resina Standard', preco_l: 150 },
-  { id: 'resina_abs', nome: 'Resina ABS-Like', preco_l: 180 },
-  { id: 'resina_flex', nome: 'Resina Flexível', preco_l: 200 },
-  { id: 'resina_dental', nome: 'Resina Dental', preco_l: 350 },
-  { id: 'resina_cast', nome: 'Resina Castable', preco_l: 400 },
-];
+function maskCPF(v: string) {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  return d
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+}
+function maskCNPJ(v: string) {
+  const d = v.replace(/\D/g, '').slice(0, 14);
+  return d
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2');
+}
+function maskPhone(v: string) {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
 
-const servicos = [
-  'Impressão 3D FDM',
-  'Impressão 3D Resina',
-  'Modelagem 3D',
-  'Pintura de Peça',
-  'Manutenção de Impressora',
-  'Prototipagem Rápida',
-  'Produção em Série',
-  'Digitalização 3D',
-  'Consultoria Técnica',
-];
-
-const cores = [
-  'Branco', 'Preto', 'Cinza', 'Vermelho', 'Azul', 'Verde',
-  'Amarelo', 'Laranja', 'Rosa', 'Roxo', 'Transparente', 'Outra'
+const STEPS = [
+  { n: 1, label: 'Cliente', icon: User },
+  { n: 2, label: 'Itens', icon: Package },
+  { n: 3, label: 'Envio', icon: Truck },
+  { n: 4, label: 'Total', icon: DollarSign },
 ];
 
 export default function AdminOrcamentoManual() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+
   const [step, setStep] = useState(1);
+  const [orcamento, setOrcamento] = useState<OrcamentoV2>(novoOrcamentoVazio());
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState<OrcamentoV2 | null>(null);
+  const [enviandoEmail, setEnviandoEmail] = useState(false);
+  const [baixandoPdf, setBaixandoPdf] = useState(false);
 
-  const [form, setForm] = useState({
-    // Cliente
-    nome: '',
-    email: '',
-    whatsapp: '',
-    cidade: '',
-    estado: '',
-    // Serviço
-    servico: 'Impressão 3D FDM',
-    material: 'pla',
-    cor: 'Branco',
-    acabamento: 'normal',
-    // Dimensões
-    largura: '',
-    altura: '',
-    profundidade: '',
-    peso_estimado: '',
-    quantidade: '1',
-    // Financeiro
-    valor_material: '',
-    valor_mao_obra: '',
-    valor_frete: '',
-    desconto: '0',
-    valor_total: '',
-    // Observações
-    observacoes: '',
-    prazo_estimado: '7',
-    prioridade: 'normal',
-    status: 'pendente',
-  });
+  const subtotal = useMemo(() => calcularSubtotal(orcamento.itens), [orcamento.itens]);
+  const frete = orcamento.envio.valor_frete || 0;
+  const base = subtotal + frete;
+  const descontoValor = base * ((orcamento.desconto_percentual || 0) / 100);
+  const total = base - descontoValor;
 
-  const updateForm = (field: string, value: string) => {
-    setForm(prev => {
-      const updated = { ...prev, [field]: value };
-      // Auto-calcular valor total
-      const material = parseFloat(updated.valor_material) || 0;
-      const maoObra = parseFloat(updated.valor_mao_obra) || 0;
-      const frete = parseFloat(updated.valor_frete) || 0;
-      const desconto = parseFloat(updated.desconto) || 0;
-      const qty = parseInt(updated.quantidade) || 1;
-      const subtotal = (material + maoObra) * qty + frete;
-      const total = subtotal - (subtotal * desconto / 100);
-      updated.valor_total = total.toFixed(2);
-      return updated;
+  const update = <K extends keyof OrcamentoV2>(key: K, value: OrcamentoV2[K]) => {
+    setOrcamento(prev => ({ ...prev, [key]: value }));
+  };
+
+  const updateItem = (idx: number, item: OrcamentoItem) => {
+    setOrcamento(prev => ({
+      ...prev,
+      itens: prev.itens.map((it, i) => (i === idx ? item : it)),
+    }));
+  };
+  const addItem = () => {
+    setOrcamento(prev => ({
+      ...prev,
+      itens: [...prev.itens, novoItemVazio(prev.itens.length)],
+    }));
+  };
+  const removeItem = (idx: number) => {
+    setOrcamento(prev => ({
+      ...prev,
+      itens: prev.itens.filter((_, i) => i !== idx).map((it, i) => ({ ...it, ordem: i })),
+    }));
+  };
+  const moveItem = (idx: number, dir: -1 | 1) => {
+    setOrcamento(prev => {
+      const next = [...prev.itens];
+      const j = idx + dir;
+      if (j < 0 || j >= next.length) return prev;
+      [next[idx], next[j]] = [next[j], next[idx]];
+      return { ...prev, itens: next.map((it, i) => ({ ...it, ordem: i })) };
     });
   };
 
-  const handleWhatsappMask = (value: string) => {
-    const digits = value.replace(/\D/g, '');
-    if (digits.length <= 2) return `(${digits}`;
-    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+  const validar = (): string | null => {
+    if (!orcamento.cliente_nome.trim()) return 'Informe o nome do cliente.';
+    if (!orcamento.itens.length) return 'Adicione pelo menos um item.';
+    for (const it of orcamento.itens) {
+      if (!it.nome.trim()) return `Preencha o nome do item #${it.ordem + 1}.`;
+      if (it.quantidade < 1) return `Quantidade inválida no item #${it.ordem + 1}.`;
+      if (it.valor_unitario < 0) return `Valor inválido no item #${it.ordem + 1}.`;
+    }
+    return null;
   };
 
-  const handleSave = async () => {
-    if (!form.nome || !form.servico) {
-      toast({ title: 'Erro', description: 'Preencha pelo menos o nome do cliente e o serviço.', variant: 'destructive' });
+  const montarPayloadPersistido = (): OrcamentoV2 => ({
+    ...orcamento,
+    subtotal,
+    desconto_valor: descontoValor,
+    valor_total: total,
+    origem: 'manual',
+    created_at: orcamento.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+
+  const handleSalvar = async () => {
+    const erro = validar();
+    if (erro) {
+      toast({ title: 'Verificar campos', description: erro, variant: 'destructive' });
       return;
     }
-
     setSaving(true);
+    const payload = montarPayloadPersistido();
     try {
-      const orcamentoData = {
-        nome: form.nome,
-        email: form.email,
-        whatsapp: form.whatsapp,
-        cidade: form.cidade,
-        estado: form.estado,
-        servico: form.servico,
-        material: form.material,
-        cor: form.cor,
-        acabamento: form.acabamento,
-        dimensoes: `${form.largura}x${form.altura}x${form.profundidade}mm`,
-        peso_estimado: form.peso_estimado,
-        quantidade: parseInt(form.quantidade) || 1,
-        valor_material: parseFloat(form.valor_material) || 0,
-        valor_mao_obra: parseFloat(form.valor_mao_obra) || 0,
-        valor_frete: parseFloat(form.valor_frete) || 0,
-        desconto: parseFloat(form.desconto) || 0,
-        valor_total: parseFloat(form.valor_total) || 0,
-        observacoes: form.observacoes,
-        prazo_estimado: `${form.prazo_estimado} dias`,
-        prioridade: form.prioridade,
-        status: form.status,
-        origem: 'manual',
-        created_at: new Date().toISOString(),
-      };
-
-      await orcamentosAPI.create(orcamentoData);
-      
-      // Também salvar no localStorage como backup
-      const savedOrcamentos = JSON.parse(localStorage.getItem('admin_orcamentos_manuais') || '[]');
-      savedOrcamentos.push({ ...orcamentoData, id: `ORC-${Date.now()}` });
-      localStorage.setItem('admin_orcamentos_manuais', JSON.stringify(savedOrcamentos));
-
-      setSaved(true);
-      toast({ title: 'Sucesso!', description: 'Orçamento criado com sucesso.' });
-    } catch (error) {
-      console.error('Erro ao salvar orçamento:', error);
-      // Salvar localmente mesmo se falhar no Supabase
-      const savedOrcamentos = JSON.parse(localStorage.getItem('admin_orcamentos_manuais') || '[]');
-      savedOrcamentos.push({
-        ...form,
-        id: `ORC-${Date.now()}`,
-        origem: 'manual',
-        created_at: new Date().toISOString(),
+      const salvo = await orcamentosAPI.create(payload as any);
+      const comId = { ...payload, id: (salvo as any)?.id || (salvo as any)?.[0]?.id || payload.id };
+      setSaved(comId);
+      toast({ title: 'Orçamento salvo!', description: `Total: ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` });
+    } catch (err: any) {
+      console.error(err);
+      const fallback = { ...payload, id: `local-${Date.now()}` };
+      const locais = JSON.parse(localStorage.getItem('orcamentos_offline') || '[]');
+      locais.push(fallback);
+      localStorage.setItem('orcamentos_offline', JSON.stringify(locais));
+      setSaved(fallback);
+      toast({
+        title: 'Salvo localmente',
+        description: 'Não consegui salvar no Supabase. Guardei no navegador como rascunho.',
+        variant: 'destructive',
       });
-      localStorage.setItem('admin_orcamentos_manuais', JSON.stringify(savedOrcamentos));
-      setSaved(true);
-      toast({ title: 'Salvo localmente', description: 'Orçamento salvo no armazenamento local.' });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleWhatsAppSend = () => {
-    const msg = encodeURIComponent(
-      `*ORÇAMENTO 3DKPRINT*\n\n` +
-      `Cliente: ${form.nome}\n` +
-      `Serviço: ${form.servico}\n` +
-      `Material: ${materiais.find(m => m.id === form.material)?.nome || form.material}\n` +
-      `Cor: ${form.cor}\n` +
-      `Quantidade: ${form.quantidade}\n` +
-      `Dimensões: ${form.largura}x${form.altura}x${form.profundidade}mm\n` +
-      `Prazo: ${form.prazo_estimado} dias\n\n` +
-      `*Valor Total: R$ ${parseFloat(form.valor_total || '0').toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*\n\n` +
-      `Observações: ${form.observacoes || 'Nenhuma'}`
-    );
-    const phone = form.whatsapp.replace(/\D/g, '');
-    window.open(`https://wa.me/55${phone}?text=${msg}`, '_blank');
+  const handleBaixarPDF = async () => {
+    const alvo = saved || montarPayloadPersistido();
+    setBaixandoPdf(true);
+    try {
+      await baixarOrcamentoPdf(alvo);
+      toast({ title: 'PDF baixado', description: 'Arquivo salvo na sua pasta de downloads.' });
+    } catch (err: any) {
+      toast({ title: 'Erro ao gerar PDF', description: err.message, variant: 'destructive' });
+    } finally {
+      setBaixandoPdf(false);
+    }
+  };
+
+  const handleEnviarWhatsApp = () => {
+    const alvo = saved || montarPayloadPersistido();
+    const phone = (alvo.cliente_whatsapp || '').replace(/\D/g, '');
+    if (!phone) {
+      toast({ title: 'WhatsApp não informado', variant: 'destructive' });
+      return;
+    }
+    const telCompleto = phone.length === 11 || phone.length === 10 ? `55${phone}` : phone;
+    const msg = encodeURIComponent(formatarMensagemWhatsApp(alvo));
+    window.open(`https://wa.me/${telCompleto}?text=${msg}`, '_blank');
+  };
+
+  const handleEnviarEmail = async () => {
+    const alvo = saved || montarPayloadPersistido();
+    if (!alvo.cliente_email) {
+      toast({ title: 'E-mail do cliente não informado', variant: 'destructive' });
+      return;
+    }
+    setEnviandoEmail(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const resp = await fetch(`${apiUrl}/api/send-orcamento-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipient_email: alvo.cliente_email,
+          recipient_name: alvo.cliente_nome,
+          orcamento_id: alvo.id || alvo.numero,
+          itens: alvo.itens.map(it => ({
+            nome: it.nome,
+            descricao: it.descricao,
+            imagem: it.imagem_principal,
+            material: it.material,
+            cor: it.cor,
+            quantidade: it.quantidade,
+            valor_unitario: it.valor_unitario,
+            valor_total: it.valor_total,
+          })),
+          subtotal,
+          frete,
+          desconto_percentual: alvo.desconto_percentual,
+          desconto_valor: descontoValor,
+          valor_total: total,
+          prazo: alvo.envio.prazo_dias ? `${alvo.envio.prazo_dias} dias` : 'A combinar',
+          modalidade: alvo.envio.modalidade,
+          observacoes: alvo.observacoes_cliente,
+          validade_dias: alvo.validade_dias,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || data.error || 'Falha no envio');
+      toast({ title: 'E-mail enviado!', description: `Proposta enviada para ${alvo.cliente_email}.` });
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao enviar e-mail',
+        description: `${err.message}. Você pode baixar o PDF e enviar manualmente.`,
+        variant: 'destructive',
+      });
+    } finally {
+      setEnviandoEmail(false);
+    }
+  };
+
+  const handleCopiarMensagem = async () => {
+    const alvo = saved || montarPayloadPersistido();
+    const msg = formatarMensagemWhatsApp(alvo);
+    try {
+      await navigator.clipboard.writeText(msg);
+      toast({ title: 'Mensagem copiada', description: 'Cole no WhatsApp, e-mail ou onde preferir.' });
+    } catch {
+      toast({ title: 'Não consegui copiar', variant: 'destructive' });
+    }
   };
 
   if (saved) {
@@ -197,47 +245,78 @@ export default function AdminOrcamentoManual() {
       <div className="min-h-screen bg-gray-50 flex">
         <Sidebar />
         <main className="flex-1 overflow-y-auto">
-          <AdminHeader title="Orçamento Manual" />
+          <AdminHeader title="Orçamento Criado" />
           <div className="p-4 lg:p-8 max-w-3xl mx-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-white rounded-2xl shadow-lg p-8 text-center"
+              className="bg-white rounded-2xl shadow-lg p-8"
             >
-              <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle className="w-10 h-10 text-emerald-600" />
+              <div className="text-center mb-6">
+                <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-10 h-10 text-emerald-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-1">Orçamento pronto!</h2>
+                <p className="text-gray-500">Escolha como enviar — ou baixe o PDF e mande manualmente.</p>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Orçamento Criado!</h2>
-              <p className="text-gray-500 mb-6">O orçamento foi salvo com sucesso.</p>
-              
-              <div className="bg-gray-50 rounded-xl p-5 mb-6 text-left">
+
+              <div className="bg-gray-50 rounded-xl p-5 mb-6">
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-gray-500">Cliente:</span> <span className="font-medium">{form.nome}</span></div>
-                  <div><span className="text-gray-500">Serviço:</span> <span className="font-medium">{form.servico}</span></div>
-                  <div><span className="text-gray-500">Quantidade:</span> <span className="font-medium">{form.quantidade}</span></div>
-                  <div><span className="text-gray-500">Prazo:</span> <span className="font-medium">{form.prazo_estimado} dias</span></div>
-                  <div className="col-span-2 pt-2 border-t">
+                  <div><span className="text-gray-500">Cliente:</span> <span className="font-medium">{saved.cliente_nome}</span></div>
+                  <div><span className="text-gray-500">Itens:</span> <span className="font-medium">{saved.itens.length}</span></div>
+                  <div><span className="text-gray-500">Frete:</span> <span className="font-medium">{frete > 0 ? frete.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}</span></div>
+                  <div><span className="text-gray-500">Prazo:</span> <span className="font-medium">{saved.envio.prazo_dias ? `${saved.envio.prazo_dias} dias` : '—'}</span></div>
+                  <div className="col-span-2 pt-3 mt-2 border-t">
                     <span className="text-gray-500">Valor Total:</span>{' '}
-                    <span className="text-xl font-bold text-emerald-600">
-                      R$ {parseFloat(form.valor_total || '0').toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    <span className="text-2xl font-bold text-emerald-600">
+                      {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                {form.whatsapp && (
-                  <Button onClick={handleWhatsAppSend} className="bg-green-600 hover:bg-green-700">
-                    <Phone className="w-4 h-4 mr-2" />
-                    Enviar via WhatsApp
-                  </Button>
-                )}
-                <Button variant="outline" onClick={() => { setSaved(false); setForm({ nome: '', email: '', whatsapp: '', cidade: '', estado: '', servico: 'Impressão 3D FDM', material: 'pla', cor: 'Branco', acabamento: 'normal', largura: '', altura: '', profundidade: '', peso_estimado: '', quantidade: '1', valor_material: '', valor_mao_obra: '', valor_frete: '', desconto: '0', valor_total: '', observacoes: '', prazo_estimado: '7', prioridade: 'normal', status: 'pendente' }); setStep(1); }}>
-                  <FilePlus className="w-4 h-4 mr-2" />
-                  Novo Orçamento
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                <Button
+                  onClick={handleBaixarPDF}
+                  disabled={baixandoPdf}
+                  className="bg-blue-600 hover:bg-blue-700 h-12"
+                >
+                  {baixandoPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
+                  Baixar PDF
+                </Button>
+                <Button
+                  onClick={handleEnviarWhatsApp}
+                  disabled={!saved.cliente_whatsapp}
+                  className="bg-green-600 hover:bg-green-700 h-12"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Enviar WhatsApp
+                </Button>
+                <Button
+                  onClick={handleEnviarEmail}
+                  disabled={!saved.cliente_email || enviandoEmail}
+                  variant="outline"
+                  className="h-12"
+                >
+                  {enviandoEmail ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+                  Enviar E-mail
+                </Button>
+                <Button onClick={handleCopiarMensagem} variant="outline" className="h-12">
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copiar mensagem
+                </Button>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t">
+                <Button
+                  variant="ghost"
+                  onClick={() => { setSaved(null); setOrcamento(novoOrcamentoVazio()); setStep(1); }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Criar outro orçamento
                 </Button>
                 <Button variant="outline" onClick={() => navigate('/admin/orcamentos')}>
-                  Ver Orçamentos
+                  Ver lista de orçamentos
                 </Button>
               </div>
             </motion.div>
@@ -250,59 +329,49 @@ export default function AdminOrcamentoManual() {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />
-
       <main className="flex-1 overflow-y-auto">
-        <AdminHeader title="Orçamento Manual" />
-
-        <div className="p-4 lg:p-8 max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm" onClick={() => navigate('/admin/dashboard')}>
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                Voltar
-              </Button>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Criar Orçamento Manual</h1>
-                <p className="text-sm text-gray-500">Preencha os dados para gerar um orçamento</p>
-              </div>
+        <AdminHeader title="Novo Orçamento" />
+        <div className="p-4 lg:p-8 max-w-5xl mx-auto">
+          <div className="flex items-center gap-3 mb-6">
+            <Button variant="outline" size="sm" onClick={() => navigate('/admin/orcamentos')}>
+              <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Criar Orçamento</h1>
+              <p className="text-sm text-gray-500">Multi-produto com fotos, dados do cliente e correios</p>
             </div>
           </div>
 
-          {/* Steps Indicator */}
-          <div className="flex items-center justify-center mb-8">
-            {[
-              { num: 1, label: 'Cliente', icon: User },
-              { num: 2, label: 'Serviço', icon: Printer },
-              { num: 3, label: 'Dimensões', icon: Ruler },
-              { num: 4, label: 'Valores', icon: DollarSign },
-            ].map((s, i) => {
+          {/* Steps */}
+          <div className="flex items-center justify-center mb-8 flex-wrap gap-y-2">
+            {STEPS.map((s, i) => {
               const Icon = s.icon;
               return (
-                <React.Fragment key={s.num}>
+                <React.Fragment key={s.n}>
                   <button
-                    onClick={() => setStep(s.num)}
+                    type="button"
+                    onClick={() => setStep(s.n)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      step === s.num
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                        : step > s.num
+                      step === s.n
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : step > s.n
                         ? 'bg-emerald-100 text-emerald-700'
                         : 'bg-gray-100 text-gray-400'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
                     <span className="hidden sm:inline">{s.label}</span>
-                    <span className="sm:hidden">{s.num}</span>
+                    <span className="sm:hidden">{s.n}</span>
                   </button>
-                  {i < 3 && (
-                    <div className={`w-8 h-0.5 mx-1 ${step > s.num ? 'bg-emerald-400' : 'bg-gray-200'}`}></div>
+                  {i < STEPS.length - 1 && (
+                    <div className={`w-6 h-0.5 mx-1 ${step > s.n ? 'bg-emerald-400' : 'bg-gray-200'}`}></div>
                   )}
                 </React.Fragment>
               );
             })}
           </div>
 
-          {/* Step 1: Cliente */}
+          {/* Step 1 — Cliente */}
           {step === 1 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               <Card className="border-0 shadow-sm">
@@ -313,38 +382,73 @@ export default function AdminOrcamentoManual() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={orcamento.cliente_tipo === 'PF' ? 'default' : 'outline'}
+                      onClick={() => update('cliente_tipo', 'PF')}
+                      size="sm"
+                    >Pessoa Física</Button>
+                    <Button
+                      type="button"
+                      variant={orcamento.cliente_tipo === 'PJ' ? 'default' : 'outline'}
+                      onClick={() => update('cliente_tipo', 'PJ')}
+                      size="sm"
+                    >Pessoa Jurídica</Button>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Nome Completo *</label>
-                      <Input value={form.nome} onChange={(e) => updateForm('nome', e.target.value)} placeholder="Nome do cliente" />
+                      <Label className="text-xs">{orcamento.cliente_tipo === 'PJ' ? 'Razão social / Nome fantasia' : 'Nome completo'} *</Label>
+                      <Input
+                        value={orcamento.cliente_nome}
+                        onChange={(e) => update('cliente_nome', e.target.value)}
+                        placeholder={orcamento.cliente_tipo === 'PJ' ? 'Empresa LTDA' : 'Nome e sobrenome'}
+                        className="mt-1"
+                      />
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">E-mail</label>
-                      <Input type="email" value={form.email} onChange={(e) => updateForm('email', e.target.value)} placeholder="email@exemplo.com" />
+                      <Label className="text-xs">{orcamento.cliente_tipo === 'PJ' ? 'CNPJ' : 'CPF'}</Label>
+                      <Input
+                        value={orcamento.cliente_cpf_cnpj || ''}
+                        onChange={(e) => update('cliente_cpf_cnpj', orcamento.cliente_tipo === 'PJ' ? maskCNPJ(e.target.value) : maskCPF(e.target.value))}
+                        placeholder={orcamento.cliente_tipo === 'PJ' ? '00.000.000/0000-00' : '000.000.000-00'}
+                        className="mt-1"
+                      />
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">WhatsApp</label>
-                      <Input value={form.whatsapp} onChange={(e) => updateForm('whatsapp', handleWhatsappMask(e.target.value))} placeholder="(00) 00000-0000" maxLength={15} />
+                      <Label className="text-xs">E-mail</Label>
+                      <Input
+                        type="email"
+                        value={orcamento.cliente_email}
+                        onChange={(e) => update('cliente_email', e.target.value)}
+                        placeholder="email@cliente.com"
+                        className="mt-1"
+                      />
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Cidade</label>
-                      <Input value={form.cidade} onChange={(e) => updateForm('cidade', e.target.value)} placeholder="Cidade" />
+                      <Label className="text-xs">WhatsApp</Label>
+                      <Input
+                        value={orcamento.cliente_whatsapp}
+                        onChange={(e) => update('cliente_whatsapp', maskPhone(e.target.value))}
+                        placeholder="(00) 00000-0000"
+                        className="mt-1"
+                      />
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Estado</label>
-                      <Select value={form.estado} onValueChange={(v) => updateForm('estado', v)}>
-                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                        <SelectContent>
-                          {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(uf => (
-                            <SelectItem key={uf} value={uf}>{uf}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label className="text-xs">Telefone fixo (opcional)</Label>
+                      <Input
+                        value={orcamento.cliente_telefone || ''}
+                        onChange={(e) => update('cliente_telefone', maskPhone(e.target.value))}
+                        placeholder="(00) 0000-0000"
+                        className="mt-1"
+                      />
                     </div>
                   </div>
+
                   <div className="flex justify-end pt-4">
                     <Button onClick={() => setStep(2)} className="bg-blue-600 hover:bg-blue-700">
-                      Próximo: Serviço
+                      Próximo: Itens →
                     </Button>
                   </div>
                 </CardContent>
@@ -352,228 +456,193 @@ export default function AdminOrcamentoManual() {
             </motion.div>
           )}
 
-          {/* Step 2: Serviço */}
+          {/* Step 2 — Itens */}
           {step === 2 && (
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-              <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Printer className="w-4 h-4 text-blue-600" />
-                    Detalhes do Serviço
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Tipo de Serviço *</label>
-                      <Select value={form.servico} onValueChange={(v) => updateForm('servico', v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {servicos.map(s => (
-                            <SelectItem key={s} value={s}>{s}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Material</label>
-                      <Select value={form.material} onValueChange={(v) => updateForm('material', v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {materiais.map(m => (
-                            <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Cor</label>
-                      <Select value={form.cor} onValueChange={(v) => updateForm('cor', v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {cores.map(c => (
-                            <SelectItem key={c} value={c}>{c}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Acabamento</label>
-                      <Select value={form.acabamento} onValueChange={(v) => updateForm('acabamento', v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="normal">Normal</SelectItem>
-                          <SelectItem value="lixado">Lixado</SelectItem>
-                          <SelectItem value="pintado">Pintado</SelectItem>
-                          <SelectItem value="acetona">Acetona (ABS)</SelectItem>
-                          <SelectItem value="verniz">Verniz</SelectItem>
-                          <SelectItem value="premium">Premium (Lixado + Pintado)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Prioridade</label>
-                      <Select value={form.prioridade} onValueChange={(v) => updateForm('prioridade', v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="baixa">Baixa</SelectItem>
-                          <SelectItem value="normal">Normal</SelectItem>
-                          <SelectItem value="alta">Alta</SelectItem>
-                          <SelectItem value="urgente">Urgente</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Package className="w-5 h-5 text-blue-600" />
+                  Itens do Orçamento ({orcamento.itens.length})
+                </h2>
+                <Button onClick={addItem} size="sm" className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-1" /> Adicionar Item
+                </Button>
+              </div>
+
+              {orcamento.itens.map((item, idx) => (
+                <OrcamentoItemCard
+                  key={item.id}
+                  item={item}
+                  index={idx}
+                  total={orcamento.itens.length}
+                  orcamentoId={orcamento.id}
+                  onChange={(it) => updateItem(idx, it)}
+                  onRemove={() => removeItem(idx)}
+                  onMoveUp={idx > 0 ? () => moveItem(idx, -1) : undefined}
+                  onMoveDown={idx < orcamento.itens.length - 1 ? () => moveItem(idx, 1) : undefined}
+                />
+              ))}
+
+              <Button onClick={addItem} variant="outline" className="w-full border-dashed">
+                <Plus className="w-4 h-4 mr-2" /> Adicionar mais um item
+              </Button>
+
+              <Card className="bg-emerald-50 border-emerald-200">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-emerald-700">Subtotal dos itens</p>
+                    <p className="text-2xl font-bold text-emerald-700">
+                      {subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </p>
                   </div>
-                  <div className="flex justify-between pt-4">
-                    <Button variant="outline" onClick={() => setStep(1)}>Voltar</Button>
-                    <Button onClick={() => setStep(3)} className="bg-blue-600 hover:bg-blue-700">
-                      Próximo: Dimensões
-                    </Button>
-                  </div>
+                  <Button onClick={() => setStep(3)} className="bg-blue-600 hover:bg-blue-700">
+                    Próximo: Envio →
+                  </Button>
                 </CardContent>
               </Card>
+
+              <div className="flex justify-between pt-2">
+                <Button variant="outline" onClick={() => setStep(1)}>← Voltar</Button>
+              </div>
             </motion.div>
           )}
 
-          {/* Step 3: Dimensões */}
+          {/* Step 3 — Envio */}
           {step === 3 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+              <EnderecoCorreios
+                endereco={orcamento.endereco}
+                envio={orcamento.envio}
+                onChangeEndereco={(e) => update('endereco', e)}
+                onChangeEnvio={(e) => update('envio', e)}
+              />
+              <div className="flex justify-between pt-4">
+                <Button variant="outline" onClick={() => setStep(2)}>← Voltar</Button>
+                <Button onClick={() => setStep(4)} className="bg-blue-600 hover:bg-blue-700">
+                  Próximo: Total →
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Step 4 — Total */}
+          {step === 4 && (
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
               <Card className="border-0 shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
-                    <Ruler className="w-4 h-4 text-blue-600" />
-                    Dimensões e Quantidade
+                    <DollarSign className="w-4 h-4 text-blue-600" />
+                    Desconto, Validade e Observações
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Largura (mm)</label>
-                      <Input type="number" value={form.largura} onChange={(e) => updateForm('largura', e.target.value)} placeholder="0" />
+                      <Label className="text-xs">Desconto (%)</Label>
+                      <Input
+                        type="number"
+                        value={orcamento.desconto_percentual}
+                        onChange={(e) => update('desconto_percentual', parseFloat(e.target.value) || 0)}
+                        placeholder="0"
+                        max={100}
+                        min={0}
+                        className="mt-1"
+                      />
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Altura (mm)</label>
-                      <Input type="number" value={form.altura} onChange={(e) => updateForm('altura', e.target.value)} placeholder="0" />
+                      <Label className="text-xs">Validade (dias)</Label>
+                      <Input
+                        type="number"
+                        value={orcamento.validade_dias}
+                        onChange={(e) => update('validade_dias', parseInt(e.target.value) || 15)}
+                        className="mt-1"
+                      />
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Profundidade (mm)</label>
-                      <Input type="number" value={form.profundidade} onChange={(e) => updateForm('profundidade', e.target.value)} placeholder="0" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Peso Estimado (g)</label>
-                      <Input type="number" value={form.peso_estimado} onChange={(e) => updateForm('peso_estimado', e.target.value)} placeholder="0" />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Quantidade</label>
-                      <Input type="number" value={form.quantidade} onChange={(e) => updateForm('quantidade', e.target.value)} placeholder="1" min="1" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Prazo Estimado (dias)</label>
-                    <Input type="number" value={form.prazo_estimado} onChange={(e) => updateForm('prazo_estimado', e.target.value)} placeholder="7" />
-                  </div>
-                  <div className="flex justify-between pt-4">
-                    <Button variant="outline" onClick={() => setStep(2)}>Voltar</Button>
-                    <Button onClick={() => setStep(4)} className="bg-blue-600 hover:bg-blue-700">
-                      Próximo: Valores
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Step 4: Valores */}
-          {step === 4 && (
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-              <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-blue-600" />
-                    Valores e Finalização
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Valor Material (R$)</label>
-                      <Input type="number" step="0.01" value={form.valor_material} onChange={(e) => updateForm('valor_material', e.target.value)} placeholder="0.00" />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Valor Mão de Obra (R$)</label>
-                      <Input type="number" step="0.01" value={form.valor_mao_obra} onChange={(e) => updateForm('valor_mao_obra', e.target.value)} placeholder="0.00" />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Valor Frete (R$)</label>
-                      <Input type="number" step="0.01" value={form.valor_frete} onChange={(e) => updateForm('valor_frete', e.target.value)} placeholder="0.00" />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Desconto (%)</label>
-                      <Input type="number" value={form.desconto} onChange={(e) => updateForm('desconto', e.target.value)} placeholder="0" max="100" />
-                    </div>
-                  </div>
-
-                  {/* Total */}
-                  <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl p-5 border border-emerald-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-emerald-700 font-medium">Valor Total</p>
-                        <p className="text-xs text-emerald-600">
-                          ({form.quantidade}x) Material + Mão de Obra + Frete - {form.desconto}% desconto
-                        </p>
-                      </div>
-                      <p className="text-3xl font-bold text-emerald-700">
-                        R$ {parseFloat(form.valor_total || '0').toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
+                      <Label className="text-xs">Status inicial</Label>
+                      <Select value={orcamento.status} onValueChange={(v) => update('status', v as any)}>
+                        <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pendente">Pendente</SelectItem>
+                          <SelectItem value="aprovado">Aprovado</SelectItem>
+                          <SelectItem value="em_producao">Em Produção</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Observações</label>
+                    <Label className="text-xs">Observações para o cliente (aparece no PDF/WhatsApp)</Label>
                     <textarea
-                      value={form.observacoes}
-                      onChange={(e) => updateForm('observacoes', e.target.value)}
-                      placeholder="Observações adicionais sobre o orçamento..."
-                      className="w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                      value={orcamento.observacoes_cliente || ''}
+                      onChange={(e) => update('observacoes_cliente', e.target.value)}
+                      placeholder="Condições de pagamento, forma de entrega, etc."
+                      rows={3}
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1 block">Status Inicial</label>
-                    <Select value={form.status} onValueChange={(v) => updateForm('status', v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pendente">Pendente</SelectItem>
-                        <SelectItem value="aprovado">Aprovado</SelectItem>
-                        <SelectItem value="em_producao">Em Produção</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex justify-between pt-4">
-                    <Button variant="outline" onClick={() => setStep(3)}>Voltar</Button>
-                    <Button
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="bg-emerald-600 hover:bg-emerald-700 px-8"
-                    >
-                      {saving ? (
-                        <>
-                          <Clock className="w-4 h-4 mr-2 animate-spin" />
-                          Salvando...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 mr-2" />
-                          Criar Orçamento
-                        </>
-                      )}
-                    </Button>
+                    <Label className="text-xs">Observações internas (não aparecem para o cliente)</Label>
+                    <textarea
+                      value={orcamento.observacoes_internas || ''}
+                      onChange={(e) => update('observacoes_internas', e.target.value)}
+                      placeholder="Notas pra você mesmo."
+                      rows={2}
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Resumo */}
+              <Card className="border-2 border-emerald-200">
+                <CardContent className="p-6 space-y-2">
+                  <h3 className="font-semibold text-gray-900 mb-3">Resumo financeiro</h3>
+                  <div className="flex justify-between text-sm text-gray-700">
+                    <span>Subtotal ({orcamento.itens.length} {orcamento.itens.length === 1 ? 'item' : 'itens'})</span>
+                    <span className="font-medium">{subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                  </div>
+                  {frete > 0 && (
+                    <div className="flex justify-between text-sm text-gray-700">
+                      <span>Frete ({orcamento.envio.modalidade || '—'})</span>
+                      <span className="font-medium">{frete.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                    </div>
+                  )}
+                  {descontoValor > 0 && (
+                    <div className="flex justify-between text-sm text-red-600">
+                      <span>Desconto ({orcamento.desconto_percentual}%)</span>
+                      <span className="font-medium">− {descontoValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-3 border-t text-lg font-bold text-emerald-700">
+                    <span>TOTAL</span>
+                    <span>{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-between pt-2 gap-3 flex-wrap">
+                <Button variant="outline" onClick={() => setStep(3)}>← Voltar</Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleBaixarPDF}
+                    disabled={baixandoPdf}
+                  >
+                    {baixandoPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
+                    Pré-visualizar PDF
+                  </Button>
+                  <Button
+                    onClick={handleSalvar}
+                    disabled={saving}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                    Salvar Orçamento
+                  </Button>
+                </div>
+              </div>
             </motion.div>
           )}
         </div>
