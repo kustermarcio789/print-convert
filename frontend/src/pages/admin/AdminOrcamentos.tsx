@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import Sidebar from '@/components/admin/Sidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import type { OrcamentoV2, OrcamentoItem } from '@/types/orcamento';
-import { baixarOrcamentoPdf, formatarMensagemWhatsApp, enviarOrcamentoPorEmail } from '@/lib/orcamentoPdf';
+import { baixarOrcamentoPdf, formatarMensagemWhatsApp, enviarOrcamentoPorEmail, visualizarOrcamentoPdf } from '@/lib/orcamentoPdf';
 
 function fmtCurrency(v: number | string | undefined | null): string {
   const n = typeof v === 'string' ? parseFloat(v) : (v || 0);
@@ -126,7 +126,7 @@ export default function AdminOrcamentos() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('todos');
   const [selecionado, setSelecionado] = useState<OrcamentoV2 | null>(null);
-  const [acao, setAcao] = useState<{ id: string | undefined; tipo: 'pdf' | 'email' | null }>({ id: undefined, tipo: null });
+  const [acao, setAcao] = useState<{ id: string | undefined; tipo: 'pdf' | 'email' | 'view' | null }>({ id: undefined, tipo: null });
 
   useEffect(() => {
     carregar();
@@ -176,6 +176,17 @@ export default function AdminOrcamentos() {
       await baixarOrcamentoPdf(orc);
     } catch (err: any) {
       toast({ title: 'Erro ao gerar PDF', description: err.message, variant: 'destructive' });
+    } finally {
+      setAcao({ id: undefined, tipo: null });
+    }
+  };
+
+  const handleVisualizarPDF = async (orc: OrcamentoV2) => {
+    setAcao({ id: orc.id, tipo: 'view' });
+    try {
+      await visualizarOrcamentoPdf(orc);
+    } catch (err: any) {
+      toast({ title: 'Erro ao abrir PDF', description: err.message, variant: 'destructive' });
     } finally {
       setAcao({ id: undefined, tipo: null });
     }
@@ -343,6 +354,9 @@ export default function AdminOrcamentos() {
                           <Button variant="outline" size="sm" onClick={() => setSelecionado(orc)} title="Ver detalhes">
                             <Eye className="w-4 h-4" />
                           </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleVisualizarPDF(orc)} disabled={isLoading && acao.tipo === 'view'} title="Visualizar PDF" className="text-indigo-600">
+                            {isLoading && acao.tipo === 'view' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                          </Button>
                           <Button variant="outline" size="sm" onClick={() => handleBaixarPDF(orc)} disabled={isLoading && acao.tipo === 'pdf'} title="Baixar PDF">
                             {isLoading && acao.tipo === 'pdf' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                           </Button>
@@ -503,8 +517,13 @@ export default function AdminOrcamentos() {
 
                   {/* Ações */}
                   <section className="flex flex-wrap gap-2 pt-4 border-t">
-                    <Button onClick={() => handleBaixarPDF(selecionado)} className="bg-blue-600 hover:bg-blue-700 gap-2">
-                      <Download className="w-4 h-4" /> Baixar PDF
+                    <Button onClick={() => handleVisualizarPDF(selecionado)} disabled={acao.id === selecionado.id && acao.tipo === 'view'} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
+                      {acao.id === selecionado.id && acao.tipo === 'view' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                      Visualizar PDF
+                    </Button>
+                    <Button onClick={() => handleBaixarPDF(selecionado)} disabled={acao.id === selecionado.id && acao.tipo === 'pdf'} className="bg-blue-600 hover:bg-blue-700 gap-2">
+                      {acao.id === selecionado.id && acao.tipo === 'pdf' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                      Baixar PDF
                     </Button>
                     <Button onClick={() => handleWhatsApp(selecionado)} className="bg-green-600 hover:bg-green-700 gap-2">
                       <MessageCircle className="w-4 h-4" /> WhatsApp

@@ -338,6 +338,25 @@ export async function baixarOrcamentoPdf(orc: OrcamentoV2, opts?: PdfOptions) {
   }
 }
 
+export async function visualizarOrcamentoPdf(orc: OrcamentoV2, opts?: PdfOptions) {
+  try {
+    const doc = await gerarOrcamentoPdf(orc, opts);
+    const blob = doc.output('blob');
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (!win) {
+      // Pop-up bloqueado: cai pra download como fallback
+      await baixarOrcamentoPdf(orc, opts);
+      throw new Error('Pop-up bloqueado — baixei o PDF em vez de abrir');
+    }
+    // Libera a memória depois de um tempo (pro navegador carregar o blob)
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (err) {
+    console.error('[orcamentoPdf] falha ao visualizar:', err);
+    throw err;
+  }
+}
+
 export function formatarMensagemWhatsApp(orc: OrcamentoV2): string {
   const linhas: string[] = [];
   linhas.push(`*${EMPRESA.nomeFantasia} — Proposta de Orçamento*`);

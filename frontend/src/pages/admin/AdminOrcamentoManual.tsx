@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, User, Package, Truck, DollarSign, Plus, Save, Loader2,
-  CheckCircle, MessageCircle, Mail, FileDown, Copy, UserCheck, X,
+  CheckCircle, MessageCircle, Mail, FileDown, FileText, Copy, UserCheck, X,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ import {
   type OrcamentoV2, type OrcamentoItem,
 } from '@/types/orcamento';
 import type { Cliente } from '@/types/cliente';
-import { baixarOrcamentoPdf, formatarMensagemWhatsApp, enviarOrcamentoPorEmail } from '@/lib/orcamentoPdf';
+import { baixarOrcamentoPdf, formatarMensagemWhatsApp, enviarOrcamentoPorEmail, visualizarOrcamentoPdf } from '@/lib/orcamentoPdf';
 
 function maskCPF(v: string) {
   const d = v.replace(/\D/g, '').slice(0, 11);
@@ -66,6 +66,7 @@ export default function AdminOrcamentoManual() {
   const [saved, setSaved] = useState<OrcamentoV2 | null>(null);
   const [enviandoEmail, setEnviandoEmail] = useState(false);
   const [baixandoPdf, setBaixandoPdf] = useState(false);
+  const [visualizandoPdf, setVisualizandoPdf] = useState(false);
 
   const subtotal = useMemo(() => calcularSubtotal(orcamento.itens), [orcamento.itens]);
   const frete = orcamento.envio.valor_frete || 0;
@@ -213,6 +214,18 @@ export default function AdminOrcamentoManual() {
     }
   };
 
+  const handleVisualizarPDF = async () => {
+    const alvo = saved || montarPayloadPersistido();
+    setVisualizandoPdf(true);
+    try {
+      await visualizarOrcamentoPdf(alvo);
+    } catch (err: any) {
+      toast({ title: 'Erro ao abrir PDF', description: err.message, variant: 'destructive' });
+    } finally {
+      setVisualizandoPdf(false);
+    }
+  };
+
   const handleEnviarWhatsApp = () => {
     const alvo = saved || montarPayloadPersistido();
     const phone = (alvo.cliente_whatsapp || '').replace(/\D/g, '');
@@ -296,6 +309,14 @@ export default function AdminOrcamentoManual() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                <Button
+                  onClick={handleVisualizarPDF}
+                  disabled={visualizandoPdf}
+                  className="bg-indigo-600 hover:bg-indigo-700 h-12"
+                >
+                  {visualizandoPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
+                  Visualizar PDF
+                </Button>
                 <Button
                   onClick={handleBaixarPDF}
                   disabled={baixandoPdf}
@@ -680,11 +701,11 @@ export default function AdminOrcamentoManual() {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={handleBaixarPDF}
-                    disabled={baixandoPdf}
+                    onClick={handleVisualizarPDF}
+                    disabled={visualizandoPdf}
                   >
-                    {baixandoPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
-                    Pré-visualizar PDF
+                    {visualizandoPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
+                    Visualizar PDF
                   </Button>
                   <Button
                     onClick={handleSalvar}
