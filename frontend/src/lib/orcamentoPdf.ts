@@ -448,10 +448,13 @@ export function formatarMensagemEmail(orc: OrcamentoV2): MensagemEmail {
   linhas.push(EMPRESA.nomeFantasia);
   linhas.push('');
   linhas.push('--');
-  linhas.push(EMPRESA.razaoSocial);
-  linhas.push(`CNPJ ${EMPRESA.cnpj}`);
-  linhas.push(`${EMPRESA.contato.telefone}  |  ${EMPRESA.contato.email}`);
-  linhas.push(`${EMPRESA.contato.site}`);
+  // Assinatura alinhada à direita (padding manual pra simular alinhamento)
+  const RIGHT_COL = 80;
+  const pad = (s: string) => ' '.repeat(Math.max(0, RIGHT_COL - s.length)) + s;
+  linhas.push(pad(`CNPJ ${EMPRESA.cnpj}`));
+  linhas.push(pad(EMPRESA.contato.telefone));
+  linhas.push(pad(EMPRESA.contato.email));
+  linhas.push(pad(EMPRESA.contato.site));
 
   return { subject, body: linhas.join('\n') };
 }
