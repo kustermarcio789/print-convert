@@ -245,6 +245,15 @@ export interface PdfOptions {
   nomeEmpresa?: string;
 }
 
+function sanitizeFilename(raw: string): string {
+  return raw
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .replace(/_+/g, '_')
+    .slice(0, 120) || 'orcamento';
+}
+
 export async function gerarOrcamentoPdf(orc: OrcamentoV2, _opts: PdfOptions = {}): Promise<jsPDF> {
   const imgCache = await preloadImagens(orc);
   const html = buildHtml(orc, imgCache);
@@ -259,7 +268,7 @@ export async function gerarOrcamentoPdf(orc: OrcamentoV2, _opts: PdfOptions = {}
   document.body.appendChild(container);
 
   try {
-    await new Promise((r) => setTimeout(r, 150));
+    await new Promise((r) => setTimeout(r, 200));
 
     const canvas = await html2canvas(container, {
       scale: 2,
@@ -269,7 +278,11 @@ export async function gerarOrcamentoPdf(orc: OrcamentoV2, _opts: PdfOptions = {}
       logging: false,
     });
 
-    const pdf = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+    if (!canvas.width || !canvas.height) {
+      throw new Error('Falha ao renderizar o orçamento em canvas');
+    }
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
 
@@ -278,22 +291,28 @@ export async function gerarOrcamentoPdf(orc: OrcamentoV2, _opts: PdfOptions = {}
 
     if (canvasAspect <= pageAspect) {
       const imgHeight = pdfWidth * canvasAspect;
-      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, pdfWidth, imgHeight);
+      const dataUrl = canvas.toDataURL('image/png');
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, imgHeight);
     } else {
       const pxPerMm = canvas.width / pdfWidth;
       const pagePx = pdfHeight * pxPerMm;
       let y = 0;
+      let pageIdx = 0;
       while (y < canvas.height) {
         const sliceH = Math.min(pagePx, canvas.height - y);
         const tmp = document.createElement('canvas');
         tmp.width = canvas.width;
         tmp.height = sliceH;
-        const ctx = tmp.getContext('2d')!;
+        const ctx = tmp.getContext('2d');
+        if (!ctx) throw new Error('Canvas 2D context não disponível');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, tmp.width, tmp.height);
         ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-        const dataUrl = tmp.toDataURL('image/jpeg', 0.92);
-        if (y > 0) pdf.addPage();
-        pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, (sliceH / canvas.width) * pdfWidth);
+        const dataUrl = tmp.toDataURL('image/png');
+        if (pageIdx > 0) pdf.addPage();
+        pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, (sliceH / canvas.width) * pdfWidth);
         y += sliceH;
+        pageIdx++;
       }
     }
 
@@ -304,11 +323,16 @@ export async function gerarOrcamentoPdf(orc: OrcamentoV2, _opts: PdfOptions = {}
 }
 
 export async function baixarOrcamentoPdf(orc: OrcamentoV2, opts?: PdfOptions) {
-  const doc = await gerarOrcamentoPdf(orc, opts);
-  const nome = `Orcamento_${(orc.numero || orc.id || Date.now())
-    .toString()
-    .replace(/[^\w-]/g, '_')}_${(orc.cliente_nome || 'cliente').replace(/\s+/g, '_')}.pdf`;
-  doc.save(nome);
+  try {
+    const doc = await gerarOrcamentoPdf(orc, opts);
+    const ref = orc.numero || (orc.id ? orc.id.slice(0, 8) : String(Date.now()));
+    const cliente = orc.cliente_nome || 'cliente';
+    const nome = `${sanitizeFilename(ref)}_${sanitizeFilename(cliente)}.pdf`;
+    doc.save(nome);
+  } catch (err) {
+    console.error('[orcamentoPdf] falha ao gerar/salvar:', err);
+    throw err;
+  }
 }
 
 export function formatarMensagemWhatsApp(orc: OrcamentoV2): string {
