@@ -87,26 +87,22 @@ function buildHtml(orc: OrcamentoV2, imgCache: Map<string, string>): string {
       ]
         .filter(Boolean)
         .join(' • ');
+      // Trunca descrição pra garantir altura controlada
+      const descShort = it.descricao ? (it.descricao.length > 250 ? it.descricao.slice(0, 250) + '...' : it.descricao) : '';
       return `
-      <div style="display:flex; background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; margin-bottom:14px; page-break-inside:avoid;">
-        <div style="width:200px; min-width:200px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; padding:14px;">
-          ${
-            img
-              ? `<img src="${img}" alt="" style="max-width:100%; max-height:200px; object-fit:contain;" />`
-              : `<div style="color:#9ca3af; font-size:13px;">sem foto</div>`
-          }
+      <div style="position:relative; height:190px; background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; margin-bottom:12px; box-sizing:border-box;">
+        <!-- Imagem como background (html2canvas respeita melhor) -->
+        <div style="position:absolute; left:0; top:0; width:180px; height:188px; background-color:#f3f4f6; background-image:${img ? `url('${img}')` : 'none'}; background-size:contain; background-repeat:no-repeat; background-position:center;">
+          ${!img ? `<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#9ca3af; font-size:13px;">sem foto</div>` : ''}
         </div>
-        <div style="flex:1; padding:18px 22px; display:flex; flex-direction:column; gap:8px;">
-          <div style="font-size:17px; font-weight:700; color:#1e40af; line-height:1.3;">
+        <!-- Conteúdo textual -->
+        <div style="margin-left:192px; padding:14px 18px; height:188px; box-sizing:border-box; overflow:hidden;">
+          <div style="font-size:16px; font-weight:700; color:#1e40af; line-height:1.3; margin-bottom:6px;">
             ${i + 1}. ${esc(it.nome || 'Item sem nome')}
           </div>
-          ${
-            it.descricao
-              ? `<div style="font-size:12px; color:#374151; line-height:1.5; max-height:60px; overflow:hidden;">${esc(it.descricao)}</div>`
-              : ''
-          }
-          ${especs ? `<div style="font-size:11px; color:#6b7280;">${esc(especs)}</div>` : ''}
-          <div style="border-top:1px solid #e5e7eb; margin-top:auto; padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
+          ${descShort ? `<div style="font-size:11px; color:#374151; line-height:1.45; max-height:62px; overflow:hidden; margin-bottom:6px;">${esc(descShort)}</div>` : ''}
+          ${especs ? `<div style="font-size:11px; color:#6b7280; margin-bottom:6px;">${esc(especs)}</div>` : ''}
+          <div style="position:absolute; bottom:12px; left:210px; right:18px; display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px solid #e5e7eb;">
             <div style="font-size:13px; color:#374151;">
               <strong>Qtd:</strong> ${it.quantidade} × ${fmtCurrency(it.valor_unitario)}
             </div>
@@ -122,22 +118,20 @@ function buildHtml(orc: OrcamentoV2, imgCache: Map<string, string>): string {
   return `
   <div style="font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background:#ffffff; color:#1f2937; width:800px; padding:0; margin:0;">
     <!-- HEADER -->
-    <div style="background:linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); padding:28px 36px; display:flex; align-items:center; gap:22px;">
+    <div style="position:relative; height:110px; background:linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); padding:20px 28px; box-sizing:border-box; overflow:hidden;">
       ${
         logo
-          ? `<div style="width:88px; height:88px; background:#ffffff1a; border-radius:14px; display:flex; align-items:center; justify-content:center; padding:8px;">
-              <img src="${logo}" alt="logo" style="max-width:100%; max-height:100%; object-fit:contain;" />
-            </div>`
+          ? `<div style="position:absolute; left:28px; top:20px; width:72px; height:72px; background-color:rgba(255,255,255,0.1); border-radius:12px; background-image:url('${logo}'); background-size:contain; background-repeat:no-repeat; background-position:center; background-origin:content-box; padding:6px;"></div>`
           : ''
       }
-      <div style="flex:1;">
-        <div style="font-size:34px; font-weight:800; color:#ffffff; letter-spacing:1px;">${esc(EMPRESA.nomeFantasia)}</div>
-        <div style="font-size:14px; color:#dbeafe; margin-top:4px;">Proposta de Orçamento${numeroTag ? ` — ${esc(numeroTag)}` : ''}</div>
+      <div style="margin-left:${logo ? '94px' : '0'}; margin-right:200px;">
+        <div style="font-size:30px; font-weight:800; color:#ffffff; letter-spacing:1px; line-height:1.1;">${esc(EMPRESA.nomeFantasia)}</div>
+        <div style="font-size:13px; color:#dbeafe; margin-top:6px;">Proposta de Orçamento${numeroTag ? ` — ${esc(numeroTag)}` : ''}</div>
       </div>
-      <div style="text-align:right; color:#dbeafe; font-size:11px; line-height:1.7;">
+      <div style="position:absolute; right:28px; top:20px; text-align:right; color:#dbeafe; font-size:11px; line-height:1.7;">
         <div>Emitido em <strong style="color:#fff;">${fmtDate(orc.created_at)}</strong></div>
         <div>Validade: <strong style="color:#fff;">${orc.validade_dias} dias</strong></div>
-        <div>${esc(EMPRESA.site)}</div>
+        <div>${esc(EMPRESA.contato.site)}</div>
       </div>
     </div>
 
@@ -271,15 +265,24 @@ export async function gerarOrcamentoPdf(orc: OrcamentoV2, _opts: PdfOptions = {}
     await new Promise((r) => setTimeout(r, 200));
 
     const canvas = await html2canvas(container, {
-      scale: 2,
+      scale: 1.5,
       useCORS: true,
       allowTaint: false,
       backgroundColor: '#ffffff',
       logging: false,
+      width: 800,
+      windowWidth: 800,
     });
 
     if (!canvas.width || !canvas.height) {
       throw new Error('Falha ao renderizar o orçamento em canvas');
+    }
+
+    // Proteção: se o canvas veio absurdamente alto (mais de 10 A4), algo bugou no layout
+    const aspectRatioMax = 15; // A4 tem ~1.414, 15 = 10+ páginas = bug
+    if (canvas.height / canvas.width > aspectRatioMax) {
+      console.error('[orcamentoPdf] canvas gigante:', canvas.width, 'x', canvas.height);
+      throw new Error(`Layout do PDF ficou muito alto (${canvas.width}×${canvas.height}px). Possível bug com imagem do produto.`);
     }
 
     const pdf = new jsPDF('p', 'mm', 'a4');
