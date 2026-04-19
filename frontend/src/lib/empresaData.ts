@@ -46,7 +46,7 @@ export const EMPRESA: EmpresaData = {
 
   endereco: {
     cep: '86400-000',
-    logradouro: '10ª Rua Santo Antonio',
+    logradouro: 'Rua Santo Antonio',
     numero: '147',
     bairro: 'Vila Santana',
     cidade: 'Jacarezinho',
