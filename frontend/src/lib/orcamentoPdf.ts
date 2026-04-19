@@ -371,7 +371,108 @@ export function formatarMensagemWhatsApp(orc: OrcamentoV2): string {
   linhas.push(`Para aprovar, basta responder esta mensagem! ✅`);
   linhas.push('');
   linhas.push(`_${EMPRESA.razaoSocial}_`);
-  linhas.push(`_CNPJ ${EMPRESA.cnpj} • ${EMPRESA.site}_`);
+  linhas.push(`_CNPJ ${EMPRESA.cnpj} • ${EMPRESA.contato.site}_`);
 
   return linhas.join('\n');
+}
+
+export interface MensagemEmail {
+  subject: string;
+  body: string;
+}
+
+export function formatarMensagemEmail(orc: OrcamentoV2): MensagemEmail {
+  const subtotal = orc.itens.reduce((a, b) => a + b.valor_total, 0);
+  const frete = orc.envio.valor_frete || 0;
+  const base = subtotal + frete;
+  const desconto = base * ((orc.desconto_percentual || 0) / 100);
+  const total = base - desconto;
+
+  const num = orc.numero || (orc.id ? `#${orc.id.slice(0, 8)}` : '');
+  const subject = `Proposta de Orçamento ${num} — ${EMPRESA.nomeFantasia}`;
+
+  const linhas: string[] = [];
+  linhas.push(`Olá ${orc.cliente_nome},`);
+  linhas.push('');
+  linhas.push(
+    `Segue nossa proposta de orçamento ${num ? `(${num}) ` : ''}com ${orc.itens.length} ${orc.itens.length === 1 ? 'item' : 'itens'}.`
+  );
+  linhas.push('O PDF completo com imagens e detalhes está anexado a este e-mail.');
+  linhas.push('');
+  linhas.push('================================');
+  linhas.push('RESUMO');
+  linhas.push('================================');
+  linhas.push('');
+
+  orc.itens.forEach((it, i) => {
+    linhas.push(`${i + 1}. ${it.nome}`);
+    if (it.descricao) {
+      const desc = it.descricao.length > 200 ? it.descricao.slice(0, 200) + '...' : it.descricao;
+      linhas.push(`   ${desc}`);
+    }
+    const specs = [
+      it.material && `Material: ${it.material}`,
+      it.cor && `Cor: ${it.cor}`,
+      it.acabamento && `Acabamento: ${it.acabamento}`,
+    ]
+      .filter(Boolean)
+      .join(' | ');
+    if (specs) linhas.push(`   ${specs}`);
+    linhas.push(`   Qtd: ${it.quantidade}  x  ${fmtCurrency(it.valor_unitario)}  =  ${fmtCurrency(it.valor_total)}`);
+    linhas.push('');
+  });
+
+  linhas.push('--------------------------------');
+  linhas.push(`Subtotal dos itens: ${fmtCurrency(subtotal)}`);
+  if (frete > 0) {
+    const modalidade = orc.envio.modalidade ? ` (${orc.envio.modalidade}${orc.envio.prazo_dias ? `, ${orc.envio.prazo_dias} dias` : ''})` : '';
+    linhas.push(`Frete${modalidade}: ${fmtCurrency(frete)}`);
+  }
+  if (desconto > 0) {
+    linhas.push(`Desconto (${orc.desconto_percentual}%): - ${fmtCurrency(desconto)}`);
+  }
+  linhas.push('--------------------------------');
+  linhas.push(`INVESTIMENTO TOTAL: ${fmtCurrency(total)}`);
+  linhas.push('');
+  if (orc.envio.prazo_dias) linhas.push(`Prazo estimado: ${orc.envio.prazo_dias} dias`);
+  linhas.push(`Validade da proposta: ${orc.validade_dias} dias a partir desta data.`);
+  linhas.push('');
+  if (orc.observacoes_cliente) {
+    linhas.push('Observações:');
+    linhas.push(orc.observacoes_cliente);
+    linhas.push('');
+  }
+  linhas.push('Para aprovar, basta responder este e-mail ou entrar em contato.');
+  linhas.push('');
+  linhas.push('Atenciosamente,');
+  linhas.push(EMPRESA.nomeFantasia);
+  linhas.push('');
+  linhas.push('--');
+  linhas.push(EMPRESA.razaoSocial);
+  linhas.push(`CNPJ ${EMPRESA.cnpj}`);
+  linhas.push(`${EMPRESA.contato.telefone}  |  ${EMPRESA.contato.email}`);
+  linhas.push(`${EMPRESA.contato.site}`);
+
+  return { subject, body: linhas.join('\n') };
+}
+
+/**
+ * Baixa o PDF e abre o cliente de e-mail nativo do usuário com o corpo preparado.
+ * Ele vai precisar anexar o PDF manualmente (está no Downloads).
+ */
+export async function enviarOrcamentoPorEmail(orc: OrcamentoV2): Promise<void> {
+  await baixarOrcamentoPdf(orc);
+
+  const { subject, body } = formatarMensagemEmail(orc);
+  const to = orc.cliente_email || '';
+  const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  // O mailto tem limite de tamanho (~2000 chars em alguns clientes). Se passar, usa sem body.
+  if (mailto.length > 1800) {
+    const shortBody = `Olá ${orc.cliente_nome},\n\nSegue em anexo a proposta de orçamento ${orc.numero || ''}.\n\nValor total: ${fmtCurrency(orc.valor_total)}\n\nAguardamos seu retorno!\n\n${EMPRESA.nomeFantasia}`;
+    const shortLink = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shortBody)}`;
+    window.location.href = shortLink;
+  } else {
+    window.location.href = mailto;
+  }
 }

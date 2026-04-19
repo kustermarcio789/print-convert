@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import Sidebar from '@/components/admin/Sidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import type { OrcamentoV2, OrcamentoItem } from '@/types/orcamento';
-import { baixarOrcamentoPdf, formatarMensagemWhatsApp } from '@/lib/orcamentoPdf';
+import { baixarOrcamentoPdf, formatarMensagemWhatsApp, enviarOrcamentoPorEmail } from '@/lib/orcamentoPdf';
 
 function fmtCurrency(v: number | string | undefined | null): string {
   const n = typeof v === 'string' ? parseFloat(v) : (v || 0);
@@ -208,34 +208,15 @@ export default function AdminOrcamentos() {
     }
     setAcao({ id: orc.id, tipo: 'email' });
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      const resp = await fetch(`${apiUrl}/api/send-orcamento-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipient_email: orc.cliente_email,
-          recipient_name: orc.cliente_nome,
-          orcamento_id: orc.id || orc.numero,
-          itens: orc.itens.map(it => ({
-            nome: it.nome, descricao: it.descricao, imagem: it.imagem_principal,
-            material: it.material, cor: it.cor, quantidade: it.quantidade,
-            valor_unitario: it.valor_unitario, valor_total: it.valor_total,
-          })),
-          subtotal: orc.subtotal,
-          valor_total: orc.valor_total,
-          modalidade: orc.envio.modalidade,
-          prazo: orc.envio.prazo_dias ? `${orc.envio.prazo_dias} dias` : 'A combinar',
-          observacoes: orc.observacoes_cliente,
-          validade_dias: orc.validade_dias,
-        }),
+      await enviarOrcamentoPorEmail(orc);
+      toast({
+        title: 'PDF baixado, cliente de e-mail aberto',
+        description: 'Só anexar o PDF (está na pasta Downloads) e enviar.',
       });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.detail || data.error || 'Falha');
-      toast({ title: 'E-mail enviado!' });
     } catch (err: any) {
       toast({
-        title: 'Erro no e-mail',
-        description: `${err.message}. Use "Baixar PDF" e envie manual.`,
+        title: 'Erro ao preparar e-mail',
+        description: err.message,
         variant: 'destructive',
       });
     } finally {

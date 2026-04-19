@@ -25,7 +25,7 @@ import {
   type OrcamentoV2, type OrcamentoItem,
 } from '@/types/orcamento';
 import type { Cliente } from '@/types/cliente';
-import { baixarOrcamentoPdf, formatarMensagemWhatsApp } from '@/lib/orcamentoPdf';
+import { baixarOrcamentoPdf, formatarMensagemWhatsApp, enviarOrcamentoPorEmail } from '@/lib/orcamentoPdf';
 
 function maskCPF(v: string) {
   const d = v.replace(/\D/g, '').slice(0, 11);
@@ -233,42 +233,15 @@ export default function AdminOrcamentoManual() {
     }
     setEnviandoEmail(true);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      const resp = await fetch(`${apiUrl}/api/send-orcamento-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipient_email: alvo.cliente_email,
-          recipient_name: alvo.cliente_nome,
-          orcamento_id: alvo.id || alvo.numero,
-          itens: alvo.itens.map(it => ({
-            nome: it.nome,
-            descricao: it.descricao,
-            imagem: it.imagem_principal,
-            material: it.material,
-            cor: it.cor,
-            quantidade: it.quantidade,
-            valor_unitario: it.valor_unitario,
-            valor_total: it.valor_total,
-          })),
-          subtotal,
-          frete,
-          desconto_percentual: alvo.desconto_percentual,
-          desconto_valor: descontoValor,
-          valor_total: total,
-          prazo: alvo.envio.prazo_dias ? `${alvo.envio.prazo_dias} dias` : 'A combinar',
-          modalidade: alvo.envio.modalidade,
-          observacoes: alvo.observacoes_cliente,
-          validade_dias: alvo.validade_dias,
-        }),
+      await enviarOrcamentoPorEmail(alvo);
+      toast({
+        title: 'PDF baixado, cliente de e-mail aberto',
+        description: 'Só anexar o PDF (está na pasta Downloads) e clicar Enviar.',
       });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.detail || data.error || 'Falha no envio');
-      toast({ title: 'E-mail enviado!', description: `Proposta enviada para ${alvo.cliente_email}.` });
     } catch (err: any) {
       toast({
-        title: 'Erro ao enviar e-mail',
-        description: `${err.message}. Você pode baixar o PDF e enviar manualmente.`,
+        title: 'Erro ao preparar e-mail',
+        description: err.message,
         variant: 'destructive',
       });
     } finally {
