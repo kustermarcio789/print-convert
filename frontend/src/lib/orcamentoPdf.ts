@@ -1,12 +1,26 @@
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import type { OrcamentoV2 } from '@/types/orcamento';
 import { EMPRESA, enderecoFormatado } from './empresaData';
 
-const BRAND_BLUE: [number, number, number] = [37, 99, 235];
-const BRAND_GREEN: [number, number, number] = [22, 163, 74];
-const GRAY_DARK: [number, number, number] = [55, 65, 81];
-const GRAY_LIGHT: [number, number, number] = [156, 163, 175];
-const GRAY_BG: [number, number, number] = [243, 244, 246];
+function fmtCurrency(v: number): string {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function fmtDate(iso?: string): string {
+  const d = iso ? new Date(iso) : new Date();
+  return d.toLocaleDateString('pt-BR');
+}
+
+function esc(s?: string | number | null): string {
+  if (s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 async function urlToDataUrl(url: string): Promise<string | null> {
   try {
@@ -24,282 +38,276 @@ async function urlToDataUrl(url: string): Promise<string | null> {
   }
 }
 
-function fmtCurrency(v: number): string {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+async function preloadImagens(orc: OrcamentoV2): Promise<Map<string, string>> {
+  const cache = new Map<string, string>();
+  const urls = new Set<string>();
+  if (EMPRESA.logoUrl) urls.add(EMPRESA.logoUrl);
+  orc.itens.forEach((it) => {
+    if (it.imagem_principal) urls.add(it.imagem_principal);
+  });
+  await Promise.all(
+    Array.from(urls).map(async (u) => {
+      const d = await urlToDataUrl(u);
+      if (d) cache.set(u, d);
+    })
+  );
+  return cache;
 }
 
-function fmtDate(iso?: string): string {
-  const d = iso ? new Date(iso) : new Date();
-  return d.toLocaleDateString('pt-BR');
-}
-
-function sum(a: number, b: number) { return a + b; }
-
-export interface PdfOptions {
-  nomeEmpresa?: string;
-  enderecoEmpresa?: string;
-  telefoneEmpresa?: string;
-  emailEmpresa?: string;
-  logoUrl?: string;
-}
-
-const DEFAULT_OPTS: Required<PdfOptions> = {
-  nomeEmpresa: EMPRESA.nomeFantasia,
-  enderecoEmpresa: enderecoFormatado(),
-  telefoneEmpresa: EMPRESA.contato.telefone,
-  emailEmpresa: EMPRESA.contato.email,
-  logoUrl: EMPRESA.logoUrl,
-};
-
-export async function gerarOrcamentoPdf(orc: OrcamentoV2, opts: PdfOptions = {}): Promise<jsPDF> {
-  const conf = { ...DEFAULT_OPTS, ...opts };
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const pageW = doc.internal.pageSize.getWidth();
-  const marginX = 15;
-  let y = 15;
-
-  // Header azul com logo + nome empresa
-  const headerH = 34;
-  doc.setFillColor(...BRAND_BLUE);
-  doc.rect(0, 0, pageW, headerH, 'F');
-
-  // Logo (se carregar)
-  const logoData = conf.logoUrl ? await urlToDataUrl(conf.logoUrl) : null;
-  let textX = marginX;
-  if (logoData) {
-    try {
-      const logoSize = 22;
-      doc.addImage(logoData, 'PNG', marginX, 6, logoSize, logoSize);
-      textX = marginX + logoSize + 5;
-    } catch {
-      /* se falhar, continua sem logo */
-    }
-  }
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
-  doc.text(conf.nomeEmpresa, textX, 14);
-
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Proposta de Orçamento', textX, 19);
-  doc.text(`CNPJ ${EMPRESA.cnpj}`, textX, 23);
-  doc.text(`${conf.telefoneEmpresa} • ${conf.emailEmpresa}`, textX, 27);
-  doc.text(conf.enderecoEmpresa, textX, 31, { maxWidth: pageW - textX - 55 });
-
-  if (orc.numero || orc.id) {
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    const numero = orc.numero || `#${String(orc.id).slice(0, 8)}`;
-    doc.text(numero, pageW - marginX, 12, { align: 'right' });
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Emitido em ${fmtDate(orc.created_at)}`, pageW - marginX, 18, { align: 'right' });
-    doc.text(`Validade: ${orc.validade_dias} dias`, pageW - marginX, 23, { align: 'right' });
-    doc.text(EMPRESA.site, pageW - marginX, 28, { align: 'right' });
-  }
-
-  y = 44;
-  doc.setTextColor(...GRAY_DARK);
-
-  doc.setFillColor(...GRAY_BG);
-  doc.rect(marginX, y, pageW - 2 * marginX, 28, 'F');
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('DADOS DO CLIENTE', marginX + 3, y + 5);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...GRAY_DARK);
-
-  const leftX = marginX + 3;
-  const rightX = pageW / 2 + 3;
-  doc.text(`Nome: ${orc.cliente_nome || '—'}`, leftX, y + 11);
-  doc.text(`${orc.cliente_tipo === 'PJ' ? 'CNPJ' : 'CPF'}: ${orc.cliente_cpf_cnpj || '—'}`, rightX, y + 11);
-  doc.text(`E-mail: ${orc.cliente_email || '—'}`, leftX, y + 16);
-  doc.text(`WhatsApp: ${orc.cliente_whatsapp || '—'}`, rightX, y + 16);
-  const enderecoLinha = [
-    orc.endereco.logradouro,
-    orc.endereco.numero,
-    orc.endereco.complemento,
-    orc.endereco.bairro,
-    orc.endereco.cidade && orc.endereco.estado ? `${orc.endereco.cidade}/${orc.endereco.estado}` : orc.endereco.cidade,
-    orc.endereco.cep,
-  ].filter(Boolean).join(', ');
-  if (enderecoLinha) {
-    doc.text(`Endereço: ${enderecoLinha}`, leftX, y + 22, { maxWidth: pageW - 2 * marginX - 6 });
-  }
-
-  y += 34;
-
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...BRAND_BLUE);
-  doc.text(`ITENS DO ORÇAMENTO (${orc.itens.length})`, marginX, y);
-  y += 5;
-  doc.setDrawColor(...BRAND_BLUE);
-  doc.setLineWidth(0.5);
-  doc.line(marginX, y, pageW - marginX, y);
-  y += 4;
-
-  for (let i = 0; i < orc.itens.length; i++) {
-    const item = orc.itens[i];
-    const imagemData = item.imagem_principal ? await urlToDataUrl(item.imagem_principal) : null;
-
-    if (y > 250) { doc.addPage(); y = 20; }
-
-    const blockStartY = y;
-    const blockHeight = 42;
-
-    doc.setFillColor(249, 250, 251);
-    doc.rect(marginX, y, pageW - 2 * marginX, blockHeight, 'F');
-
-    const imgX = marginX + 2;
-    const imgY = y + 2;
-    const imgSize = 38;
-
-    if (imagemData) {
-      try {
-        doc.addImage(imagemData, 'JPEG', imgX, imgY, imgSize, imgSize);
-      } catch {
-        doc.setFillColor(...GRAY_LIGHT);
-        doc.rect(imgX, imgY, imgSize, imgSize, 'F');
-      }
-    } else {
-      doc.setFillColor(229, 231, 235);
-      doc.rect(imgX, imgY, imgSize, imgSize, 'F');
-      doc.setTextColor(...GRAY_LIGHT);
-      doc.setFontSize(7);
-      doc.text('sem foto', imgX + imgSize / 2, imgY + imgSize / 2, { align: 'center' });
-    }
-
-    const textX = imgX + imgSize + 4;
-    const textMaxW = pageW - marginX - textX - 30;
-    doc.setTextColor(...GRAY_DARK);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${i + 1}. ${item.nome || 'Item sem nome'}`, textX, y + 6, { maxWidth: textMaxW });
-
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    if (item.descricao) {
-      const descLines = doc.splitTextToSize(item.descricao, textMaxW).slice(0, 3);
-      doc.text(descLines, textX, y + 11);
-    }
-
-    const specLine = [
-      item.material && `Material: ${item.material}`,
-      item.cor && `Cor: ${item.cor}`,
-      item.acabamento && `Acab: ${item.acabamento}`,
-      (item.largura_mm || item.altura_mm || item.profundidade_mm) && `${item.largura_mm || '?'}×${item.altura_mm || '?'}×${item.profundidade_mm || '?'}mm`,
-    ].filter(Boolean).join(' • ');
-    if (specLine) {
-      doc.setTextColor(...GRAY_LIGHT);
-      doc.text(specLine, textX, y + 24, { maxWidth: textMaxW });
-    }
-
-    doc.setTextColor(...GRAY_DARK);
-    doc.setFontSize(9);
-    doc.text(`Qtd: ${item.quantidade}  ×  ${fmtCurrency(item.valor_unitario)}`, textX, y + 32);
-
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...BRAND_GREEN);
-    doc.text(fmtCurrency(item.valor_total), pageW - marginX - 2, y + 32, { align: 'right' });
-
-    y = blockStartY + blockHeight + 3;
-  }
-
-  if (y > 230) { doc.addPage(); y = 20; }
-
-  const subtotal = orc.itens.reduce((acc, it) => acc + it.valor_total, 0);
+function buildHtml(orc: OrcamentoV2, imgCache: Map<string, string>): string {
+  const subtotal = orc.itens.reduce((a, it) => a + it.valor_total, 0);
   const frete = orc.envio.valor_frete || 0;
   const base = subtotal + frete;
   const desconto = base * ((orc.desconto_percentual || 0) / 100);
   const total = base - desconto;
 
-  y += 4;
-  doc.setTextColor(...GRAY_DARK);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Subtotal dos itens:', pageW - marginX - 60, y);
-  doc.text(fmtCurrency(subtotal), pageW - marginX - 2, y, { align: 'right' });
-  y += 5;
+  const logo = imgCache.get(EMPRESA.logoUrl) || '';
+  const numeroTag = orc.numero || (orc.id ? `#${orc.id.slice(0, 8)}` : '');
 
-  if (frete > 0 || orc.envio.modalidade) {
-    doc.text(`Frete (${orc.envio.modalidade || '—'}${orc.envio.prazo_dias ? `, ${orc.envio.prazo_dias}d` : ''}):`, pageW - marginX - 60, y);
-    doc.text(fmtCurrency(frete), pageW - marginX - 2, y, { align: 'right' });
-    y += 5;
+  const enderecoCliente = [
+    orc.endereco.logradouro,
+    orc.endereco.numero && `N° ${orc.endereco.numero}`,
+    orc.endereco.complemento,
+    orc.endereco.bairro,
+    orc.endereco.cidade && orc.endereco.estado
+      ? `${orc.endereco.cidade}/${orc.endereco.estado}`
+      : orc.endereco.cidade,
+    orc.endereco.cep,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  const itensHtml = orc.itens
+    .map((it, i) => {
+      const img = it.imagem_principal ? imgCache.get(it.imagem_principal) : null;
+      const especs = [
+        it.material && `Material: ${it.material}`,
+        it.cor && `Cor: ${it.cor}`,
+        it.acabamento && `Acab: ${it.acabamento}`,
+      ]
+        .filter(Boolean)
+        .join(' • ');
+      return `
+      <div style="display:flex; background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; margin-bottom:14px; page-break-inside:avoid;">
+        <div style="width:200px; min-width:200px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; padding:14px;">
+          ${
+            img
+              ? `<img src="${img}" alt="" style="max-width:100%; max-height:200px; object-fit:contain;" />`
+              : `<div style="color:#9ca3af; font-size:13px;">sem foto</div>`
+          }
+        </div>
+        <div style="flex:1; padding:18px 22px; display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:17px; font-weight:700; color:#1e40af; line-height:1.3;">
+            ${i + 1}. ${esc(it.nome || 'Item sem nome')}
+          </div>
+          ${
+            it.descricao
+              ? `<div style="font-size:12px; color:#374151; line-height:1.5; max-height:60px; overflow:hidden;">${esc(it.descricao)}</div>`
+              : ''
+          }
+          ${especs ? `<div style="font-size:11px; color:#6b7280;">${esc(especs)}</div>` : ''}
+          <div style="border-top:1px solid #e5e7eb; margin-top:auto; padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:13px; color:#374151;">
+              <strong>Qtd:</strong> ${it.quantidade} × ${fmtCurrency(it.valor_unitario)}
+            </div>
+            <div style="font-size:18px; font-weight:700; color:#059669;">
+              ${fmtCurrency(it.valor_total)}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    })
+    .join('');
+
+  return `
+  <div style="font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background:#ffffff; color:#1f2937; width:800px; padding:0; margin:0;">
+    <!-- HEADER -->
+    <div style="background:linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); padding:28px 36px; display:flex; align-items:center; gap:22px;">
+      ${
+        logo
+          ? `<div style="width:88px; height:88px; background:#ffffff1a; border-radius:14px; display:flex; align-items:center; justify-content:center; padding:8px;">
+              <img src="${logo}" alt="logo" style="max-width:100%; max-height:100%; object-fit:contain;" />
+            </div>`
+          : ''
+      }
+      <div style="flex:1;">
+        <div style="font-size:34px; font-weight:800; color:#ffffff; letter-spacing:1px;">${esc(EMPRESA.nomeFantasia)}</div>
+        <div style="font-size:14px; color:#dbeafe; margin-top:4px;">Proposta de Orçamento${numeroTag ? ` — ${esc(numeroTag)}` : ''}</div>
+      </div>
+      <div style="text-align:right; color:#dbeafe; font-size:11px; line-height:1.7;">
+        <div>Emitido em <strong style="color:#fff;">${fmtDate(orc.created_at)}</strong></div>
+        <div>Validade: <strong style="color:#fff;">${orc.validade_dias} dias</strong></div>
+        <div>${esc(EMPRESA.site)}</div>
+      </div>
+    </div>
+
+    <!-- DADOS EMPRESA -->
+    <div style="background:#f8fafc; padding:14px 36px; border-bottom:2px solid #e5e7eb; display:flex; gap:28px; font-size:12px; color:#374151; flex-wrap:wrap;">
+      <div>📞 <strong>${esc(EMPRESA.contato.telefone)}</strong></div>
+      <div>✉️ ${esc(EMPRESA.contato.email)}</div>
+      <div>📍 CNPJ <strong>${esc(EMPRESA.cnpj)}</strong></div>
+      <div style="flex-basis:100%; color:#6b7280;">📌 ${esc(enderecoFormatado())}</div>
+    </div>
+
+    <!-- BODY -->
+    <div style="padding:24px 36px;">
+
+      <!-- DADOS DO CLIENTE -->
+      <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:18px 22px; margin-bottom:22px;">
+        <div style="font-size:13px; font-weight:700; color:#1e40af; letter-spacing:0.5px; margin-bottom:12px;">
+          DADOS DO CLIENTE
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 28px; font-size:13px; color:#374151;">
+          <div>👤 <strong>${esc(orc.cliente_nome || '—')}</strong></div>
+          <div>${orc.cliente_tipo === 'PJ' ? 'CNPJ' : 'CPF'}: <strong>${esc(orc.cliente_cpf_cnpj || '—')}</strong></div>
+          <div>✉️ ${esc(orc.cliente_email || '—')}</div>
+          <div>💬 WhatsApp: <strong>${esc(orc.cliente_whatsapp || '—')}</strong></div>
+        </div>
+        ${
+          enderecoCliente
+            ? `<div style="margin-top:12px; font-size:12px; color:#4b5563;">📍 Endereço: ${esc(enderecoCliente)}</div>`
+            : ''
+        }
+      </div>
+
+      <!-- ITENS -->
+      <div style="font-size:15px; font-weight:700; color:#1f2937; margin-bottom:12px; border-bottom:2px solid #2563eb; padding-bottom:6px;">
+        ITENS DO ORÇAMENTO <span style="color:#2563eb;">(${orc.itens.length})</span>
+      </div>
+
+      ${itensHtml}
+
+      <!-- TOTAIS -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:18px;">
+        <div style="background:#f3f4f6; border-radius:12px; padding:18px 22px; font-size:13px; color:#374151;">
+          <div style="display:flex; justify-content:space-between; padding:4px 0;">
+            <span>Subtotal dos itens:</span>
+            <strong>${fmtCurrency(subtotal)}</strong>
+          </div>
+          ${
+            frete > 0
+              ? `<div style="display:flex; justify-content:space-between; padding:4px 0;">
+                  <span>Frete${orc.envio.modalidade ? ` (${esc(orc.envio.modalidade)}${orc.envio.prazo_dias ? `, ${orc.envio.prazo_dias}d` : ''})` : ''}:</span>
+                  <strong>${fmtCurrency(frete)}</strong>
+                </div>`
+              : ''
+          }
+          ${
+            desconto > 0
+              ? `<div style="display:flex; justify-content:space-between; padding:4px 0; color:#dc2626;">
+                  <span>Desconto (${orc.desconto_percentual}%):</span>
+                  <strong>− ${fmtCurrency(desconto)}</strong>
+                </div>`
+              : ''
+          }
+        </div>
+        <div style="background:linear-gradient(135deg, #047857, #065f46); color:#ffffff; border-radius:12px; padding:18px 22px; display:flex; flex-direction:column; justify-content:center; text-align:center;">
+          <div style="font-size:12px; letter-spacing:1px; opacity:0.85;">INVESTIMENTO TOTAL:</div>
+          <div style="font-size:30px; font-weight:800; margin-top:6px;">${fmtCurrency(total)}</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BANNER -->
+    <div style="background:linear-gradient(90deg, transparent, #2563eb, transparent); padding:14px; text-align:center;">
+      <div style="color:#ffffff; font-size:15px; font-weight:700; letter-spacing:0.5px;">
+        Especialistas em impressão 3D industrial
+      </div>
+    </div>
+
+    <!-- VALIDADE + OBS -->
+    <div style="padding:16px 36px 6px; text-align:center; font-size:12px; color:#6b7280;">
+      Condição válida por <strong>${orc.validade_dias} dias</strong> — sujeita a alteração de preço sem aviso.
+    </div>
+
+    ${
+      orc.observacoes_cliente
+        ? `<div style="margin:10px 36px 4px; padding:12px 16px; background:#fef3c7; border-left:4px solid #f59e0b; border-radius:6px; font-size:12px; color:#78350f;">
+            <strong>Observações:</strong> ${esc(orc.observacoes_cliente)}
+          </div>`
+        : ''
+    }
+
+    <!-- FOOTER -->
+    <div style="background:linear-gradient(135deg, #1e3a8a, #1e40af); color:#ffffff; padding:16px 36px; margin-top:18px; text-align:center; font-size:11px; line-height:1.8;">
+      <div style="font-size:13px; font-weight:600;">
+        📞 ${esc(EMPRESA.contato.telefone)} &nbsp;•&nbsp; ✉️ ${esc(EMPRESA.contato.email)}
+      </div>
+      <div style="opacity:0.8; margin-top:4px;">
+        ${esc(EMPRESA.razaoSocial)} — CNPJ ${esc(EMPRESA.cnpj)} — CNAE ${esc(EMPRESA.atividadePrincipalCnae)}
+      </div>
+    </div>
+  </div>`;
+}
+
+export interface PdfOptions {
+  nomeEmpresa?: string;
+}
+
+export async function gerarOrcamentoPdf(orc: OrcamentoV2, _opts: PdfOptions = {}): Promise<jsPDF> {
+  const imgCache = await preloadImagens(orc);
+  const html = buildHtml(orc, imgCache);
+
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.left = '-10000px';
+  container.style.top = '0';
+  container.style.width = '800px';
+  container.style.background = '#ffffff';
+  container.innerHTML = html;
+  document.body.appendChild(container);
+
+  try {
+    await new Promise((r) => setTimeout(r, 150));
+
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+      logging: false,
+    });
+
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    const canvasAspect = canvas.height / canvas.width;
+    const pageAspect = pdfHeight / pdfWidth;
+
+    if (canvasAspect <= pageAspect) {
+      const imgHeight = pdfWidth * canvasAspect;
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, pdfWidth, imgHeight);
+    } else {
+      const pxPerMm = canvas.width / pdfWidth;
+      const pagePx = pdfHeight * pxPerMm;
+      let y = 0;
+      while (y < canvas.height) {
+        const sliceH = Math.min(pagePx, canvas.height - y);
+        const tmp = document.createElement('canvas');
+        tmp.width = canvas.width;
+        tmp.height = sliceH;
+        const ctx = tmp.getContext('2d')!;
+        ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+        const dataUrl = tmp.toDataURL('image/jpeg', 0.92);
+        if (y > 0) pdf.addPage();
+        pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, (sliceH / canvas.width) * pdfWidth);
+        y += sliceH;
+      }
+    }
+
+    return pdf;
+  } finally {
+    container.remove();
   }
-
-  if (desconto > 0) {
-    doc.setTextColor(...BRAND_GREEN);
-    doc.text(`Desconto (${orc.desconto_percentual}%):`, pageW - marginX - 60, y);
-    doc.text(`− ${fmtCurrency(desconto)}`, pageW - marginX - 2, y, { align: 'right' });
-    doc.setTextColor(...GRAY_DARK);
-    y += 5;
-  }
-
-  y += 2;
-  doc.setDrawColor(...BRAND_GREEN);
-  doc.setLineWidth(0.8);
-  doc.line(pageW - marginX - 62, y, pageW - marginX, y);
-  y += 6;
-
-  doc.setFillColor(...BRAND_GREEN);
-  doc.rect(pageW - marginX - 62, y - 4, 62, 12, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('VALOR TOTAL', pageW - marginX - 60, y + 2);
-  doc.setFontSize(13);
-  doc.text(fmtCurrency(total), pageW - marginX - 2, y + 3, { align: 'right' });
-  y += 12;
-
-  if (orc.observacoes_cliente) {
-    y += 6;
-    if (y > 260) { doc.addPage(); y = 20; }
-    doc.setTextColor(...GRAY_DARK);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Observações:', marginX, y);
-    y += 5;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    const lines = doc.splitTextToSize(orc.observacoes_cliente, pageW - 2 * marginX);
-    doc.text(lines, marginX, y);
-    y += lines.length * 4;
-  }
-
-  const pageH = doc.internal.pageSize.getHeight();
-
-  // Linha separadora rodapé
-  doc.setDrawColor(...GRAY_LIGHT);
-  doc.setLineWidth(0.2);
-  doc.line(marginX, pageH - 14, pageW - marginX, pageH - 14);
-
-  doc.setFontSize(7);
-  doc.setTextColor(...GRAY_DARK);
-  doc.setFont('helvetica', 'bold');
-  doc.text(EMPRESA.razaoSocial, pageW / 2, pageH - 10, { align: 'center' });
-
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...GRAY_LIGHT);
-  doc.text(
-    `${EMPRESA.textoLegalRodape} • ${conf.telefoneEmpresa} • ${EMPRESA.site}`,
-    pageW / 2, pageH - 6, { align: 'center' }
-  );
-  doc.text(
-    `Orçamento válido por ${orc.validade_dias} dias a partir da data de emissão`,
-    pageW / 2, pageH - 3, { align: 'center' }
-  );
-
-  return doc;
 }
 
 export async function baixarOrcamentoPdf(orc: OrcamentoV2, opts?: PdfOptions) {
   const doc = await gerarOrcamentoPdf(orc, opts);
-  const nome = `Orcamento_${(orc.numero || orc.id || Date.now()).toString().replace(/[^\w-]/g, '_')}_${orc.cliente_nome.replace(/\s+/g, '_') || 'cliente'}.pdf`;
+  const nome = `Orcamento_${(orc.numero || orc.id || Date.now())
+    .toString()
+    .replace(/[^\w-]/g, '_')}_${(orc.cliente_nome || 'cliente').replace(/\s+/g, '_')}.pdf`;
   doc.save(nome);
 }
 
@@ -317,7 +325,7 @@ export function formatarMensagemWhatsApp(orc: OrcamentoV2): string {
     linhas.push(`*${i + 1}. ${it.nome}* (${it.quantidade}x)`);
     if (it.material) linhas.push(`   🎨 Material: ${it.material}${it.cor ? ` — ${it.cor}` : ''}`);
     if (it.descricao) linhas.push(`   📝 ${it.descricao.slice(0, 140)}${it.descricao.length > 140 ? '...' : ''}`);
-    linhas.push(`   💵 ${it.valor_total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+    linhas.push(`   💵 ${fmtCurrency(it.valor_total)}`);
     linhas.push('');
   });
 
@@ -327,11 +335,11 @@ export function formatarMensagemWhatsApp(orc: OrcamentoV2): string {
   const desconto = base * ((orc.desconto_percentual || 0) / 100);
   const total = base - desconto;
 
-  linhas.push(`_Subtotal:_ ${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
-  if (frete > 0) linhas.push(`_Frete (${orc.envio.modalidade || '—'}):_ ${frete.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
-  if (desconto > 0) linhas.push(`_Desconto (${orc.desconto_percentual}%):_ −${desconto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+  linhas.push(`_Subtotal:_ ${fmtCurrency(subtotal)}`);
+  if (frete > 0) linhas.push(`_Frete (${orc.envio.modalidade || '—'}):_ ${fmtCurrency(frete)}`);
+  if (desconto > 0) linhas.push(`_Desconto (${orc.desconto_percentual}%):_ −${fmtCurrency(desconto)}`);
   linhas.push('');
-  linhas.push(`💰 *VALOR TOTAL: ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}*`);
+  linhas.push(`💰 *INVESTIMENTO TOTAL: ${fmtCurrency(total)}*`);
   linhas.push('');
   if (orc.envio.prazo_dias) linhas.push(`⏰ Prazo estimado: *${orc.envio.prazo_dias} dias*`);
   linhas.push(`📅 Validade da proposta: *${orc.validade_dias} dias*`);
