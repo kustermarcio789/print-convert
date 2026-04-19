@@ -178,13 +178,8 @@ export default function AdminDashboard() {
       color: 'text-orange-600',
       bg: 'bg-orange-50',
     },
-    {
-      title: 'Visitantes Hoje',
-      value: stats.visitantesHoje,
-      icon: Eye,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
-    },
+    // Card 'Visitantes Hoje' oculto — dados vinham de trafficAPI simulado.
+    // Religar quando tiver integração com GA4 Data API ou Vercel Analytics.
     {
       title: 'Taxa Conversão',
       value: `${stats.taxaConversao.toFixed(1)}%`,
@@ -323,8 +318,9 @@ export default function AdminDashboard() {
                 </Card>
               )}
 
-              {/* Analytics Section */}
-              <AnalyticsSection />
+              {/* Analytics Section oculto — os dados eram simulados (Math.random).
+                  GA4 real (G-YFB2V50SNS) está coletando; plugar via Data API quando for ligar. */}
+              {/* <AnalyticsSection /> */}
 
               {/* Recent Orders Table */}
               <Card>
