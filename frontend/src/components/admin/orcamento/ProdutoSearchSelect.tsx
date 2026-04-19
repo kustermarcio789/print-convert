@@ -1,10 +1,46 @@
-import { useMemo, useState } from 'react';
-import { Search, Package, X, Check } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Search, Package, X, Check, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getActiveProducts, type Product } from '@/lib/productStore';
+import { produtosAPI } from '@/lib/apiClient';
+import type { Product } from '@/lib/productStore';
+
+interface SupabaseProduct {
+  id: string;
+  name: string;
+  brand?: string;
+  category_name?: string;
+  description?: string;
+  price?: number;
+  stock?: number;
+  active?: boolean;
+  images?: string[];
+  specifications?: any;
+}
+
+// Converte shape do Supabase para o shape Product que o OrcamentoItemCard espera
+function toProduct(p: SupabaseProduct): Product {
+  return {
+    id: p.id,
+    nome: p.name,
+    marca: p.brand || '',
+    categoria: (p.category_name as any) || 'Outro',
+    preco: Number(p.price) || 0,
+    precoLabel: `R$ ${(Number(p.price) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+    estoque: p.stock ?? 0,
+    ativo: p.active !== false,
+    imagem: p.images?.[0] || '',
+    imagens: p.images || [],
+    descricao: p.description || '',
+    detalhes: p.description || '',
+    specs: p.specifications?.specs,
+    velocidade: p.specifications?.velocidade,
+    volume: p.specifications?.volume,
+    tipo: p.specifications?.tipo,
+  };
+}
 
 interface Props {
   onSelect: (produto: Product) => void;
@@ -12,24 +48,38 @@ interface Props {
   compact?: boolean;
 }
 
-export default function ProdutoSearchSelect({ onSelect, triggerLabel = 'Buscar produto no catálogo', compact = false }: Props) {
+export default function ProdutoSearchSelect({
+  onSelect,
+  triggerLabel = 'Buscar produto no catálogo',
+  compact = false,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [produtos, setProdutos] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const todos = useMemo(() => getActiveProducts(), []);
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    produtosAPI
+      .getAll()
+      .then((data) => setProdutos((data || []).map(toProduct)))
+      .finally(() => setLoading(false));
+  }, [open]);
 
   const filtrados = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return todos.slice(0, 30);
-    return todos
-      .filter(p =>
-        p.nome.toLowerCase().includes(q) ||
-        p.marca?.toLowerCase().includes(q) ||
-        p.categoria?.toLowerCase().includes(q) ||
-        p.descricao?.toLowerCase().includes(q)
+    if (!q) return produtos.slice(0, 40);
+    return produtos
+      .filter(
+        (p) =>
+          p.nome.toLowerCase().includes(q) ||
+          p.marca?.toLowerCase().includes(q) ||
+          p.categoria?.toLowerCase().includes(q) ||
+          p.descricao?.toLowerCase().includes(q)
       )
-      .slice(0, 30);
-  }, [query, todos]);
+      .slice(0, 40);
+  }, [query, produtos]);
 
   const handlePick = (p: Product) => {
     onSelect(p);
@@ -67,13 +117,21 @@ export default function ProdutoSearchSelect({ onSelect, triggerLabel = 'Buscar p
             )}
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            {filtrados.length} produto(s) {query ? 'encontrado(s)' : 'disponíveis'}
+            {loading
+              ? 'Carregando catálogo...'
+              : `${filtrados.length} produto(s) ${query ? 'encontrado(s)' : 'disponíveis'}`}
           </p>
         </div>
         <ScrollArea className="h-[320px]">
-          {filtrados.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+            </div>
+          ) : filtrados.length === 0 ? (
             <div className="p-6 text-center text-sm text-gray-500">
-              Nenhum produto encontrado para "{query}"
+              {produtos.length === 0
+                ? 'Nenhum produto cadastrado. Vá em Produtos → Novo Produto.'
+                : `Nenhum produto encontrado para "${query}"`}
             </div>
           ) : (
             <div className="py-1">
@@ -86,7 +144,14 @@ export default function ProdutoSearchSelect({ onSelect, triggerLabel = 'Buscar p
                 >
                   <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                     {p.imagem ? (
-                      <img src={p.imagem} alt={p.nome} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                      <img
+                        src={p.imagem}
+                        alt={p.nome}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
                     ) : (
                       <Package className="w-5 h-5 text-gray-400" />
                     )}
@@ -99,7 +164,8 @@ export default function ProdutoSearchSelect({ onSelect, triggerLabel = 'Buscar p
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="text-sm font-bold text-emerald-600">
-                      {p.precoLabel || `R$ ${p.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                      {p.precoLabel ||
+                        `R$ ${p.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                     </p>
                     {p.estoque > 0 ? (
                       <p className="text-[10px] text-gray-500">{p.estoque} em estoque</p>
