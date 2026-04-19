@@ -10,6 +10,7 @@ import Sidebar from '@/components/admin/Sidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { fmtBRL } from '@/lib/formatters';
 
 // Catálogo base de produtos (mesmo do AdminProdutos)
 const catalogoImpressoras = [
@@ -652,12 +653,12 @@ export default function AdminProdutoDetalhe() {
                   <div className="grid grid-cols-3 gap-6">
                     <div className="text-center p-4 bg-white/5 rounded-xl">
                       <p className="text-xs text-gray-500 mb-1">Preço de Venda</p>
-                      <p className="text-2xl font-bold text-green-400">R$ {produto.preco.toLocaleString('pt-BR')}</p>
+                      <p className="text-2xl font-bold text-green-400">{fmtBRL(produto.preco)}</p>
                     </div>
                     {produto.valorPago && (
                       <div className="text-center p-4 bg-white/5 rounded-xl">
                         <p className="text-xs text-gray-500 mb-1">Custo</p>
-                        <p className="text-2xl font-bold text-red-400">R$ {produto.valorPago.toLocaleString('pt-BR')}</p>
+                        <p className="text-2xl font-bold text-red-400">{fmtBRL(produto.valorPago)}</p>
                       </div>
                     )}
                     <div className="text-center p-4 bg-white/5 rounded-xl">
@@ -672,7 +673,7 @@ export default function AdminProdutoDetalhe() {
                 {produto.valorPago && produto.preco > 0 && !editMode && (
                   <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-center">
                     <p className="text-sm text-emerald-400">
-                      Margem de Lucro: R$ {(produto.preco - produto.valorPago).toLocaleString('pt-BR')} ({Math.round(((produto.preco - produto.valorPago) / produto.preco) * 100)}%)
+                      Margem de Lucro: {fmtBRL((produto.preco - produto.valorPago))} ({Math.round(((produto.preco - produto.valorPago) / produto.preco) * 100)}%)
                     </p>
                   </div>
                 )}
@@ -757,7 +758,7 @@ export default function AdminProdutoDetalhe() {
                           {v.descricao && <p className="text-gray-400 text-xs">{v.descricao}</p>}
                         </div>
                         <div className="text-right">
-                          <p className="text-green-400 font-bold">R$ {v.preco.toLocaleString('pt-BR')}</p>
+                          <p className="text-green-400 font-bold">{fmtBRL(v.preco)}</p>
                           <p className="text-gray-500 text-xs">Estoque: {v.estoque} un.</p>
                         </div>
                       </div>

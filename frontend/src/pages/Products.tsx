@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ShoppingCart, Filter, ImageOff } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
+import { fmtBRL } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getActiveProducts, getBrands, Product } from '@/lib/productsData';
@@ -320,11 +321,11 @@ export function Products() {
                             <div className="flex items-center justify-between pt-4 border-t border-border mt-auto">
                               <div className="flex flex-col">
                                 <span className="text-xl font-black text-foreground">
-                                  R$ {Number(product.price).toFixed(2).replace('.', ',')}
+                                  {fmtBRL(product.price)}
                                 </span>
                                 {product.original_price > 0 && (
                                   <span className="text-sm text-muted-foreground line-through font-medium">
-                                    R$ {Number(product.original_price).toFixed(2).replace('.', ',')}
+                                    {fmtBRL(product.original_price)}
                                   </span>
                                 )}
                               </div>

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Sidebar from '@/components/admin/Sidebar';
 import { supabase } from '@/lib/supabase';
+import { fmtBRL } from '@/lib/formatters';
 
 // ==================== CATÁLOGO BASE ====================
 // ==================== TIPOS ====================
@@ -92,7 +93,7 @@ function DeleteConfirmDialog({ produto, onConfirm, onCancel }: {
             <div className="min-w-0">
               <p className="text-sm font-medium text-white truncate">{produto.nome}</p>
               <p className="text-xs text-gray-400">
-                R$ {produto.preco.toLocaleString('pt-BR')} · Estoque: {produto.estoque} un.
+                {fmtBRL(produto.preco)} · Estoque: {produto.estoque} un.
               </p>
             </div>
           </div>
@@ -385,7 +386,7 @@ function EditModal({ produto, onSave, onClose, marcasDisponiveis }: {
             {form.valorPago && form.preco > 0 && (
               <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
                 <p className="text-sm text-emerald-400">
-                  Margem: R$ {(form.preco - form.valorPago).toLocaleString('pt-BR')} 
+                  Margem: {fmtBRL((form.preco - form.valorPago))} 
                   ({Math.round(((form.preco - form.valorPago) / form.preco) * 100)}%)
                 </p>
               </div>
@@ -500,7 +501,7 @@ function EditModal({ produto, onSave, onClose, marcasDisponiveis }: {
                           <div>
                             <p className="text-sm font-medium text-white">{v.nome}</p>
                             <p className="text-xs text-gray-400">
-                              R$ {v.preco.toLocaleString('pt-BR')} &bull; Estoque: {v.estoque} un.
+                              {fmtBRL(v.preco)} &bull; Estoque: {v.estoque} un.
                               {v.descricao && ` • ${v.descricao}`}
                             </p>
                           </div>
@@ -1181,7 +1182,7 @@ export default function AdminProdutos() {
                         <div className="mb-2 flex flex-wrap gap-1">
                           {produto.variacoes!.slice(0, 3).map(v => (
                             <span key={v.id} className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-[10px] text-blue-400">
-                              {v.nome} — R$ {v.preco.toLocaleString('pt-BR')}
+                              {v.nome} — {fmtBRL(v.preco)}
                             </span>
                           ))}
                           {produto.variacoes!.length > 3 && (
@@ -1192,7 +1193,7 @@ export default function AdminProdutos() {
 
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
                         <div>
-                          <p className="text-lg font-bold text-green-400">R$ {produto.preco.toLocaleString('pt-BR')}</p>
+                          <p className="text-lg font-bold text-green-400">{fmtBRL(produto.preco)}</p>
                           <p className="text-[10px] text-gray-500">Estoque: {produto.estoque || 0} un.</p>
                         </div>
                         <div className="flex gap-1.5">

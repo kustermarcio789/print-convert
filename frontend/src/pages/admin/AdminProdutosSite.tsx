@@ -190,7 +190,7 @@ export default function AdminProdutosSite() {
                   <ShoppingCart className="text-purple-400" size={18} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">R$ {valorEstoque.toLocaleString('pt-BR')}</p>
+                  <p className="text-2xl font-bold text-white">{fmtBRL(valorEstoque)}</p>
                   <p className="text-xs text-gray-400">Valor Estoque</p>
                 </div>
               </div>
@@ -268,7 +268,7 @@ export default function AdminProdutosSite() {
 
                   {/* Preço */}
                   <div className="text-right flex-shrink-0">
-                    <p className="text-lg font-bold text-green-400">R$ {produto.preco.toLocaleString('pt-BR')}</p>
+                    <p className="text-lg font-bold text-green-400">{fmtBRL(produto.preco)}</p>
                     <p className="text-xs text-gray-500">+ frete</p>
                   </div>
 
