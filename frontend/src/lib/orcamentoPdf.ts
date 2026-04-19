@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import type { OrcamentoV2 } from '@/types/orcamento';
+import { EMPRESA, enderecoFormatado } from './empresaData';
 
 const BRAND_BLUE: [number, number, number] = [37, 99, 235];
 const BRAND_GREEN: [number, number, number] = [22, 163, 74];
@@ -43,11 +44,11 @@ export interface PdfOptions {
 }
 
 const DEFAULT_OPTS: Required<PdfOptions> = {
-  nomeEmpresa: '3DKPRINT',
-  enderecoEmpresa: 'Ourinhos — SP',
-  telefoneEmpresa: '+55 (43) 99174-1518',
-  emailEmpresa: '3dk.print.br@gmail.com',
-  logoUrl: '',
+  nomeEmpresa: EMPRESA.nomeFantasia,
+  enderecoEmpresa: enderecoFormatado(),
+  telefoneEmpresa: EMPRESA.contato.telefone,
+  emailEmpresa: EMPRESA.contato.email,
+  logoUrl: EMPRESA.logoUrl,
 };
 
 export async function gerarOrcamentoPdf(orc: OrcamentoV2, opts: PdfOptions = {}): Promise<jsPDF> {
@@ -57,31 +58,49 @@ export async function gerarOrcamentoPdf(orc: OrcamentoV2, opts: PdfOptions = {})
   const marginX = 15;
   let y = 15;
 
+  // Header azul com logo + nome empresa
+  const headerH = 34;
   doc.setFillColor(...BRAND_BLUE);
-  doc.rect(0, 0, pageW, 30, 'F');
+  doc.rect(0, 0, pageW, headerH, 'F');
+
+  // Logo (se carregar)
+  const logoData = conf.logoUrl ? await urlToDataUrl(conf.logoUrl) : null;
+  let textX = marginX;
+  if (logoData) {
+    try {
+      const logoSize = 22;
+      doc.addImage(logoData, 'PNG', marginX, 6, logoSize, logoSize);
+      textX = marginX + logoSize + 5;
+    } catch {
+      /* se falhar, continua sem logo */
+    }
+  }
 
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(22);
+  doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text(conf.nomeEmpresa, marginX, 14);
+  doc.text(conf.nomeEmpresa, textX, 14);
 
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text('Proposta de Orçamento', marginX, 20);
-  doc.text(`${conf.telefoneEmpresa}  •  ${conf.emailEmpresa}`, marginX, 25);
+  doc.text('Proposta de Orçamento', textX, 19);
+  doc.text(`CNPJ ${EMPRESA.cnpj}`, textX, 23);
+  doc.text(`${conf.telefoneEmpresa} • ${conf.emailEmpresa}`, textX, 27);
+  doc.text(conf.enderecoEmpresa, textX, 31, { maxWidth: pageW - textX - 55 });
 
   if (orc.numero || orc.id) {
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     const numero = orc.numero || `#${String(orc.id).slice(0, 8)}`;
-    doc.text(numero, pageW - marginX, 14, { align: 'right' });
-    doc.setFontSize(8);
+    doc.text(numero, pageW - marginX, 12, { align: 'right' });
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Emitido em ${fmtDate(orc.created_at)}`, pageW - marginX, 20, { align: 'right' });
-    doc.text(`Validade: ${orc.validade_dias} dias`, pageW - marginX, 25, { align: 'right' });
+    doc.text(`Emitido em ${fmtDate(orc.created_at)}`, pageW - marginX, 18, { align: 'right' });
+    doc.text(`Validade: ${orc.validade_dias} dias`, pageW - marginX, 23, { align: 'right' });
+    doc.text(EMPRESA.site, pageW - marginX, 28, { align: 'right' });
   }
 
-  y = 40;
+  y = 44;
   doc.setTextColor(...GRAY_DARK);
 
   doc.setFillColor(...GRAY_BG);
@@ -253,11 +272,26 @@ export async function gerarOrcamentoPdf(orc: OrcamentoV2, opts: PdfOptions = {})
   }
 
   const pageH = doc.internal.pageSize.getHeight();
+
+  // Linha separadora rodapé
+  doc.setDrawColor(...GRAY_LIGHT);
+  doc.setLineWidth(0.2);
+  doc.line(marginX, pageH - 14, pageW - marginX, pageH - 14);
+
   doc.setFontSize(7);
+  doc.setTextColor(...GRAY_DARK);
+  doc.setFont('helvetica', 'bold');
+  doc.text(EMPRESA.razaoSocial, pageW / 2, pageH - 10, { align: 'center' });
+
+  doc.setFont('helvetica', 'normal');
   doc.setTextColor(...GRAY_LIGHT);
   doc.text(
-    `${conf.nomeEmpresa} • ${conf.telefoneEmpresa} • ${conf.emailEmpresa} • Orçamento válido por ${orc.validade_dias} dias`,
-    pageW / 2, pageH - 8, { align: 'center' }
+    `${EMPRESA.textoLegalRodape} • ${conf.telefoneEmpresa} • ${EMPRESA.site}`,
+    pageW / 2, pageH - 6, { align: 'center' }
+  );
+  doc.text(
+    `Orçamento válido por ${orc.validade_dias} dias a partir da data de emissão`,
+    pageW / 2, pageH - 3, { align: 'center' }
   );
 
   return doc;
@@ -271,7 +305,8 @@ export async function baixarOrcamentoPdf(orc: OrcamentoV2, opts?: PdfOptions) {
 
 export function formatarMensagemWhatsApp(orc: OrcamentoV2): string {
   const linhas: string[] = [];
-  linhas.push(`*3DKPRINT — Proposta de Orçamento*`);
+  linhas.push(`*${EMPRESA.nomeFantasia} — Proposta de Orçamento*`);
+  if (orc.numero) linhas.push(`_${orc.numero}_`);
   linhas.push('');
   linhas.push(`Olá ${orc.cliente_nome}! 👋`);
   linhas.push('');
@@ -302,6 +337,9 @@ export function formatarMensagemWhatsApp(orc: OrcamentoV2): string {
   linhas.push(`📅 Validade da proposta: *${orc.validade_dias} dias*`);
   linhas.push('');
   linhas.push(`Para aprovar, basta responder esta mensagem! ✅`);
+  linhas.push('');
+  linhas.push(`_${EMPRESA.razaoSocial}_`);
+  linhas.push(`_CNPJ ${EMPRESA.cnpj} • ${EMPRESA.site}_`);
 
   return linhas.join('\n');
 }
