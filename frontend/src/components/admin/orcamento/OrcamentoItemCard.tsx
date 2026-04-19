@@ -28,7 +28,7 @@ interface Props {
   onMoveDown?: () => void;
 }
 
-const MATERIAIS = ['PLA', 'PETG', 'ABS', 'TPU', 'Nylon', 'ASA', 'Resina Standard', 'Resina ABS-Like', 'Resina Dental', 'N/A'];
+const MATERIAIS = ['PLA', 'PETG', 'ABS', 'TPU', 'Nylon', 'ASA', 'Resina Standard', 'Resina ABS-Like', 'Resina Dental', 'Aço Carbono', 'Aço Inox', 'N/A'];
 const CORES = ['Branco', 'Preto', 'Cinza', 'Vermelho', 'Azul', 'Verde', 'Amarelo', 'Laranja', 'Rosa', 'Roxo', 'Transparente', 'Outra'];
 
 export default function OrcamentoItemCard({
