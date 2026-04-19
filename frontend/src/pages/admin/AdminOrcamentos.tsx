@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, CheckCircle, AlertCircle, Search, Eye, Plus, FileText,
@@ -120,6 +120,7 @@ function getStatusBadge(status: string) {
 
 export default function AdminOrcamentos() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [brutos, setBrutos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,6 +132,25 @@ export default function AdminOrcamentos() {
   useEffect(() => {
     carregar();
   }, []);
+
+  // Auto-abre modal se URL tem ?id=XXX (vem do dashboard ou link direto)
+  useEffect(() => {
+    const idParam = searchParams.get('id');
+    if (!idParam || loading) return;
+    const encontrado = brutos.map(normalizar).find((o) => o.id === idParam || o.numero === idParam);
+    if (encontrado) {
+      setSelecionado(encontrado);
+    }
+  }, [searchParams, brutos, loading]);
+
+  const fecharModal = () => {
+    setSelecionado(null);
+    if (searchParams.get('id')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('id');
+      setSearchParams(next, { replace: true });
+    }
+  };
 
   const carregar = async () => {
     try {
@@ -384,7 +404,7 @@ export default function AdminOrcamentos() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-              onClick={() => setSelecionado(null)}
+              onClick={() => fecharModal()}
             >
               <motion.div
                 initial={{ scale: 0.95 }}
@@ -409,7 +429,7 @@ export default function AdminOrcamentos() {
                         <SelectItem value="recusado">Recusado</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button variant="ghost" size="icon" onClick={() => setSelecionado(null)}>
+                    <Button variant="ghost" size="icon" onClick={() => fecharModal()}>
                       <X className="w-5 h-5" />
                     </Button>
                   </div>

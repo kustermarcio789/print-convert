@@ -16,6 +16,7 @@ import { getProductCountsByBrand } from '@/lib/productsData';
 import Sidebar, { menuItems } from '@/components/admin/Sidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import AnalyticsSection from '@/components/admin/AnalyticsSection';
+import { fmtBRL } from '@/lib/formatters';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -353,10 +354,10 @@ export default function AdminDashboard() {
                                 {getStatusLabel(orcamento.status)}
                               </span>
                             </td>
-                            <td className="px-6 py-4 font-semibold">R$ {Number(orcamento.valor_total || 0).toFixed(2)}</td>
+                            <td className="px-6 py-4 font-semibold">{fmtBRL(orcamento.valor_total)}</td>
                             <td className="px-6 py-4 text-gray-500">{new Date(orcamento.created_at).toLocaleDateString('pt-BR')}</td>
                             <td className="px-6 py-4">
-                              <Link to={`/admin/orcamentos/${orcamento.id}`} className="font-medium text-blue-600 hover:underline">Ver</Link>
+                              <Link to={`/admin/orcamentos?id=${orcamento.id}`} className="font-medium text-blue-600 hover:underline">Ver</Link>
                             </td>
                           </tr>
                         ))}
