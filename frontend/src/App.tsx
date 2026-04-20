@@ -114,7 +114,8 @@ const App = () => (
           <Route path="/admin/orcamentos/:id" element={<ProtectedRoute><AdminOrcamentoDetalhes /></ProtectedRoute>} />
           <Route path="/admin/orcamento-manual" element={<ProtectedRoute><AdminOrcamentoManual /></ProtectedRoute>} />
           <Route path="/admin/orcamento/novo" element={<ProtectedRoute><AdminOrcamentoManual /></ProtectedRoute>} />
-          <Route path="/admin/orcamento/editar/:id" element={<ProtectedRoute><AdminOrcamentoEditor /></ProtectedRoute>} />
+          <Route path="/admin/orcamento/editar/:id" element={<ProtectedRoute><AdminOrcamentoManual /></ProtectedRoute>} />
+          <Route path="/admin/orcamento/legacy-editar/:id" element={<ProtectedRoute><AdminOrcamentoEditor /></ProtectedRoute>} />
           <Route path="/admin/usuarios" element={<ProtectedRoute><AdminUsuarios /></ProtectedRoute>} />
           <Route path="/admin/clientes" element={<ProtectedRoute><AdminClientes /></ProtectedRoute>} />
           <Route path="/admin/fornecedores" element={<ProtectedRoute><AdminFornecedores /></ProtectedRoute>} />

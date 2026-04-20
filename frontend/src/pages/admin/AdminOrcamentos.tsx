@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock, CheckCircle, AlertCircle, Search, Eye, Plus, FileText,
   ShoppingCart, Mail, MessageCircle, Download, X, Image as ImageIcon,
-  Package, Loader2, Copy,
+  Package, Loader2, Copy, Edit,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -374,6 +374,9 @@ export default function AdminOrcamentos() {
                           <Button variant="outline" size="sm" onClick={() => setSelecionado(orc)} title="Ver detalhes">
                             <Eye className="w-4 h-4" />
                           </Button>
+                          <Button variant="outline" size="sm" onClick={() => navigate(`/admin/orcamento/editar/${orc.id}`)} title="Editar" className="text-amber-600">
+                            <Edit className="w-4 h-4" />
+                          </Button>
                           <Button variant="outline" size="sm" onClick={() => handleVisualizarPDF(orc)} disabled={isLoading && acao.tipo === 'view'} title="Visualizar PDF" className="text-indigo-600">
                             {isLoading && acao.tipo === 'view' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
                           </Button>
@@ -537,6 +540,9 @@ export default function AdminOrcamentos() {
 
                   {/* Ações */}
                   <section className="flex flex-wrap gap-2 pt-4 border-t">
+                    <Button onClick={() => { fecharModal(); navigate(`/admin/orcamento/editar/${selecionado.id}`); }} className="bg-amber-600 hover:bg-amber-700 gap-2">
+                      <Edit className="w-4 h-4" /> Editar
+                    </Button>
                     <Button onClick={() => handleVisualizarPDF(selecionado)} disabled={acao.id === selecionado.id && acao.tipo === 'view'} className="bg-indigo-600 hover:bg-indigo-700 gap-2">
                       {acao.id === selecionado.id && acao.tipo === 'view' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
                       Visualizar PDF

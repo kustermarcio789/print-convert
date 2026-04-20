@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, User, Package, Truck, DollarSign, Plus, Save, Loader2,
@@ -58,15 +58,67 @@ const STEPS = [
 
 export default function AdminOrcamentoManual() {
   const navigate = useNavigate();
+  const { id: editId } = useParams<{ id?: string }>();
+  const isEditing = !!editId;
   const { toast } = useToast();
 
   const [step, setStep] = useState(1);
   const [orcamento, setOrcamento] = useState<OrcamentoV2>(novoOrcamentoVazio());
+  const [loadingEdit, setLoadingEdit] = useState(isEditing);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<OrcamentoV2 | null>(null);
   const [enviandoEmail, setEnviandoEmail] = useState(false);
   const [baixandoPdf, setBaixandoPdf] = useState(false);
   const [visualizandoPdf, setVisualizandoPdf] = useState(false);
+
+  // Carrega orçamento existente pra edição
+  useEffect(() => {
+    if (!editId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoadingEdit(true);
+        const raw = await orcamentosAPI.getById(editId);
+        if (cancelled) return;
+        if (!raw) {
+          toast({ title: 'Orçamento não encontrado', variant: 'destructive' });
+          navigate('/admin/orcamentos');
+          return;
+        }
+        // Garante que tem os campos obrigatórios pro form
+        setOrcamento({
+          id: raw.id,
+          numero: raw.numero,
+          cliente_id: raw.cliente_id,
+          cliente_tipo: raw.cliente_tipo || 'PF',
+          cliente_nome: raw.cliente_nome || '',
+          cliente_email: raw.cliente_email || '',
+          cliente_whatsapp: raw.cliente_whatsapp || '',
+          cliente_telefone: raw.cliente_telefone,
+          cliente_cpf_cnpj: raw.cliente_cpf_cnpj,
+          endereco: raw.endereco || {},
+          envio: raw.envio || {},
+          itens: Array.isArray(raw.itens) && raw.itens.length > 0 ? raw.itens : [novoItemVazio(0)],
+          subtotal: raw.subtotal || 0,
+          desconto_percentual: raw.desconto_percentual || 0,
+          desconto_valor: raw.desconto_valor || 0,
+          valor_total: raw.valor_total || 0,
+          status: raw.status || 'pendente',
+          prazo_producao_dias: raw.prazo_producao_dias,
+          observacoes_internas: raw.observacoes_internas,
+          observacoes_cliente: raw.observacoes_cliente,
+          validade_dias: raw.validade_dias || 15,
+          created_at: raw.created_at,
+          origem: raw.origem,
+        });
+      } catch (err: any) {
+        toast({ title: 'Erro ao carregar', description: err.message, variant: 'destructive' });
+      } finally {
+        if (!cancelled) setLoadingEdit(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [editId]);
 
   const subtotal = useMemo(() => calcularSubtotal(orcamento.itens), [orcamento.itens]);
   const frete = orcamento.envio.valor_frete || 0;
@@ -180,22 +232,32 @@ export default function AdminOrcamentoManual() {
     setSaving(true);
     const payload = montarPayloadPersistido();
     try {
-      const salvo = await orcamentosAPI.create(payload as any);
-      const comId = { ...payload, id: (salvo as any)?.id || (salvo as any)?.[0]?.id || payload.id };
-      setSaved(comId);
-      toast({ title: 'Orçamento salvo!', description: `Total: ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` });
+      if (isEditing && editId) {
+        const salvo = await orcamentosAPI.update(editId, payload as any);
+        setSaved({ ...payload, id: editId, numero: (salvo as any)?.numero || payload.numero });
+        toast({ title: 'Orçamento atualizado!', description: `Total: ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` });
+      } else {
+        const salvo = await orcamentosAPI.create(payload as any);
+        const comId = { ...payload, id: (salvo as any)?.id || (salvo as any)?.[0]?.id || payload.id };
+        setSaved(comId);
+        toast({ title: 'Orçamento salvo!', description: `Total: ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` });
+      }
     } catch (err: any) {
       console.error(err);
-      const fallback = { ...payload, id: `local-${Date.now()}` };
-      const locais = JSON.parse(localStorage.getItem('orcamentos_offline') || '[]');
-      locais.push(fallback);
-      localStorage.setItem('orcamentos_offline', JSON.stringify(locais));
-      setSaved(fallback);
-      toast({
-        title: 'Salvo localmente',
-        description: 'Não consegui salvar no Supabase. Guardei no navegador como rascunho.',
-        variant: 'destructive',
-      });
+      if (isEditing) {
+        toast({ title: 'Erro ao atualizar', description: err.message, variant: 'destructive' });
+      } else {
+        const fallback = { ...payload, id: `local-${Date.now()}` };
+        const locais = JSON.parse(localStorage.getItem('orcamentos_offline') || '[]');
+        locais.push(fallback);
+        localStorage.setItem('orcamentos_offline', JSON.stringify(locais));
+        setSaved(fallback);
+        toast({
+          title: 'Salvo localmente',
+          description: 'Não consegui salvar no Supabase. Guardei no navegador como rascunho.',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setSaving(false);
     }
@@ -367,18 +429,34 @@ export default function AdminOrcamentoManual() {
     );
   }
 
+  if (loadingEdit) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">
+          <AdminHeader title="Carregando orçamento..." />
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />
       <main className="flex-1 overflow-y-auto">
-        <AdminHeader title="Novo Orçamento" />
+        <AdminHeader title={isEditing ? 'Editar Orçamento' : 'Novo Orçamento'} />
         <div className="p-4 lg:p-8 max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <Button variant="outline" size="sm" onClick={() => navigate('/admin/orcamentos')}>
               <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Criar Orçamento</h1>
+              <h1 className="text-xl font-bold text-gray-900">
+                {isEditing ? `Editar Orçamento ${orcamento.numero || ''}`.trim() : 'Criar Orçamento'}
+              </h1>
               <p className="text-sm text-gray-500">Multi-produto com fotos, dados do cliente e correios</p>
             </div>
           </div>
@@ -713,7 +791,7 @@ export default function AdminOrcamentoManual() {
                     className="bg-emerald-600 hover:bg-emerald-700"
                   >
                     {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                    Salvar Orçamento
+                    {isEditing ? 'Salvar Alterações' : 'Salvar Orçamento'}
                   </Button>
                 </div>
               </div>
