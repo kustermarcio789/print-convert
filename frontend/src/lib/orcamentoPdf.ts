@@ -61,10 +61,11 @@ async function preloadImagens(orc: OrcamentoV2): Promise<Map<string, string>> {
   return cache;
 }
 
-const ITENS_POR_PAGINA = 5;
-// Altura de cada linha de item (160px card + 10px margin). Controla caber 5 na página.
-const ITEM_HEIGHT = 160;
+const ITENS_POR_PAGINA = 4;
+// Dimensões do card de item. Controla caber 4 itens grandes em A4 mantendo qualidade.
+const ITEM_HEIGHT = 180;
 const ITEM_MARGIN = 10;
+const ITEM_IMG_SIZE = 178; // área quadrada da foto
 
 function buildItemHtml(it: OrcamentoV2['itens'][number], globalIdx: number, imgCache: Map<string, string>): string {
   const imgUrl = getImagemEfetiva(it);
@@ -76,23 +77,29 @@ function buildItemHtml(it: OrcamentoV2['itens'][number], globalIdx: number, imgC
   ]
     .filter(Boolean)
     .join(' • ');
-  const descShort = it.descricao ? (it.descricao.length > 220 ? it.descricao.slice(0, 220) + '...' : it.descricao) : '';
+  const descShort = it.descricao ? (it.descricao.length > 240 ? it.descricao.slice(0, 240) + '...' : it.descricao) : '';
+  // Usa <img> tag em vez de background-image: html2canvas preserva a resolução
+  // original da imagem muito melhor assim (background-image sofre reamostragem agressiva).
+  const imgBlock = img
+    ? `<img src="${img}" style="width:100%; height:100%; object-fit:contain; display:block; image-rendering:high-quality;" />`
+    : `<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#9ca3af; font-size:12px;">sem foto</div>`;
+  const textLeft = ITEM_IMG_SIZE + 14;
   return `
   <div style="position:relative; height:${ITEM_HEIGHT}px; background:#ffffff; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; margin-bottom:${ITEM_MARGIN}px; box-sizing:border-box;">
-    <div style="position:absolute; left:0; top:0; width:150px; height:${ITEM_HEIGHT - 2}px; background-color:#f3f4f6; background-image:${img ? `url('${img}')` : 'none'}; background-size:contain; background-repeat:no-repeat; background-position:center;">
-      ${!img ? `<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#9ca3af; font-size:12px;">sem foto</div>` : ''}
+    <div style="position:absolute; left:0; top:0; width:${ITEM_IMG_SIZE}px; height:${ITEM_HEIGHT - 2}px; background-color:#f3f4f6; padding:2px; box-sizing:border-box;">
+      ${imgBlock}
     </div>
-    <div style="margin-left:162px; padding:12px 16px; height:${ITEM_HEIGHT - 2}px; box-sizing:border-box; overflow:hidden;">
-      <div style="font-size:15px; font-weight:700; color:#1e40af; line-height:1.25; margin-bottom:5px;">
+    <div style="margin-left:${textLeft}px; padding:12px 16px; height:${ITEM_HEIGHT - 2}px; box-sizing:border-box; overflow:hidden;">
+      <div style="font-size:16px; font-weight:700; color:#1e40af; line-height:1.25; margin-bottom:6px;">
         ${globalIdx + 1}. ${esc(it.nome || 'Item sem nome')}
       </div>
-      ${descShort ? `<div style="font-size:11px; color:#374151; line-height:1.4; max-height:54px; overflow:hidden; margin-bottom:4px;">${esc(descShort)}</div>` : ''}
-      ${especs ? `<div style="font-size:11px; color:#6b7280; margin-bottom:4px;">${esc(especs)}</div>` : ''}
-      <div style="position:absolute; bottom:10px; left:174px; right:16px; display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px solid #e5e7eb;">
+      ${descShort ? `<div style="font-size:11px; color:#374151; line-height:1.45; max-height:74px; overflow:hidden; margin-bottom:5px;">${esc(descShort)}</div>` : ''}
+      ${especs ? `<div style="font-size:11px; color:#6b7280; margin-bottom:5px;">${esc(especs)}</div>` : ''}
+      <div style="position:absolute; bottom:10px; left:${textLeft + 12}px; right:16px; display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px solid #e5e7eb;">
         <div style="font-size:12px; color:#374151;">
           <strong>Qtd:</strong> ${it.quantidade} × ${fmtCurrency(it.valor_unitario)}
         </div>
-        <div style="font-size:17px; font-weight:700; color:#059669;">
+        <div style="font-size:18px; font-weight:700; color:#059669;">
           ${fmtCurrency(it.valor_total)}
         </div>
       </div>
@@ -106,7 +113,7 @@ function buildHeaderHtml(orc: OrcamentoV2, logo: string): string {
     <div style="position:relative; height:92px; background:linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); padding:16px 28px; box-sizing:border-box; overflow:hidden;">
       ${
         logo
-          ? `<div style="position:absolute; left:28px; top:14px; width:62px; height:62px; background-color:rgba(255,255,255,0.1); border-radius:10px; background-image:url('${logo}'); background-size:contain; background-repeat:no-repeat; background-position:center; background-origin:content-box; padding:5px;"></div>`
+          ? `<div style="position:absolute; left:28px; top:14px; width:62px; height:62px; background-color:rgba(255,255,255,0.1); border-radius:10px; padding:5px; box-sizing:border-box;"><img src="${logo}" style="width:100%; height:100%; object-fit:contain; display:block;" /></div>`
           : ''
       }
       <div style="margin-left:${logo ? '82px' : '0'}; margin-right:200px;">
@@ -275,15 +282,33 @@ async function renderPaginaCanvas(html: string): Promise<HTMLCanvasElement> {
   container.innerHTML = html;
   document.body.appendChild(container);
   try {
-    await new Promise((r) => setTimeout(r, 150));
+    // Espera um pouco mais pra garantir que todas as <img> (data URLs) já
+    // foram decoded pelo browser antes do html2canvas capturar.
+    await new Promise((r) => setTimeout(r, 250));
+    // Força aguardar qualquer <img> no container terminar de carregar.
+    const imgs = Array.from(container.querySelectorAll('img'));
+    await Promise.all(
+      imgs.map((im) =>
+        im.complete && im.naturalWidth > 0
+          ? Promise.resolve()
+          : new Promise<void>((res) => {
+              im.addEventListener('load', () => res(), { once: true });
+              im.addEventListener('error', () => res(), { once: true });
+            })
+      )
+    );
     const canvas = await html2canvas(container, {
-      scale: 1.5,
+      // Scale 2.5 dobra+ a resolução efetiva do canvas. As imagens das peças
+      // são renderizadas com muito mais detalhe (evita o efeito "pixelado/pequeno")
+      // sem aumentar tanto o tamanho do arquivo a ponto de o PDF ficar lento.
+      scale: 2.5,
       useCORS: true,
       allowTaint: false,
       backgroundColor: '#ffffff',
       logging: false,
       width: 800,
       windowWidth: 800,
+      imageTimeout: 15000,
     });
     if (!canvas.width || !canvas.height) {
       throw new Error('Falha ao renderizar o orçamento em canvas');
