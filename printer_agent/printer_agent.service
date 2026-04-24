@@ -1,0 +1,19 @@
+[Unit]
+Description=3dkprint — Agente de impressora
+After=network-online.target moonraker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Ajuste o usuário (normalmente "pi" ou "printer" dependendo do setup Klipper)
+User=pi
+WorkingDirectory=/home/pi/printer_agent
+# Se estiver usando venv, troque para: ExecStart=/home/pi/printer_agent/.venv/bin/python /home/pi/printer_agent/agent.py
+ExecStart=/usr/bin/python3 /home/pi/printer_agent/agent.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

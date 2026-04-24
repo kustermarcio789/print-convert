@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Sidebar from '@/components/admin/Sidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
+import PainelImpressorasConectadas from '@/components/admin/impressora/PainelImpressorasConectadas';
 
 // ============ INTERFACES ============
 interface Manutencao {
@@ -592,6 +593,9 @@ export default function AdminImpressoras() {
       <main className="flex-1 overflow-y-auto">
         <AdminHeader title="Minhas Impressoras" />
         <div className="p-6 max-w-7xl mx-auto space-y-6">
+
+          {/* Painel ao vivo (telemetria + controle) */}
+          <PainelImpressorasConectadas />
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
