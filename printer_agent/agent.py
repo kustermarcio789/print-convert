@@ -113,6 +113,48 @@ def moonraker_status(api_url: str) -> dict[str, Any]:
     return data.get("result", {}).get("status", {})
 
 
+def moonraker_base_url(api_url: str) -> str:
+    """Pega só scheme+host (sem porta) — pra acessar via nginx em :80 (webcam, etc)."""
+    from urllib.parse import urlparse
+    parsed = urlparse(api_url)
+    return f"{parsed.scheme}://{parsed.hostname}"
+
+
+def discover_webcam_url(api_url: str) -> str | None:
+    """
+    Tenta descobrir a URL de snapshot da webcam via /server/webcams/list (Moonraker
+    componente "webcam"). Retorna URL absoluta ou None se não houver webcam configurada.
+    """
+    try:
+        data = moonraker_get(api_url, "/server/webcams/list")
+    except Exception:
+        return None
+    cams = (data.get("result") or {}).get("webcams") or []
+    for c in cams:
+        if not c.get("enabled", True):
+            continue
+        snap = c.get("snapshot_url") or c.get("stream_url")
+        if not snap:
+            continue
+        if snap.startswith("http://") or snap.startswith("https://"):
+            return snap
+        # Path relativo — junta com o host (porta 80 via nginx)
+        base = moonraker_base_url(api_url)
+        if not snap.startswith("/"):
+            snap = "/" + snap
+        return base + snap
+    return None
+
+
+def get_history(api_url: str, limit: int = 50) -> list[dict[str, Any]]:
+    """Lista o histórico de prints do Moonraker (componente history)."""
+    try:
+        data = moonraker_get(api_url, f"/server/history/list?limit={limit}")
+        return data.get("result", {}).get("jobs", []) or []
+    except Exception:
+        return []
+
+
 def parse_telemetry(raw_status: dict[str, Any]) -> dict[str, Any]:
     """Converte o dump do Moonraker no formato que enviamos pro site."""
     print_stats = raw_status.get("print_stats", {}) or {}
@@ -594,6 +636,12 @@ class Agent:
         log.info("Agente iniciado — %d impressora(s) configurada(s).", len(self.cfg.printers))
         for p in self.cfg.printers:
             log.info("  • %s [%s] %s", p.nome or "(sem nome)", p.id[:8], p.api_url)
+            # Auto-discovery de webcam quando não configurada manualmente
+            if not p.webcam_url:
+                discovered = discover_webcam_url(p.api_url)
+                if discovered:
+                    p.webcam_url = discovered
+                    log.info("    webcam descoberta automaticamente: %s", discovered)
             if p.webcam_url:
                 log.info("    webcam: %s (a cada %ds)", p.webcam_url, p.snapshot_interval)
 
