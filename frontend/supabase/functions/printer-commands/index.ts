@@ -110,7 +110,7 @@ serve(async (req) => {
     } catch {
       return json({ error: "invalid JSON body" }, 400);
     }
-    const { command_id, status, error_message } = body || {};
+    const { command_id, status, error_message, result } = body || {};
     if (!command_id || !["done", "failed"].includes(status)) {
       return json({ error: "command_id and status (done|failed) required" }, 400);
     }
@@ -132,6 +132,7 @@ serve(async (req) => {
       .update({
         status,
         error_message: error_message ?? null,
+        result: result ?? null,
         completed_at: new Date().toISOString(),
       })
       .eq("id", command_id);

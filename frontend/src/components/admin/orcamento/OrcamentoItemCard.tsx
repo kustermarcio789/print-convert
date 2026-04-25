@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { OrcamentoItem } from '@/types/orcamento';
 import { uploadImage, uploadMultipleImages } from '@/lib/storageUpload';
 import ProdutoSearchSelect from './ProdutoSearchSelect';
+import PricingHelper from './PricingHelper';
 import type { Product } from '@/lib/productStore';
 
 interface Props {
@@ -362,6 +363,11 @@ export default function OrcamentoItemCard({
             </div>
           </div>
         </div>
+
+        <PricingHelper
+          quantidade={item.quantidade}
+          onApply={(unit) => update({ valor_unitario: unit })}
+        />
 
         {/* Observações do item */}
         <div>

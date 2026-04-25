@@ -2,12 +2,16 @@
   "site_base_url": "https://SEU_PROJETO.supabase.co",
   "telemetry_endpoint": "/functions/v1/printer-telemetry",
   "commands_endpoint": "/functions/v1/printer-commands",
+  "job_endpoint": "/functions/v1/printer-job",
+  "snapshot_endpoint": "/functions/v1/printer-snapshot",
   "printers": [
     {
       "id": "UUID_DA_IMPRESSORA_NA_TABELA_printer_devices",
       "nome": "Sovol SV08",
       "api_url": "http://192.168.1.129:7125",
-      "agente_token": "TOKEN_GERADO_AO_CADASTRAR_A_IMPRESSORA"
+      "agente_token": "TOKEN_GERADO_AO_CADASTRAR_A_IMPRESSORA",
+      "webcam_url": "http://192.168.1.129:8080/?action=snapshot",
+      "snapshot_interval": 30
     }
   ]
 }

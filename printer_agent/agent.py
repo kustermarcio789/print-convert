@@ -51,6 +51,8 @@ class PrinterConfig:
     api_url: str            # ex: "http://192.168.1.129:7125"
     agente_token: str       # token pra autenticar no site
     nome: str = ""
+    webcam_url: str = ""    # ex: "http://192.168.1.129:8080/?action=snapshot"
+    snapshot_interval: int = 30  # segundos entre snapshots automáticos (0 = desliga)
 
 
 @dataclass
@@ -58,6 +60,8 @@ class AgentConfig:
     site_base_url: str      # ex: "https://3dkprint.com.br" ou endpoint da edge function
     telemetry_endpoint: str
     commands_endpoint: str
+    job_endpoint: str
+    snapshot_endpoint: str
     printers: list[PrinterConfig]
 
 
@@ -73,6 +77,8 @@ def load_config() -> AgentConfig:
         site_base_url=raw["site_base_url"].rstrip("/"),
         telemetry_endpoint=raw.get("telemetry_endpoint", "/functions/v1/printer-telemetry"),
         commands_endpoint=raw.get("commands_endpoint", "/functions/v1/printer-commands"),
+        job_endpoint=raw.get("job_endpoint", "/functions/v1/printer-job"),
+        snapshot_endpoint=raw.get("snapshot_endpoint", "/functions/v1/printer-snapshot"),
         printers=printers,
     )
 
@@ -264,6 +270,60 @@ def cmd_klipper_restart(api_url: str, params: dict | None = None) -> None:
     moonraker_post(api_url, "/printer/restart", timeout=30)
 
 
+def cmd_read_config(api_url: str, params: dict | None = None) -> dict:
+    """Lê o arquivo printer.cfg via Moonraker. Retorna {filename, content}."""
+    filename = (params or {}).get("filename") or "printer.cfg"
+    r = requests.get(
+        f"{api_url.rstrip('/')}/server/files/config/{filename}",
+        timeout=MOONRAKER_TIMEOUT,
+    )
+    r.raise_for_status()
+    return {"filename": filename, "content": r.text}
+
+
+def cmd_save_config(api_url: str, params: dict) -> dict:
+    """Sobe um novo printer.cfg. params = {filename?, content}. Aceita FIRMWARE_RESTART opcional."""
+    filename = params.get("filename") or "printer.cfg"
+    content = params.get("content")
+    if content is None:
+        raise ValueError("content vazio")
+    files = {"file": (filename, content.encode("utf-8"), "text/plain")}
+    r = requests.post(
+        f"{api_url.rstrip('/')}/server/files/upload",
+        files=files,
+        data={"root": "config"},
+        timeout=MOONRAKER_COMMAND_TIMEOUT,
+    )
+    r.raise_for_status()
+    if params.get("restart"):
+        moonraker_post(api_url, "/printer/firmware_restart", timeout=30)
+    return {"saved": True, "filename": filename}
+
+
+def cmd_list_macros(api_url: str, params: dict | None = None) -> dict:
+    """Lista as macros (gcode_macro) carregadas no printer.cfg."""
+    data = moonraker_get(api_url, "/printer/objects/list")
+    objs = data.get("result", {}).get("objects", []) or []
+    macros = sorted(
+        [o.replace("gcode_macro ", "") for o in objs if o.startswith("gcode_macro ")]
+    )
+    return {"macros": macros}
+
+
+def cmd_capture_snapshot(api_url: str, params: dict) -> dict:
+    """Captura snapshot da webcam e devolve bytes em base64 (o site faz o upload no Storage)."""
+    import base64
+    webcam_url = params.get("webcam_url")
+    if not webcam_url:
+        raise ValueError("webcam_url vazio")
+    r = requests.get(webcam_url, timeout=10, stream=True)
+    r.raise_for_status()
+    return {
+        "image_base64": base64.b64encode(r.content).decode("ascii"),
+        "content_type": r.headers.get("Content-Type", "image/jpeg"),
+    }
+
+
 def cmd_print_file(api_url: str, params: dict) -> None:
     """
     Baixa o gcode do Supabase Storage e inicia o print via Moonraker.
@@ -306,6 +366,10 @@ COMMAND_HANDLERS = {
     "run_macro": lambda api, params: cmd_run_macro(api, params),
     "firmware_restart": lambda api, params: cmd_firmware_restart(api, params),
     "klipper_restart": lambda api, params: cmd_klipper_restart(api, params),
+    "read_config": lambda api, params: cmd_read_config(api, params),
+    "save_config": lambda api, params: cmd_save_config(api, params),
+    "list_macros": lambda api, params: cmd_list_macros(api, params),
+    "capture_snapshot": lambda api, params: cmd_capture_snapshot(api, params),
 }
 
 
@@ -354,13 +418,18 @@ class SiteClient:
             log.warning("[%s] commands fetch erro: %s", printer.nome, exc)
             return []
 
-    def complete_command(self, printer: PrinterConfig, command_id: str, ok: bool, error: str | None = None) -> None:
+    def complete_command(
+        self, printer: PrinterConfig, command_id: str, ok: bool,
+        error: str | None = None, result: Any = None,
+    ) -> None:
         url = self._url(self.cfg.commands_endpoint)
-        payload = {
+        payload: dict[str, Any] = {
             "command_id": command_id,
             "status": "done" if ok else "failed",
             "error_message": error,
         }
+        if result is not None:
+            payload["result"] = result
         try:
             self.session.patch(
                 url, json=payload, headers=self._headers(printer.agente_token),
@@ -368,6 +437,34 @@ class SiteClient:
             )
         except Exception as exc:
             log.warning("[%s] complete_command erro: %s", printer.nome, exc)
+
+    def push_job_event(self, printer: PrinterConfig, event: dict) -> None:
+        """POST pra /functions/v1/printer-job — agente reporta início/fim de print."""
+        url = self._url(self.cfg.job_endpoint)
+        try:
+            self.session.post(
+                url, json={"printer_id": printer.id, "event": event},
+                headers=self._headers(printer.agente_token),
+                timeout=TELEMETRY_TIMEOUT,
+            )
+        except Exception as exc:
+            log.warning("[%s] job event erro: %s", printer.nome, exc)
+
+    def push_snapshot(self, printer: PrinterConfig, image_base64: str, content_type: str) -> None:
+        url = self._url(self.cfg.snapshot_endpoint)
+        try:
+            self.session.post(
+                url,
+                json={
+                    "printer_id": printer.id,
+                    "image_base64": image_base64,
+                    "content_type": content_type,
+                },
+                headers=self._headers(printer.agente_token),
+                timeout=30,
+            )
+        except Exception as exc:
+            log.warning("[%s] snapshot erro: %s", printer.nome, exc)
 
 
 # =======================================================================
@@ -378,6 +475,12 @@ class Agent:
         self.cfg = cfg
         self.client = SiteClient(cfg)
         self.stop_flag = False
+        # estado anterior (printing/standby/...) por impressora — pra detectar transições
+        self.last_state: dict[str, str] = {}
+        # último arquivo impresso por impressora (preservar quando volta pra standby)
+        self.last_file: dict[str, str] = {}
+        # último snapshot ts por impressora (auto-snapshot durante print)
+        self.last_snapshot: dict[str, float] = {}
         signal.signal(signal.SIGINT, self._graceful_stop)
         signal.signal(signal.SIGTERM, self._graceful_stop)
 
@@ -385,23 +488,95 @@ class Agent:
         log.info("Sinal recebido, finalizando...")
         self.stop_flag = True
 
+    def _detect_job_transitions(self, printer: PrinterConfig, telemetry: dict, raw: dict) -> None:
+        """Compara estado atual com último para criar/finalizar jobs no banco."""
+        cur = telemetry.get("state") or "offline"
+        prev = self.last_state.get(printer.id)
+        filename = telemetry.get("current_file")
+        if filename:
+            self.last_file[printer.id] = filename
+        # raw vem do moonraker_status, tem print_stats com state mais granular
+        ps = (raw or {}).get("print_stats", {}) or {}
+        klipper_state = ps.get("state")  # standby, printing, paused, complete, cancelled, error
+
+        if prev != cur:
+            # transições "fim de job"
+            if prev == "printing" and cur in ("standby", "error"):
+                last_filename = self.last_file.get(printer.id)
+                if klipper_state == "complete":
+                    event_status = "completed"
+                elif klipper_state == "cancelled":
+                    event_status = "cancelled"
+                elif klipper_state == "error" or cur == "error":
+                    event_status = "failed"
+                else:
+                    event_status = "completed"  # padrão
+                self.client.push_job_event(printer, {
+                    "type": "finished",
+                    "status": event_status,
+                    "filename": last_filename,
+                    "duration_seconds": int(ps.get("print_duration") or 0),
+                    "filament_used_mm": ps.get("filament_used"),
+                    "failure_reason": ps.get("message") if event_status != "completed" else None,
+                })
+                log.info("[%s] job finalizado (%s, arquivo=%s)", printer.nome, event_status, last_filename)
+            # transição "início de job"
+            elif cur == "printing" and prev != "paused":
+                self.client.push_job_event(printer, {
+                    "type": "started",
+                    "filename": filename,
+                })
+                log.info("[%s] job iniciado: %s", printer.nome, filename)
+        self.last_state[printer.id] = cur
+
+    def _maybe_capture_snapshot(self, printer: PrinterConfig, state: str) -> None:
+        if not printer.webcam_url or printer.snapshot_interval <= 0:
+            return
+        if state != "printing":
+            return
+        now = time.time()
+        last = self.last_snapshot.get(printer.id, 0)
+        if now - last < printer.snapshot_interval:
+            return
+        try:
+            r = requests.get(printer.webcam_url, timeout=10)
+            r.raise_for_status()
+            import base64
+            img_b64 = base64.b64encode(r.content).decode("ascii")
+            ct = r.headers.get("Content-Type", "image/jpeg")
+            self.client.push_snapshot(printer, img_b64, ct)
+            self.last_snapshot[printer.id] = now
+            log.debug("[%s] snapshot enviado (%d bytes)", printer.nome, len(r.content))
+        except Exception as exc:
+            log.warning("[%s] snapshot falhou: %s", printer.nome, exc)
+
     def tick(self, printer: PrinterConfig) -> None:
         # 1) Coletar telemetria do Moonraker e enviar ao site
+        raw_status: dict[str, Any] = {}
         try:
-            status = moonraker_status(printer.api_url)
-            telemetry = parse_telemetry(status)
+            raw_status = moonraker_status(printer.api_url)
+            telemetry = parse_telemetry(raw_status)
         except Exception as exc:
             log.warning("[%s] Moonraker offline: %s", printer.nome, exc)
             telemetry = {"state": "offline", "state_message": str(exc)}
 
         self.client.push_telemetry(printer, telemetry)
 
-        # 2) Buscar comandos pendentes e executar
+        # 2) Detectar transições de estado e enviar eventos de job
+        self._detect_job_transitions(printer, telemetry, raw_status)
+
+        # 3) Auto-snapshot durante print
+        self._maybe_capture_snapshot(printer, telemetry.get("state") or "")
+
+        # 4) Buscar comandos pendentes e executar
         commands = self.client.fetch_commands(printer)
         for cmd in commands:
             cid = cmd.get("id")
             name = cmd.get("command")
             params = cmd.get("params") or {}
+            # injeta webcam_url se for capture_snapshot e não veio
+            if name == "capture_snapshot" and "webcam_url" not in params:
+                params["webcam_url"] = printer.webcam_url
             handler = COMMAND_HANDLERS.get(name)
             if not handler:
                 log.error("[%s] comando desconhecido: %s", printer.nome, name)
@@ -409,8 +584,8 @@ class Agent:
                 continue
             try:
                 log.info("[%s] executando comando %s", printer.nome, name)
-                handler(printer.api_url, params)
-                self.client.complete_command(printer, cid, ok=True)
+                ret = handler(printer.api_url, params)
+                self.client.complete_command(printer, cid, ok=True, result=ret)
             except Exception as exc:
                 log.exception("[%s] erro executando %s: %s", printer.nome, name, exc)
                 self.client.complete_command(printer, cid, ok=False, error=str(exc))
@@ -419,6 +594,8 @@ class Agent:
         log.info("Agente iniciado — %d impressora(s) configurada(s).", len(self.cfg.printers))
         for p in self.cfg.printers:
             log.info("  • %s [%s] %s", p.nome or "(sem nome)", p.id[:8], p.api_url)
+            if p.webcam_url:
+                log.info("    webcam: %s (a cada %ds)", p.webcam_url, p.snapshot_interval)
 
         last_tick = 0.0
         while not self.stop_flag:

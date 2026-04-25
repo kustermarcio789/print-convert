@@ -6,6 +6,7 @@ import {
 } from '@/lib/printerControl';
 import PrinterLiveCard from './PrinterLiveCard';
 import UploadGcodeDialog from './UploadGcodeDialog';
+import ROIDashboard from './ROIDashboard';
 
 /**
  * Painel "Impressoras Conectadas" — lista as impressoras que estão
@@ -96,6 +97,9 @@ export default function PainelImpressorasConectadas() {
           onClose={() => setUploadTarget(null)}
         />
       )}
+
+      {/* ROI Dashboard (KPIs agregados de toda a frota) */}
+      <ROIDashboard />
     </section>
   );
 }

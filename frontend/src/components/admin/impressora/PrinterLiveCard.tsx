@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Play, Pause, Square, AlertOctagon, RotateCcw, Upload, Thermometer, Sliders } from 'lucide-react';
+import { Play, Pause, Square, AlertOctagon, RotateCcw, Upload, Thermometer, Sliders, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   PrinterDevice,
@@ -11,6 +11,7 @@ import {
   stateLabel,
 } from '@/lib/printerControl';
 import PrinterAdvancedControls from './PrinterAdvancedControls';
+import PrinterDetailModal from './PrinterDetailModal';
 
 interface Props {
   impressora: PrinterDevice;
@@ -27,6 +28,7 @@ export default function PrinterLiveCard({ impressora, onOpenUpload }: Props) {
   const [sending, setSending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -199,6 +201,14 @@ export default function PrinterLiveCard({ impressora, onOpenUpload }: Props) {
         </Button>
         <Button
           size="sm"
+          variant="outline"
+          className="col-span-3"
+          onClick={() => setDetailOpen(true)}
+        >
+          <BarChart3 className="w-4 h-4 mr-1" /> Detalhes & análise
+        </Button>
+        <Button
+          size="sm"
           variant="destructive"
           className="col-span-3"
           onClick={() =>
@@ -217,6 +227,13 @@ export default function PrinterLiveCard({ impressora, onOpenUpload }: Props) {
         <PrinterAdvancedControls
           impressora={impressora}
           onClose={() => setAdvancedOpen(false)}
+        />
+      )}
+
+      {detailOpen && (
+        <PrinterDetailModal
+          impressora={impressora}
+          onClose={() => setDetailOpen(false)}
         />
       )}
     </div>

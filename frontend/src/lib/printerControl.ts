@@ -198,6 +198,276 @@ export async function listarGcodes(): Promise<GcodeFile[]> {
   return data as GcodeFile[];
 }
 
+// =====================================================
+// Fase B — Histórico de jobs
+// =====================================================
+export interface PrintJob {
+  id: string;
+  printer_id: string;
+  gcode_file_id: string | null;
+  gcode_filename: string | null;
+  started_at: string;
+  finished_at: string | null;
+  status: 'running' | 'completed' | 'failed' | 'cancelled';
+  duration_seconds: number | null;
+  filament_used_g: number | null;
+  failure_reason: string | null;
+  notes: string | null;
+}
+
+export async function listarPrintJobs(printerId: string, limit = 20): Promise<PrintJob[]> {
+  const { data, error } = await supabase
+    .from('printer_print_jobs')
+    .select('*')
+    .eq('printer_id', printerId)
+    .order('started_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data as PrintJob[];
+}
+
+// =====================================================
+// Fase C — Manutenção
+// =====================================================
+export interface MaintenanceLog {
+  id: string;
+  printer_id: string;
+  data: string;
+  tipo: 'preventiva' | 'corretiva' | 'upgrade' | 'calibracao';
+  descricao: string;
+  componentes: string | null;
+  custo: number;
+  tecnico: string | null;
+  horas_paradas: number;
+  proxima_em_dias: number | null;
+  created_at: string;
+}
+
+export async function listarManutencoes(printerId: string): Promise<MaintenanceLog[]> {
+  const { data, error } = await supabase
+    .from('printer_maintenance_logs')
+    .select('*')
+    .eq('printer_id', printerId)
+    .order('data', { ascending: false });
+  if (error) throw error;
+  return data as MaintenanceLog[];
+}
+
+export async function criarManutencao(payload: Partial<MaintenanceLog>): Promise<MaintenanceLog> {
+  const { data, error } = await supabase
+    .from('printer_maintenance_logs')
+    .insert(payload)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as MaintenanceLog;
+}
+
+export async function deletarManutencao(id: string): Promise<void> {
+  const { error } = await supabase.from('printer_maintenance_logs').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// =====================================================
+// Fase D — Precificação
+// =====================================================
+export interface PrinterPricing {
+  printer_id: string;
+  custo_hora: number;
+  custo_filamento_kg: number;
+  custo_setup: number;
+  margem_percentual: number;
+  tempo_minimo_horas: number;
+  observacoes: string | null;
+  updated_at: string;
+}
+
+export async function getPricing(printerId: string): Promise<PrinterPricing | null> {
+  const { data, error } = await supabase
+    .from('printer_pricing')
+    .select('*')
+    .eq('printer_id', printerId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as PrinterPricing | null;
+}
+
+export async function upsertPricing(p: PrinterPricing): Promise<void> {
+  const { error } = await supabase
+    .from('printer_pricing')
+    .upsert(p, { onConflict: 'printer_id' });
+  if (error) throw error;
+}
+
+export interface PrecificacaoInput {
+  printer_id: string;
+  tempo_horas: number;
+  filamento_g: number;
+  quantidade: number;
+}
+export interface PrecificacaoResultado {
+  custo_operacao: number;     // tempo * custo_hora
+  custo_filamento: number;    // (filamento_g / 1000) * custo_filamento_kg
+  custo_setup: number;
+  custo_total: number;
+  margem_valor: number;
+  preco_unitario: number;
+  preco_total: number;
+}
+
+export async function calcularPrecificacao(
+  input: PrecificacaoInput
+): Promise<PrecificacaoResultado | null> {
+  const pricing = await getPricing(input.printer_id);
+  if (!pricing) return null;
+  const tempo = Math.max(input.tempo_horas, pricing.tempo_minimo_horas);
+  const custo_operacao = tempo * pricing.custo_hora;
+  const custo_filamento = (input.filamento_g / 1000) * pricing.custo_filamento_kg;
+  const custo_setup = pricing.custo_setup;
+  const custo_total = custo_operacao + custo_filamento + custo_setup;
+  const margem_valor = custo_total * (pricing.margem_percentual / 100);
+  const preco_unitario = custo_total + margem_valor;
+  return {
+    custo_operacao,
+    custo_filamento,
+    custo_setup,
+    custo_total,
+    margem_valor,
+    preco_unitario,
+    preco_total: preco_unitario * Math.max(1, input.quantidade),
+  };
+}
+
+// =====================================================
+// Fase E — Macros (CRUD) e config
+// =====================================================
+export interface PrinterMacro {
+  id: string;
+  printer_id: string | null;
+  nome: string;
+  descricao: string | null;
+  gcode: string;
+  cor: string | null;
+  icone: string | null;
+  ordem: number;
+  created_at: string;
+}
+
+export async function listarMacros(printerId: string): Promise<PrinterMacro[]> {
+  const { data, error } = await supabase
+    .from('printer_macros')
+    .select('*')
+    .or(`printer_id.eq.${printerId},printer_id.is.null`)
+    .order('ordem', { ascending: true });
+  if (error) throw error;
+  return data as PrinterMacro[];
+}
+
+export async function salvarMacro(m: Partial<PrinterMacro>): Promise<PrinterMacro> {
+  if (m.id) {
+    const { data, error } = await supabase
+      .from('printer_macros')
+      .update(m)
+      .eq('id', m.id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data as PrinterMacro;
+  }
+  const { data, error } = await supabase
+    .from('printer_macros')
+    .insert(m)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as PrinterMacro;
+}
+
+export async function deletarMacro(id: string): Promise<void> {
+  const { error } = await supabase.from('printer_macros').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/**
+ * Cria comando read_config e fica esperando o agente preencher result.
+ * Long polling simples — checa a cada 1s por até 30s.
+ */
+export async function lerPrinterCfg(printerId: string, timeoutSeconds = 30): Promise<string> {
+  const cmd = await enviarComando(printerId, 'read_config');
+  const start = Date.now();
+  while (Date.now() - start < timeoutSeconds * 1000) {
+    await new Promise((r) => setTimeout(r, 1000));
+    const { data } = await supabase
+      .from('printer_commands')
+      .select('status, result, error_message')
+      .eq('id', cmd.id)
+      .maybeSingle();
+    if (data?.status === 'done' && (data.result as any)?.content !== undefined) {
+      return (data.result as any).content as string;
+    }
+    if (data?.status === 'failed') {
+      throw new Error(data.error_message || 'falha ao ler printer.cfg');
+    }
+  }
+  throw new Error('timeout esperando o agente responder');
+}
+
+export async function salvarPrinterCfg(
+  printerId: string,
+  content: string,
+  restart = false,
+): Promise<void> {
+  await enviarComando(printerId, 'save_config', { content, restart });
+}
+
+// =====================================================
+// Fase F — Webcam snapshots
+// =====================================================
+export interface PrinterSnapshot {
+  id: string;
+  printer_id: string;
+  storage_path: string;
+  taken_at: string;
+}
+
+export async function ultimoSnapshot(printerId: string): Promise<PrinterSnapshot | null> {
+  const { data, error } = await supabase
+    .from('printer_snapshots')
+    .select('*')
+    .eq('printer_id', printerId)
+    .order('taken_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data as PrinterSnapshot | null;
+}
+
+export function publicSnapshotUrl(storagePath: string): string {
+  const url = supabase.storage.from('webcam').getPublicUrl(storagePath);
+  return url.data.publicUrl;
+}
+
+// =====================================================
+// Fase G — KPIs (view)
+// =====================================================
+export interface PrinterKpi {
+  printer_id: string;
+  nome: string;
+  valor_compra: number;
+  jobs_ok: number;
+  jobs_falha: number;
+  horas_impressao: number;
+  custo_manutencao: number;
+  horas_paradas: number;
+}
+
+export async function listarKpis(): Promise<PrinterKpi[]> {
+  const { data, error } = await supabase.from('printer_kpis').select('*');
+  if (error) throw error;
+  return data as PrinterKpi[];
+}
+
+// =====================================================
 // Helpers de formatação para a UI
 export function formatDuration(seconds: number | null | undefined): string {
   if (!seconds || seconds < 0) return '—';
