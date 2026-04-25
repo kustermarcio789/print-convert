@@ -9,7 +9,7 @@ import {
   listarPrintJobs, listarManutencoes, criarManutencao, deletarManutencao,
   getPricing, upsertPricing, listarMacros, salvarMacro, deletarMacro,
   lerPrinterCfg, salvarPrinterCfg, ultimoSnapshot, publicSnapshotUrl,
-  enviarComando, formatDuration,
+  enviarComando, formatDuration, atualizarImpressora,
 } from '@/lib/printerControl';
 
 type TabId = 'history' | 'maintenance' | 'pricing' | 'webcam' | 'macros' | 'config';
@@ -384,12 +384,17 @@ function PricingTab({ impressora }: { impressora: PrinterDevice }) {
 }
 
 // ============================================================
-// Webcam (snapshots sob demanda + atalho pro Mainsail nativo)
+// Webcam — stream HTTPS público (Cloudflare Tunnel) + snapshot sob demanda
 // ============================================================
 function WebcamTab({ impressora }: { impressora: PrinterDevice }) {
   const [snap, setSnap] = useState<{ url: string; takenAt: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState(false);
+  const [streamError, setStreamError] = useState(false);
+  const [editTunnel, setEditTunnel] = useState(false);
+  const [tunnelBase, setTunnelBase] = useState(impressora.public_base_url || '');
+  const [tunnelStream, setTunnelStream] = useState(impressora.webcam_public_url || '');
+  const [savingTunnel, setSavingTunnel] = useState(false);
 
   const reload = async () => {
     const s = await ultimoSnapshot(impressora.id);
@@ -409,57 +414,134 @@ function WebcamTab({ impressora }: { impressora: PrinterDevice }) {
     }
   };
 
-  // Deriva URL do Mainsail (sem porta — nginx em :80) a partir do api_url
-  const mainsailUrl = (() => {
+  const localMainsailUrl = (() => {
     if (!impressora.api_url) return null;
     try {
       const u = new URL(impressora.api_url);
       return `${u.protocol}//${u.hostname}/`;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   })();
+
+  // URL do stream pública (Cloudflare Tunnel) - se setada, deduz do public_base_url se vazia
+  const publicStreamUrl = impressora.webcam_public_url
+    || (impressora.public_base_url ? impressora.public_base_url.replace(/\/+$/, '') + '/webcam/?action=stream' : null);
+  const publicMainsailUrl = impressora.public_base_url || null;
+
+  const saveTunnel = async () => {
+    setSavingTunnel(true);
+    try {
+      await atualizarImpressora(impressora.id, {
+        public_base_url: tunnelBase.trim() || null,
+        webcam_public_url: tunnelStream.trim() || null,
+      });
+      setEditTunnel(false);
+      // força reload do componente pai pra puxar campos atualizados
+      window.location.reload();
+    } finally {
+      setSavingTunnel(false);
+    }
+  };
 
   if (loading) return <Loading />;
 
   return (
-    <div className="space-y-3">
-      {snap ? (
-        <>
-          <img src={snap.url} alt="Webcam" className="w-full rounded-lg border" />
-          <div className="text-xs text-gray-500">
-            Foto capturada em: {new Date(snap.takenAt).toLocaleString('pt-BR')}
+    <div className="space-y-4">
+      {/* Stream HTTPS público (Cloudflare Tunnel) — funciona em qualquer rede */}
+      {publicStreamUrl && !streamError ? (
+        <div>
+          <div className="text-xs font-medium text-green-700 mb-1 flex items-center gap-1">
+            <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            Stream ao vivo (público via Cloudflare)
           </div>
-        </>
+          <img
+            src={publicStreamUrl}
+            alt="Stream ao vivo"
+            className="w-full rounded-lg border bg-black"
+            onError={() => setStreamError(true)}
+          />
+        </div>
+      ) : publicStreamUrl && streamError ? (
+        <div className="border border-yellow-200 bg-yellow-50 rounded p-3 text-sm">
+          ⚠️ Stream público não está respondendo. Verifique se o <code>cloudflared</code> está
+          rodando no RPi e se a URL <code>{publicStreamUrl}</code> está correta.
+          <button onClick={() => setStreamError(false)} className="ml-2 underline">tentar de novo</button>
+        </div>
       ) : (
-        <Empty>
-          Nenhuma foto capturada ainda. Clique em "Capturar foto agora" pra puxar uma snapshot
-          da webcam pelo agente — fica salva pra você acessar depois.
-        </Empty>
+        <div className="border border-blue-200 bg-blue-50 rounded p-3 text-xs space-y-1">
+          <div className="font-medium text-blue-900">📡 Stream remoto não configurado</div>
+          <div className="text-blue-800">
+            Pra ver a câmera de qualquer rede, configure um <strong>Cloudflare Tunnel</strong> no
+            seu RPi (~10 min, grátis) e cole a URL no botão "Configurar acesso remoto" abaixo.
+          </div>
+          <div className="text-blue-700">
+            Guia completo: veja <code>SETUP_CLOUDFLARE_TUNNEL.md</code> no repo.
+          </div>
+        </div>
       )}
 
+      {/* Foto mais recente */}
+      {snap && (
+        <div>
+          <div className="text-xs text-gray-500 mb-1">
+            Última foto capturada: {new Date(snap.takenAt).toLocaleString('pt-BR')}
+          </div>
+          <img src={snap.url} alt="Última snapshot" className="w-full rounded-lg border" />
+        </div>
+      )}
+
+      {/* Ações */}
       <div className="flex gap-2 flex-wrap">
         <Button onClick={captureNow} disabled={requesting}>
           {requesting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Camera className="w-4 h-4 mr-1" />}
           {requesting ? 'Capturando...' : 'Capturar foto agora'}
         </Button>
 
-        {mainsailUrl && (
-          <Button
-            variant="outline"
-            onClick={() => window.open(mainsailUrl, '_blank', 'noopener')}
-          >
-            🎥 Abrir stream ao vivo (Mainsail)
+        {publicMainsailUrl && (
+          <Button variant="outline" onClick={() => window.open(publicMainsailUrl, '_blank', 'noopener')}>
+            🎥 Abrir Mainsail (público)
           </Button>
         )}
+        {localMainsailUrl && (
+          <Button variant="outline" onClick={() => window.open(localMainsailUrl, '_blank', 'noopener')}>
+            🏠 Mainsail local
+          </Button>
+        )}
+        <Button variant="outline" onClick={() => setEditTunnel(!editTunnel)}>
+          ⚙ Configurar acesso remoto
+        </Button>
       </div>
 
-      <div className="text-xs text-gray-500 leading-relaxed border rounded p-2 bg-gray-50">
-        💡 O <strong>stream ao vivo</strong> só funciona quando você está na rede da
-        impressora (segurança do navegador bloqueia HTTPS→HTTP). Em casa, abra
-        o Mainsail no botão acima — ele tem stream contínuo. De fora, use as
-        fotos sob demanda — o agente captura e sobe pro site.
-      </div>
+      {/* Editor das URLs do tunnel */}
+      {editTunnel && (
+        <div className="border rounded-lg p-4 space-y-3 bg-gray-50">
+          <div className="font-medium text-sm">Cloudflare Tunnel — URLs públicas</div>
+          <div>
+            <label className="text-xs text-gray-600">URL base do Mainsail (público)</label>
+            <Input
+              value={tunnelBase}
+              onChange={(e) => setTunnelBase(e.target.value)}
+              placeholder="https://printer1.cfargotunnel.com"
+              className="font-mono text-xs"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-600">URL do stream MJPEG (opcional, deduz se vazio)</label>
+            <Input
+              value={tunnelStream}
+              onChange={(e) => setTunnelStream(e.target.value)}
+              placeholder="https://printer1.cfargotunnel.com/webcam/?action=stream"
+              className="font-mono text-xs"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={saveTunnel} disabled={savingTunnel}>
+              {savingTunnel && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+              Salvar
+            </Button>
+            <Button variant="outline" onClick={() => setEditTunnel(false)}>Cancelar</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

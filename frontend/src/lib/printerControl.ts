@@ -19,6 +19,8 @@ export interface PrinterDevice {
   intervalo_manutencao_horas: number;
   data_compra: string | null;
   valor_compra: number | null;
+  public_base_url: string | null;
+  webcam_public_url: string | null;
   created_at: string;
   updated_at: string;
 }
