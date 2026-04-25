@@ -51,7 +51,14 @@ export type PrinterCommandName =
   | 'home'
   | 'set_temp_extruder'
   | 'set_temp_bed'
-  | 'gcode_raw';
+  | 'gcode_raw'
+  | 'jog'
+  | 'baby_step'
+  | 'load_filament'
+  | 'unload_filament'
+  | 'run_macro'
+  | 'firmware_restart'
+  | 'klipper_restart';
 
 export interface PrinterCommand {
   id: string;

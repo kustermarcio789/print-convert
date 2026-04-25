@@ -210,6 +210,60 @@ def cmd_gcode_raw(api_url: str, params: dict) -> None:
     moonraker_post(api_url, "/printer/gcode/script", params={"script": script})
 
 
+def cmd_jog(api_url: str, params: dict) -> None:
+    """
+    Movimento relativo da cabeça/eixo.
+    params = { axis: 'X'|'Y'|'Z', distance: number, feedrate?: number }
+    """
+    axis = (params.get("axis") or "X").upper()
+    distance = float(params.get("distance", 0))
+    feedrate = int(params.get("feedrate", 3000))
+    if axis not in ("X", "Y", "Z", "E"):
+        raise ValueError(f"axis inválido: {axis}")
+    script = f"SAVE_GCODE_STATE NAME=__jog\nG91\nG1 {axis}{distance} F{feedrate}\nRESTORE_GCODE_STATE NAME=__jog"
+    moonraker_post(api_url, "/printer/gcode/script", params={"script": script})
+
+
+def cmd_baby_step(api_url: str, params: dict) -> None:
+    """
+    Z baby step (ajuste fino durante print).
+    params = { delta: number } em mm. Positivo afasta o bico, negativo aproxima.
+    """
+    delta = float(params.get("delta", 0))
+    moonraker_post(api_url, "/printer/gcode/script", params={"script": f"SET_GCODE_OFFSET Z_ADJUST={delta} MOVE=1"})
+
+
+def cmd_load_filament(api_url: str, params: dict | None = None) -> None:
+    """Executa macro LOAD_FILAMENT (assume que existe no printer.cfg do usuário)."""
+    moonraker_post(api_url, "/printer/gcode/script", params={"script": "LOAD_FILAMENT"})
+
+
+def cmd_unload_filament(api_url: str, params: dict | None = None) -> None:
+    """Executa macro UNLOAD_FILAMENT."""
+    moonraker_post(api_url, "/printer/gcode/script", params={"script": "UNLOAD_FILAMENT"})
+
+
+def cmd_run_macro(api_url: str, params: dict) -> None:
+    """
+    Executa macro arbitrária. params = { name: 'PRINT_START', args?: { TEMP: 220, ... } }
+    """
+    name = params.get("name")
+    if not name:
+        raise ValueError("name obrigatório")
+    args = params.get("args") or {}
+    extra = " ".join(f"{k}={v}" for k, v in args.items())
+    script = f"{name} {extra}".strip()
+    moonraker_post(api_url, "/printer/gcode/script", params={"script": script})
+
+
+def cmd_firmware_restart(api_url: str, params: dict | None = None) -> None:
+    moonraker_post(api_url, "/printer/firmware_restart", timeout=30)
+
+
+def cmd_klipper_restart(api_url: str, params: dict | None = None) -> None:
+    moonraker_post(api_url, "/printer/restart", timeout=30)
+
+
 def cmd_print_file(api_url: str, params: dict) -> None:
     """
     Baixa o gcode do Supabase Storage e inicia o print via Moonraker.
@@ -245,6 +299,13 @@ COMMAND_HANDLERS = {
     "set_temp_bed": lambda api, params: cmd_set_temp_bed(api, params),
     "gcode_raw": lambda api, params: cmd_gcode_raw(api, params),
     "print_file": lambda api, params: cmd_print_file(api, params),
+    "jog": lambda api, params: cmd_jog(api, params),
+    "baby_step": lambda api, params: cmd_baby_step(api, params),
+    "load_filament": lambda api, params: cmd_load_filament(api, params),
+    "unload_filament": lambda api, params: cmd_unload_filament(api, params),
+    "run_macro": lambda api, params: cmd_run_macro(api, params),
+    "firmware_restart": lambda api, params: cmd_firmware_restart(api, params),
+    "klipper_restart": lambda api, params: cmd_klipper_restart(api, params),
 }
 
 

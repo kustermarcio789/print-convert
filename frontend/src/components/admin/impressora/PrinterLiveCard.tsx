@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Play, Pause, Square, AlertOctagon, RotateCcw, Upload, Thermometer } from 'lucide-react';
+import { Play, Pause, Square, AlertOctagon, RotateCcw, Upload, Thermometer, Sliders } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   PrinterDevice,
@@ -10,6 +10,7 @@ import {
   stateColor,
   stateLabel,
 } from '@/lib/printerControl';
+import PrinterAdvancedControls from './PrinterAdvancedControls';
 
 interface Props {
   impressora: PrinterDevice;
@@ -25,6 +26,7 @@ export default function PrinterLiveCard({ impressora, onOpenUpload }: Props) {
   const [telemetry, setTelemetry] = useState<PrinterTelemetry | null>(null);
   const [sending, setSending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -188,6 +190,15 @@ export default function PrinterLiveCard({ impressora, onOpenUpload }: Props) {
         )}
         <Button
           size="sm"
+          variant="outline"
+          className="col-span-3"
+          onClick={() => setAdvancedOpen(true)}
+          disabled={!isOnline}
+        >
+          <Sliders className="w-4 h-4 mr-1" /> Controles avançados
+        </Button>
+        <Button
+          size="sm"
           variant="destructive"
           className="col-span-3"
           onClick={() =>
@@ -201,6 +212,13 @@ export default function PrinterLiveCard({ impressora, onOpenUpload }: Props) {
           <AlertOctagon className="w-4 h-4 mr-1" /> Emergency Stop
         </Button>
       </div>
+
+      {advancedOpen && (
+        <PrinterAdvancedControls
+          impressora={impressora}
+          onClose={() => setAdvancedOpen(false)}
+        />
+      )}
     </div>
   );
 }
