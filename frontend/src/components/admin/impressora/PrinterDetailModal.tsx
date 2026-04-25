@@ -384,7 +384,7 @@ function PricingTab({ impressora }: { impressora: PrinterDevice }) {
 }
 
 // ============================================================
-// Webcam (snapshots)
+// Webcam (snapshots sob demanda + atalho pro Mainsail nativo)
 // ============================================================
 function WebcamTab({ impressora }: { impressora: PrinterDevice }) {
   const [snap, setSnap] = useState<{ url: string; takenAt: string } | null>(null);
@@ -397,22 +397,28 @@ function WebcamTab({ impressora }: { impressora: PrinterDevice }) {
     setLoading(false);
   };
 
-  useEffect(() => {
-    reload();
-    const t = setInterval(reload, 10000);
-    return () => clearInterval(t);
-  }, [impressora.id]);
+  useEffect(() => { reload(); }, [impressora.id]);
 
   const captureNow = async () => {
     setRequesting(true);
     try {
       await enviarComando(impressora.id, 'capture_snapshot');
-      // dá tempo do agente capturar e subir
-      setTimeout(reload, 4000);
+      setTimeout(reload, 5000);
     } finally {
-      setTimeout(() => setRequesting(false), 4000);
+      setTimeout(() => setRequesting(false), 5000);
     }
   };
+
+  // Deriva URL do Mainsail (sem porta — nginx em :80) a partir do api_url
+  const mainsailUrl = (() => {
+    if (!impressora.api_url) return null;
+    try {
+      const u = new URL(impressora.api_url);
+      return `${u.protocol}//${u.hostname}/`;
+    } catch {
+      return null;
+    }
+  })();
 
   if (loading) return <Loading />;
 
@@ -420,25 +426,40 @@ function WebcamTab({ impressora }: { impressora: PrinterDevice }) {
     <div className="space-y-3">
       {snap ? (
         <>
-          <img
-            src={snap.url}
-            alt="Webcam"
-            className="w-full rounded-lg border"
-          />
+          <img src={snap.url} alt="Webcam" className="w-full rounded-lg border" />
           <div className="text-xs text-gray-500">
-            Última captura: {new Date(snap.takenAt).toLocaleString('pt-BR')}
+            Foto capturada em: {new Date(snap.takenAt).toLocaleString('pt-BR')}
           </div>
         </>
       ) : (
         <Empty>
-          Sem snapshots ainda. Configure <code>webcam_url</code> no <code>config.json</code> do agente
-          (geralmente <code>http://IP_DA_IMPRESSORA:8080/?action=snapshot</code>) ou clique em "Capturar agora".
+          Nenhuma foto capturada ainda. Clique em "Capturar foto agora" pra puxar uma snapshot
+          da webcam pelo agente — fica salva pra você acessar depois.
         </Empty>
       )}
-      <Button onClick={captureNow} disabled={requesting}>
-        {requesting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Camera className="w-4 h-4 mr-1" />}
-        Capturar agora
-      </Button>
+
+      <div className="flex gap-2 flex-wrap">
+        <Button onClick={captureNow} disabled={requesting}>
+          {requesting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Camera className="w-4 h-4 mr-1" />}
+          {requesting ? 'Capturando...' : 'Capturar foto agora'}
+        </Button>
+
+        {mainsailUrl && (
+          <Button
+            variant="outline"
+            onClick={() => window.open(mainsailUrl, '_blank', 'noopener')}
+          >
+            🎥 Abrir stream ao vivo (Mainsail)
+          </Button>
+        )}
+      </div>
+
+      <div className="text-xs text-gray-500 leading-relaxed border rounded p-2 bg-gray-50">
+        💡 O <strong>stream ao vivo</strong> só funciona quando você está na rede da
+        impressora (segurança do navegador bloqueia HTTPS→HTTP). Em casa, abra
+        o Mainsail no botão acima — ele tem stream contínuo. De fora, use as
+        fotos sob demanda — o agente captura e sobe pro site.
+      </div>
     </div>
   );
 }
