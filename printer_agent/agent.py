@@ -65,7 +65,8 @@ def load_config() -> AgentConfig:
         log.error("config.json não encontrado em %s", CONFIG_PATH)
         log.error("Crie copiando config.example.json e ajustando.")
         sys.exit(1)
-    raw = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    # utf-8-sig aceita arquivo com ou sem BOM (PowerShell adiciona BOM por padrão).
+    raw = json.loads(CONFIG_PATH.read_text(encoding="utf-8-sig"))
     printers = [PrinterConfig(**p) for p in raw["printers"]]
     return AgentConfig(
         site_base_url=raw["site_base_url"].rstrip("/"),
