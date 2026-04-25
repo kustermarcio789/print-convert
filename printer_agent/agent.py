@@ -32,7 +32,8 @@ CONFIG_PATH = Path(__file__).with_name("config.json")
 POLL_INTERVAL_SECONDS = 5         # telemetria a cada 5s
 COMMAND_POLL_INTERVAL_SECONDS = 3 # comandos a cada 3s (menor latência de controle)
 TELEMETRY_TIMEOUT = 10
-MOONRAKER_TIMEOUT = 5
+MOONRAKER_TIMEOUT = 5             # GET de status (rápido)
+MOONRAKER_COMMAND_TIMEOUT = 120   # comandos podem demorar (G28, M104 com aquecimento, upload de gcode)
 
 log = logging.getLogger("agent")
 logging.basicConfig(
@@ -88,7 +89,10 @@ def moonraker_get(api_url: str, path: str, **kwargs) -> Any:
 
 def moonraker_post(api_url: str, path: str, **kwargs) -> Any:
     url = f"{api_url.rstrip('/')}{path}"
-    r = requests.post(url, timeout=MOONRAKER_TIMEOUT, **kwargs)
+    # Timeout maior por padrão pra comandos (G28, aquecer mesa etc.).
+    # Quem chama pode passar timeout explícito pra reduzir.
+    timeout = kwargs.pop("timeout", MOONRAKER_COMMAND_TIMEOUT)
+    r = requests.post(url, timeout=timeout, **kwargs)
     r.raise_for_status()
     return r.json()
 
