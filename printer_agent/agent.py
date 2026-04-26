@@ -116,11 +116,13 @@ def moonraker_post(api_url: str, path: str, **kwargs) -> Any:
 
 def moonraker_status(api_url: str) -> dict[str, Any]:
     """Coleta um snapshot consolidado do estado da impressora."""
-    objects = (
-        "print_stats,display_status,extruder,heater_bed,toolhead,"
-        "virtual_sdcard,idle_timeout,pause_resume,webhooks,"
-        "gcode_move,fan,motion_report"
-    )
+    # Moonraker exige objetos separados por &, NÃO por vírgula.
+    # Vírgula vira string única → retorna {} → todas as temps ficam null.
+    objects = "&".join([
+        "print_stats", "display_status", "extruder", "heater_bed", "toolhead",
+        "virtual_sdcard", "idle_timeout", "pause_resume", "webhooks",
+        "gcode_move", "fan", "motion_report",
+    ])
     data = moonraker_get(api_url, f"/printer/objects/query?{objects}")
     return data.get("result", {}).get("status", {})
 
