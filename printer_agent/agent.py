@@ -29,8 +29,8 @@ from typing import Any
 import requests
 
 CONFIG_PATH = Path(__file__).with_name("config.json")
-POLL_INTERVAL_SECONDS = 5         # telemetria a cada 5s
-COMMAND_POLL_INTERVAL_SECONDS = 3 # comandos a cada 3s (menor latência de controle)
+POLL_INTERVAL_SECONDS = 15        # telemetria a cada 15s (cabe no free tier Supabase)
+COMMAND_POLL_INTERVAL_SECONDS = 8 # comandos a cada 8s (latência aceitável de controle)
 TELEMETRY_TIMEOUT = 10
 MOONRAKER_TIMEOUT = 5             # GET de status (rápido)
 MOONRAKER_COMMAND_TIMEOUT = 120   # comandos podem demorar (G28, M104 com aquecimento, upload de gcode)
