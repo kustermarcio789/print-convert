@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Play, Pause, Square, AlertOctagon, RotateCcw, Upload, Thermometer, Sliders, BarChart3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Play, Pause, Square, AlertOctagon, RotateCcw, Upload, Thermometer, Sliders, BarChart3, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   PrinterDevice,
@@ -32,6 +33,7 @@ export default function PrinterLiveCard({ impressora, onOpenUpload }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let cancelled = false;
@@ -205,12 +207,11 @@ export default function PrinterLiveCard({ impressora, onOpenUpload }: Props) {
         )}
         <Button
           size="sm"
-          variant="outline"
-          className="col-span-3"
-          onClick={() => setAdvancedOpen(true)}
-          disabled={!isOnline}
+          variant="default"
+          className="col-span-3 bg-blue-600 hover:bg-blue-700"
+          onClick={() => navigate(`/admin/impressoras/${impressora.id}`)}
         >
-          <Sliders className="w-4 h-4 mr-1" /> Controles avançados
+          <Maximize2 className="w-4 h-4 mr-1" /> Abrir painel completo
         </Button>
         <Button
           size="sm"
@@ -218,7 +219,7 @@ export default function PrinterLiveCard({ impressora, onOpenUpload }: Props) {
           className="col-span-3"
           onClick={() => setDetailOpen(true)}
         >
-          <BarChart3 className="w-4 h-4 mr-1" /> Detalhes & análise
+          <BarChart3 className="w-4 h-4 mr-1" /> Histórico, manutenção, ROI
         </Button>
         <Button
           size="sm"
