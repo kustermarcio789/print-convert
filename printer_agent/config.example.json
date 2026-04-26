@@ -1,5 +1,6 @@
 {
   "site_base_url": "https://SEU_PROJETO.supabase.co",
+  "supabase_service_role_key": "COLE_AQUI_O_SERVICE_ROLE_KEY (Settings → API → service_role) — desbloqueia PostgREST direto, sem limites de Edge Functions",
   "telemetry_endpoint": "/functions/v1/printer-telemetry",
   "commands_endpoint": "/functions/v1/printer-commands",
   "job_endpoint": "/functions/v1/printer-job",

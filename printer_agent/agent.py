@@ -22,15 +22,16 @@ import os
 import signal
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import requests
 
 CONFIG_PATH = Path(__file__).with_name("config.json")
-POLL_INTERVAL_SECONDS = 15        # telemetria a cada 15s (cabe no free tier Supabase)
-COMMAND_POLL_INTERVAL_SECONDS = 8 # comandos a cada 8s (latência aceitável de controle)
+POLL_INTERVAL_SECONDS = 5         # telemetria a cada 5s (PostgREST direto = ilimitado)
+COMMAND_POLL_INTERVAL_SECONDS = 3 # comandos a cada 3s (snappy)
 TELEMETRY_TIMEOUT = 10
 MOONRAKER_TIMEOUT = 5             # GET de status (rápido)
 MOONRAKER_COMMAND_TIMEOUT = 120   # comandos podem demorar (G28, M104 com aquecimento, upload de gcode)
@@ -57,7 +58,7 @@ class PrinterConfig:
 
 @dataclass
 class AgentConfig:
-    site_base_url: str      # ex: "https://3dkprint.com.br" ou endpoint da edge function
+    site_base_url: str      # ex: "https://abc.supabase.co" (URL do projeto Supabase)
     telemetry_endpoint: str
     commands_endpoint: str
     job_endpoint: str
@@ -65,6 +66,11 @@ class AgentConfig:
     ai_analyze_endpoint: str
     ai_settings_endpoint: str
     printers: list[PrinterConfig]
+    # Service role key — quando setado, o agente escreve direto via PostgREST
+    # (ilimitado no free tier) ao invés das edge functions (500K/mês limite).
+    # PEGUE EM: Supabase Dashboard → Project Settings → API → service_role
+    # ⚠️ NUNCA COMMITAR ESSA CHAVE — só vai no config.json LOCAL no RPi.
+    supabase_service_role_key: str = ""
 
 
 def load_config() -> AgentConfig:
@@ -83,6 +89,7 @@ def load_config() -> AgentConfig:
         snapshot_endpoint=raw.get("snapshot_endpoint", "/functions/v1/printer-snapshot"),
         ai_analyze_endpoint=raw.get("ai_analyze_endpoint", "/functions/v1/printer-ai-analyze"),
         ai_settings_endpoint=raw.get("ai_settings_endpoint", "/functions/v1/printer-ai-settings"),
+        supabase_service_role_key=raw.get("supabase_service_role_key", ""),
         printers=printers,
     )
 
@@ -584,9 +591,22 @@ COMMAND_HANDLERS = {
 # Comunicação com o site
 # =======================================================================
 class SiteClient:
+    # Colunas permitidas em printer_telemetry — bate com whitelist da edge function
+    TELEMETRY_COLS = {
+        "state", "state_message", "extruder_temp", "extruder_target",
+        "bed_temp", "bed_target", "chamber_temp", "progress", "current_file",
+        "print_duration_seconds", "print_time_remaining_seconds",
+        "position_x", "position_y", "position_z", "raw",
+    }
+
     def __init__(self, cfg: AgentConfig):
         self.cfg = cfg
         self.session = requests.Session()
+        self.use_pgrest = bool(cfg.supabase_service_role_key)
+        if self.use_pgrest:
+            log.info("Modo PostgREST direto ATIVO (free tier ilimitado, sem edge functions pra telemetry/commands).")
+        else:
+            log.warning("Modo edge functions (limite 500K/mês). Configure 'supabase_service_role_key' pra desbloquear PostgREST direto.")
 
     def _url(self, endpoint: str) -> str:
         return f"{self.cfg.site_base_url}{endpoint}"
@@ -597,7 +617,50 @@ class SiteClient:
             "Content-Type": "application/json",
         }
 
+    # ----------------- PostgREST direto (sem quota de Edge Functions) -----------------
+    def _pgrest_url(self, table: str, query: str = "") -> str:
+        base = self.cfg.site_base_url + f"/rest/v1/{table}"
+        return f"{base}?{query}" if query else base
+
+    def _pgrest_headers(self, prefer: str = "") -> dict[str, str]:
+        h = {
+            "apikey": self.cfg.supabase_service_role_key,
+            "Authorization": f"Bearer {self.cfg.supabase_service_role_key}",
+            "Content-Type": "application/json",
+        }
+        if prefer:
+            h["Prefer"] = prefer
+        return h
+
+    @staticmethod
+    def _now_iso() -> str:
+        return datetime.now(timezone.utc).isoformat()
+
+    # ----------------- Telemetria -----------------
     def push_telemetry(self, printer: PrinterConfig, telemetry: dict) -> None:
+        if self.use_pgrest:
+            self._push_telemetry_pgrest(printer, telemetry)
+        else:
+            self._push_telemetry_edge(printer, telemetry)
+
+    def _push_telemetry_pgrest(self, printer: PrinterConfig, telemetry: dict) -> None:
+        row: dict[str, Any] = {"printer_id": printer.id, "updated_at": self._now_iso()}
+        for k, v in telemetry.items():
+            if k in self.TELEMETRY_COLS:
+                row[k] = v
+        url = self._pgrest_url("printer_telemetry", "on_conflict=printer_id")
+        try:
+            r = self.session.post(
+                url, json=row,
+                headers=self._pgrest_headers("resolution=merge-duplicates,return=minimal"),
+                timeout=TELEMETRY_TIMEOUT,
+            )
+            if r.status_code >= 400:
+                log.warning("[%s] telemetry pgrest %s: %s", printer.nome, r.status_code, r.text[:200])
+        except Exception as exc:
+            log.warning("[%s] telemetry erro: %s", printer.nome or printer.id, exc)
+
+    def _push_telemetry_edge(self, printer: PrinterConfig, telemetry: dict) -> None:
         url = self._url(self.cfg.telemetry_endpoint)
         payload = {"printer_id": printer.id, "telemetry": telemetry}
         try:
@@ -610,7 +673,46 @@ class SiteClient:
         except Exception as exc:
             log.warning("[%s] telemetry erro: %s", printer.nome or printer.id, exc)
 
+    # ----------------- Comandos: fetch + complete -----------------
     def fetch_commands(self, printer: PrinterConfig) -> list[dict]:
+        if self.use_pgrest:
+            return self._fetch_commands_pgrest(printer)
+        return self._fetch_commands_edge(printer)
+
+    def _fetch_commands_pgrest(self, printer: PrinterConfig) -> list[dict]:
+        # SELECT pendentes
+        select_url = self._pgrest_url(
+            "printer_commands",
+            f"printer_id=eq.{printer.id}&status=eq.pending"
+            "&order=created_at.asc&limit=5&select=id,command,params",
+        )
+        try:
+            r = self.session.get(select_url, headers=self._pgrest_headers(), timeout=TELEMETRY_TIMEOUT)
+            if r.status_code >= 400:
+                log.warning("[%s] commands fetch pgrest %s: %s", printer.nome, r.status_code, r.text[:200])
+                return []
+            cmds = r.json() or []
+            if not cmds:
+                return []
+            # UPDATE → in_progress (anti-race usando &status=eq.pending no filtro)
+            ids = [c["id"] for c in cmds]
+            ids_csv = ",".join(ids)
+            update_url = self._pgrest_url(
+                "printer_commands",
+                f"id=in.({ids_csv})&status=eq.pending",
+            )
+            self.session.patch(
+                update_url,
+                json={"status": "in_progress", "picked_up_at": self._now_iso()},
+                headers=self._pgrest_headers("return=minimal"),
+                timeout=TELEMETRY_TIMEOUT,
+            )
+            return cmds
+        except Exception as exc:
+            log.warning("[%s] commands fetch erro: %s", printer.nome, exc)
+            return []
+
+    def _fetch_commands_edge(self, printer: PrinterConfig) -> list[dict]:
         url = self._url(self.cfg.commands_endpoint) + f"?printer_id={printer.id}"
         try:
             r = self.session.get(
@@ -629,6 +731,39 @@ class SiteClient:
         self, printer: PrinterConfig, command_id: str, ok: bool,
         error: str | None = None, result: Any = None,
     ) -> None:
+        if self.use_pgrest:
+            self._complete_command_pgrest(printer, command_id, ok, error, result)
+        else:
+            self._complete_command_edge(printer, command_id, ok, error, result)
+
+    def _complete_command_pgrest(
+        self, printer: PrinterConfig, command_id: str, ok: bool,
+        error: str | None, result: Any,
+    ) -> None:
+        update_url = self._pgrest_url("printer_commands", f"id=eq.{command_id}")
+        body: dict[str, Any] = {
+            "status": "done" if ok else "failed",
+            "completed_at": self._now_iso(),
+        }
+        if error is not None:
+            body["error_message"] = error
+        if result is not None:
+            body["result"] = result
+        try:
+            r = self.session.patch(
+                update_url, json=body,
+                headers=self._pgrest_headers("return=minimal"),
+                timeout=TELEMETRY_TIMEOUT,
+            )
+            if r.status_code >= 400:
+                log.warning("[%s] complete cmd %s: %s", printer.nome, r.status_code, r.text[:200])
+        except Exception as exc:
+            log.warning("[%s] complete_command erro: %s", printer.nome, exc)
+
+    def _complete_command_edge(
+        self, printer: PrinterConfig, command_id: str, ok: bool,
+        error: str | None, result: Any,
+    ) -> None:
         url = self._url(self.cfg.commands_endpoint)
         payload: dict[str, Any] = {
             "command_id": command_id,
@@ -645,8 +780,80 @@ class SiteClient:
         except Exception as exc:
             log.warning("[%s] complete_command erro: %s", printer.nome, exc)
 
+    # ----------------- Job events -----------------
     def push_job_event(self, printer: PrinterConfig, event: dict) -> None:
-        """POST pra /functions/v1/printer-job — agente reporta início/fim de print."""
+        """Reporta início/fim de print. Via PostgREST se possível, senão edge."""
+        if self.use_pgrest:
+            self._push_job_event_pgrest(printer, event)
+        else:
+            self._push_job_event_edge(printer, event)
+
+    def _push_job_event_pgrest(self, printer: PrinterConfig, event: dict) -> None:
+        ev_type = event.get("type")
+        try:
+            if ev_type == "started":
+                row = {
+                    "printer_id": printer.id,
+                    "gcode_filename": event.get("filename"),
+                    "status": "running",
+                    "started_at": self._now_iso(),
+                }
+                r = self.session.post(
+                    self._pgrest_url("printer_print_jobs"),
+                    json=row,
+                    headers=self._pgrest_headers("return=minimal"),
+                    timeout=TELEMETRY_TIMEOUT,
+                )
+                if r.status_code >= 400:
+                    log.warning("[%s] job started pgrest %s: %s", printer.nome, r.status_code, r.text[:200])
+                else:
+                    log.info("[%s] job event started enviado (HTTP %s)", printer.nome, r.status_code)
+                return
+
+            if ev_type == "finished":
+                # Acha último job 'running' e atualiza
+                find_url = self._pgrest_url(
+                    "printer_print_jobs",
+                    f"printer_id=eq.{printer.id}&status=eq.running"
+                    "&order=started_at.desc&limit=1&select=id",
+                )
+                r = self.session.get(find_url, headers=self._pgrest_headers(), timeout=TELEMETRY_TIMEOUT)
+                open_jobs = r.json() if r.status_code < 400 else []
+                fil_mm = event.get("filament_used_mm")
+                payload = {
+                    "status": event.get("status") or "completed",
+                    "finished_at": self._now_iso(),
+                    "duration_seconds": event.get("duration_seconds"),
+                    "filament_used_g": round(fil_mm / 1000 * 2.98) if fil_mm else None,
+                    "failure_reason": event.get("failure_reason"),
+                    "gcode_filename": event.get("filename"),
+                }
+                if open_jobs:
+                    job_id = open_jobs[0]["id"]
+                    r2 = self.session.patch(
+                        self._pgrest_url("printer_print_jobs", f"id=eq.{job_id}"),
+                        json=payload,
+                        headers=self._pgrest_headers("return=minimal"),
+                        timeout=TELEMETRY_TIMEOUT,
+                    )
+                else:
+                    # Fallback: insere job completo (se agente reiniciou no meio)
+                    payload["printer_id"] = printer.id
+                    payload["started_at"] = datetime.now(timezone.utc).isoformat()  # melhor estimar mas ok
+                    r2 = self.session.post(
+                        self._pgrest_url("printer_print_jobs"),
+                        json=payload,
+                        headers=self._pgrest_headers("return=minimal"),
+                        timeout=TELEMETRY_TIMEOUT,
+                    )
+                if r2.status_code >= 400:
+                    log.warning("[%s] job finished pgrest %s: %s", printer.nome, r2.status_code, r2.text[:200])
+                else:
+                    log.info("[%s] job event finished enviado (HTTP %s)", printer.nome, r2.status_code)
+        except Exception as exc:
+            log.warning("[%s] job event erro: %s", printer.nome, exc)
+
+    def _push_job_event_edge(self, printer: PrinterConfig, event: dict) -> None:
         url = self._url(self.cfg.job_endpoint)
         try:
             r = self.session.post(
