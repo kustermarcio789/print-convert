@@ -650,6 +650,112 @@ export async function atualizarFilaItem(id: string, patch: Partial<PrintQueueIte
 }
 
 // =====================================================
+// AI Failure Detection
+// =====================================================
+export type FailureType =
+  | 'spaghetti_failure'
+  | 'bed_detachment'
+  | 'layer_shift'
+  | 'extrusion_failure'
+  | 'unknown_failure';
+
+export interface PrinterAISettings {
+  id: string;
+  printer_id: string;
+  ai_enabled: boolean;
+  pause_on_failure: boolean;
+  confidence_threshold: number;
+  snapshot_interval_seconds: number;
+  provider: 'openai' | 'anthropic' | 'roboflow' | 'stub';
+  enabled_types: FailureType[] | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PrinterFailureEvent {
+  id: string;
+  printer_id: string;
+  job_id: string | null;
+  failure_type: FailureType;
+  confidence: number;
+  snapshot_url: string | null;
+  detected_at: string;
+  action_taken: string | null;
+  status: 'open' | 'acknowledged' | 'false_positive' | 'resolved';
+  notes: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface PrinterFailureKpi {
+  printer_id: string;
+  nome: string;
+  falhas_24h: number;
+  falhas_7d: number;
+  falhas_abertas: number;
+  falsos_positivos: number;
+  confianca_media_7d: number | null;
+  ultima_falha: string | null;
+}
+
+export async function getAISettings(printerId: string): Promise<PrinterAISettings | null> {
+  const { data, error } = await supabase
+    .from('printer_ai_settings')
+    .select('*')
+    .eq('printer_id', printerId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as PrinterAISettings | null;
+}
+
+export async function upsertAISettings(s: Partial<PrinterAISettings> & { printer_id: string }): Promise<void> {
+  const { error } = await supabase
+    .from('printer_ai_settings')
+    .upsert({ ...s, updated_at: new Date().toISOString() }, { onConflict: 'printer_id' });
+  if (error) throw error;
+}
+
+export async function listarFailureEvents(printerId: string, limit = 50): Promise<PrinterFailureEvent[]> {
+  const { data, error } = await supabase
+    .from('printer_failure_events')
+    .select('*')
+    .eq('printer_id', printerId)
+    .order('detected_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data as PrinterFailureEvent[];
+}
+
+export async function atualizarFailureStatus(id: string, status: PrinterFailureEvent['status'], notes?: string): Promise<void> {
+  const patch: Record<string, unknown> = { status };
+  if (notes !== undefined) patch.notes = notes;
+  const { error } = await supabase.from('printer_failure_events').update(patch).eq('id', id);
+  if (error) throw error;
+}
+
+export async function getFailureKpis(): Promise<PrinterFailureKpi[]> {
+  const { data, error } = await supabase.from('printer_failure_kpis').select('*');
+  if (error) throw error;
+  return data as PrinterFailureKpi[];
+}
+
+export const FAILURE_LABELS: Record<FailureType, string> = {
+  spaghetti_failure: 'Spaghetti (extrusão no ar)',
+  bed_detachment: 'Descolamento da mesa',
+  layer_shift: 'Layer shift',
+  extrusion_failure: 'Falha de extrusão',
+  unknown_failure: 'Falha desconhecida',
+};
+
+export const FAILURE_COLORS: Record<FailureType, string> = {
+  spaghetti_failure: 'text-orange-400',
+  bed_detachment: 'text-red-400',
+  layer_shift: 'text-yellow-400',
+  extrusion_failure: 'text-purple-400',
+  unknown_failure: 'text-gray-400',
+};
+
+// =====================================================
 // Helpers de formatação para a UI
 export function formatDuration(seconds: number | null | undefined): string {
   if (!seconds || seconds < 0) return '—';

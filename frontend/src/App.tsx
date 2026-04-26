@@ -38,6 +38,7 @@ import AdminOrcamentoEditor from './pages/admin/AdminOrcamentoEditor';
 import AdminMarcas from './pages/admin/AdminMarcas';
 import AdminImpressoras from './pages/admin/AdminImpressoras';
 import AdminImpressoraPainel from './pages/admin/AdminImpressoraPainel';
+import AdminImpressoraCockpit from './pages/admin/AdminImpressoraCockpit';
 import AdminPortfolio from './pages/admin/AdminPortfolio';
 import AdminLeads from './pages/admin/AdminLeads';
 import AdminGerenciarUsuarios from './pages/admin/AdminGerenciarUsuarios';
@@ -133,6 +134,7 @@ const App = () => (
           <Route path="/admin/marcas" element={<ProtectedRoute><AdminMarcas /></ProtectedRoute>} />
           <Route path="/admin/impressoras" element={<ProtectedRoute><AdminImpressoras /></ProtectedRoute>} />
           <Route path="/admin/impressoras/:id" element={<ProtectedRoute><AdminImpressoraPainel /></ProtectedRoute>} />
+          <Route path="/admin/impressoras/:id/cockpit" element={<ProtectedRoute><AdminImpressoraCockpit /></ProtectedRoute>} />
           <Route path="/admin/portfolio" element={<ProtectedRoute><AdminPortfolio /></ProtectedRoute>} />
           <Route path="/admin/pedidos" element={<ProtectedRoute><AdminPedidos /></ProtectedRoute>} />
           <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />

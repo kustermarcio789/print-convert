@@ -4,7 +4,7 @@ import {
   ArrowLeft, Camera, Pause, Play, Square, AlertOctagon, RotateCcw, Upload,
   ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Home as HomeIcon,
   Thermometer, Cpu, HardDrive, Loader2, Send, Trash2, Sliders, BarChart3,
-  PackagePlus, PackageMinus, RefreshCw,
+  PackagePlus, PackageMinus, RefreshCw, Rocket,
 } from 'lucide-react';
 import Sidebar from '@/components/admin/Sidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
@@ -125,6 +125,13 @@ export default function AdminImpressoraPainel() {
               </Button>
             )}
 
+            <Button
+              size="sm"
+              onClick={() => navigate(`/admin/impressoras/${impressora.id}/cockpit`)}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0"
+            >
+              <Rocket className="w-4 h-4 mr-1" /> Cockpit Mode
+            </Button>
             <Button size="sm" variant="outline" onClick={() => setDetalhesOpen(true)}>
               <BarChart3 className="w-4 h-4 mr-1" /> Detalhes
             </Button>

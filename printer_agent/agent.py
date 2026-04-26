@@ -62,6 +62,8 @@ class AgentConfig:
     commands_endpoint: str
     job_endpoint: str
     snapshot_endpoint: str
+    ai_analyze_endpoint: str
+    ai_settings_endpoint: str
     printers: list[PrinterConfig]
 
 
@@ -79,6 +81,8 @@ def load_config() -> AgentConfig:
         commands_endpoint=raw.get("commands_endpoint", "/functions/v1/printer-commands"),
         job_endpoint=raw.get("job_endpoint", "/functions/v1/printer-job"),
         snapshot_endpoint=raw.get("snapshot_endpoint", "/functions/v1/printer-snapshot"),
+        ai_analyze_endpoint=raw.get("ai_analyze_endpoint", "/functions/v1/printer-ai-analyze"),
+        ai_settings_endpoint=raw.get("ai_settings_endpoint", "/functions/v1/printer-ai-settings"),
         printers=printers,
     )
 
@@ -495,6 +499,25 @@ def cmd_capture_snapshot(api_url: str, params: dict) -> dict:
     }
 
 
+def cmd_ai_analyze(api_url: str, params: dict) -> dict:
+    """
+    Comando manual de análise — captura webcam e envia para a Edge Function
+    printer-ai-analyze. params = {webcam_url}. Retorna resultado da IA.
+    Esta função é mais usada pelo próprio agente no loop automático,
+    mas pode ser disparada manualmente também.
+    """
+    # Esse handler é stub — análise real é feita pelo loop em Agent.tick
+    # via SiteClient.ai_analyze. Aqui só capturamos pra retornar via comando.
+    res = cmd_capture_snapshot(api_url, params)
+    return {"image_captured": True, "size": len(res.get("image_base64", ""))}
+
+
+def cmd_sync_ai_settings(api_url: str, params: dict | None = None) -> dict:
+    """No-op: o agente já busca ai_settings periodicamente. Existe pra
+    forçar refresh imediato via comando do site."""
+    return {"synced": True}
+
+
 def cmd_print_file(api_url: str, params: dict) -> None:
     """
     Baixa o gcode do Supabase Storage e inicia o print via Moonraker.
@@ -552,6 +575,8 @@ COMMAND_HANDLERS = {
     "get_bed_mesh": lambda api, params: cmd_get_bed_mesh(api, params),
     "set_pressure_advance": lambda api, params: cmd_set_pressure_advance(api, params),
     "set_velocity_limits": lambda api, params: cmd_set_velocity_limits(api, params),
+    "ai_analyze": lambda api, params: cmd_ai_analyze(api, params),
+    "sync_ai_settings": lambda api, params: cmd_sync_ai_settings(api, params),
 }
 
 
@@ -648,6 +673,39 @@ class SiteClient:
         except Exception as exc:
             log.warning("[%s] snapshot erro: %s", printer.nome, exc)
 
+    def fetch_ai_settings(self, printer: PrinterConfig) -> dict | None:
+        """Pega configurações de IA da impressora. Retorna None se desabilitado/erro."""
+        url = self._url(self.cfg.ai_settings_endpoint) + f"?printer_id={printer.id}"
+        try:
+            r = self.session.get(url, headers=self._headers(printer.agente_token), timeout=10)
+            if r.status_code != 200:
+                return None
+            return r.json().get("settings") or None
+        except Exception:
+            return None
+
+    def ai_analyze(self, printer: PrinterConfig, image_base64: str, content_type: str) -> dict | None:
+        """Posta a imagem pra Edge Function analisar. Retorna {failure_type, confidence, ...}."""
+        url = self._url(self.cfg.ai_analyze_endpoint)
+        try:
+            r = self.session.post(
+                url,
+                json={
+                    "printer_id": printer.id,
+                    "image_base64": image_base64,
+                    "content_type": content_type,
+                },
+                headers=self._headers(printer.agente_token),
+                timeout=60,  # GPT-4V pode demorar
+            )
+            if r.status_code != 200:
+                log.warning("[%s] ai_analyze %s: %s", printer.nome, r.status_code, r.text[:200])
+                return None
+            return r.json()
+        except Exception as exc:
+            log.warning("[%s] ai_analyze erro: %s", printer.nome, exc)
+            return None
+
 
 # =======================================================================
 # Loop principal
@@ -663,6 +721,10 @@ class Agent:
         self.last_file: dict[str, str] = {}
         # último snapshot ts por impressora (auto-snapshot durante print)
         self.last_snapshot: dict[str, float] = {}
+        # ai cache: settings + último ts de análise por impressora
+        self.ai_settings_cache: dict[str, dict] = {}
+        self.last_ai_check: dict[str, float] = {}
+        self.last_ai_analysis: dict[str, float] = {}
         signal.signal(signal.SIGINT, self._graceful_stop)
         signal.signal(signal.SIGTERM, self._graceful_stop)
 
@@ -711,6 +773,69 @@ class Agent:
                 log.info("[%s] job iniciado: %s", printer.nome, filename)
         self.last_state[printer.id] = cur
 
+    def _maybe_run_ai(self, printer: PrinterConfig, state: str) -> None:
+        """
+        Loop de AI Failure Detection. Só roda se:
+          - Estado = printing
+          - ai_settings.ai_enabled = true
+          - Webcam configurada
+          - Passou snapshot_interval segundos desde a última análise
+        Captura snapshot, envia pra Edge Function ai-analyze, recebe resultado.
+        Se confidence >= threshold E pause_on_failure → enfileira comando 'pause'.
+        """
+        if state != "printing" or not printer.webcam_url:
+            return
+        # Refresh das settings a cada 60s
+        now = time.time()
+        if now - self.last_ai_check.get(printer.id, 0) > 60:
+            settings = self.client.fetch_ai_settings(printer)
+            if settings:
+                self.ai_settings_cache[printer.id] = settings
+            self.last_ai_check[printer.id] = now
+
+        s = self.ai_settings_cache.get(printer.id)
+        if not s or not s.get("ai_enabled"):
+            return
+
+        interval = max(10, int(s.get("snapshot_interval_seconds", 60)))
+        if now - self.last_ai_analysis.get(printer.id, 0) < interval:
+            return
+
+        # Captura webcam
+        try:
+            r = requests.get(printer.webcam_url, timeout=10)
+            r.raise_for_status()
+            import base64
+            img_b64 = base64.b64encode(r.content).decode("ascii")
+            ct = r.headers.get("Content-Type", "image/jpeg")
+        except Exception as exc:
+            log.warning("[%s] AI: captura webcam falhou: %s", printer.nome, exc)
+            return
+
+        result = self.client.ai_analyze(printer, img_b64, ct)
+        self.last_ai_analysis[printer.id] = now
+        if not result:
+            return
+
+        # Resultado esperado: {failure_detected: bool, failure_type, confidence, ...}
+        if not result.get("failure_detected"):
+            log.debug("[%s] AI: ok (%s)", printer.nome, result.get("notes", "no failure"))
+            return
+
+        ft = result.get("failure_type", "unknown_failure")
+        conf = float(result.get("confidence", 0))
+        threshold = float(s.get("confidence_threshold", 0.75))
+        log.warning("[%s] AI: FALHA detectada %s (conf=%.2f, threshold=%.2f)",
+                    printer.nome, ft, conf, threshold)
+
+        # Pause automático se configurado
+        if conf >= threshold and s.get("pause_on_failure"):
+            try:
+                cmd_pause(printer.api_url)
+                log.warning("[%s] AI: PAUSE automático executado", printer.nome)
+            except Exception as exc:
+                log.error("[%s] AI: falha ao pausar: %s", printer.nome, exc)
+
     def _maybe_capture_snapshot(self, printer: PrinterConfig, state: str) -> None:
         if not printer.webcam_url or printer.snapshot_interval <= 0:
             return
@@ -749,6 +874,9 @@ class Agent:
 
         # 3) Auto-snapshot durante print
         self._maybe_capture_snapshot(printer, telemetry.get("state") or "")
+
+        # 3b) AI Failure Detection
+        self._maybe_run_ai(printer, telemetry.get("state") or "")
 
         # 4) Buscar comandos pendentes e executar
         commands = self.client.fetch_commands(printer)
