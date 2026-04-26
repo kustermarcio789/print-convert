@@ -649,11 +649,18 @@ class SiteClient:
         """POST pra /functions/v1/printer-job — agente reporta início/fim de print."""
         url = self._url(self.cfg.job_endpoint)
         try:
-            self.session.post(
+            r = self.session.post(
                 url, json={"printer_id": printer.id, "event": event},
                 headers=self._headers(printer.agente_token),
                 timeout=TELEMETRY_TIMEOUT,
             )
+            if r.status_code >= 400:
+                log.warning(
+                    "[%s] job event %s respondeu %s: %s",
+                    printer.nome, event.get("type"), r.status_code, r.text[:200],
+                )
+            else:
+                log.info("[%s] job event %s enviado (HTTP %s)", printer.nome, event.get("type"), r.status_code)
         except Exception as exc:
             log.warning("[%s] job event erro: %s", printer.nome, exc)
 
@@ -744,6 +751,10 @@ class Agent:
         klipper_state = ps.get("state")  # standby, printing, paused, complete, cancelled, error
 
         if prev != cur:
+            log.info(
+                "[%s] state transition %s → %s (klipper=%s, file=%s)",
+                printer.nome, prev, cur, klipper_state, filename or self.last_file.get(printer.id),
+            )
             # transições "fim de job"
             if prev == "printing" and cur in ("standby", "error"):
                 last_filename = self.last_file.get(printer.id)
