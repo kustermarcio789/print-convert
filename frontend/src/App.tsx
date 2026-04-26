@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import Index from "./pages/Index";
 import { Products } from "./pages/Products";
 import Services from "./pages/Services";
@@ -37,7 +37,6 @@ import AdminOrcamentoManual from './pages/admin/AdminOrcamentoManual';
 import AdminOrcamentoEditor from './pages/admin/AdminOrcamentoEditor';
 import AdminMarcas from './pages/admin/AdminMarcas';
 import AdminImpressoras from './pages/admin/AdminImpressoras';
-import AdminImpressoraPainel from './pages/admin/AdminImpressoraPainel';
 import AdminImpressoraCockpit from './pages/admin/AdminImpressoraCockpit';
 import AdminPortfolio from './pages/admin/AdminPortfolio';
 import AdminLeads from './pages/admin/AdminLeads';
@@ -74,6 +73,12 @@ import { CartProvider } from './contexts/CartContext';
 import { MercadoPagoProvider } from './contexts/MercadoPagoContext';
 
 const queryClient = new QueryClient();
+
+// Redirect /admin/impressoras/:id → /admin/impressoras/:id/cockpit (URL canônica é /cockpit)
+function ImpressoraIdRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/admin/impressoras/${id}/cockpit`} replace />;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -133,7 +138,7 @@ const App = () => (
           <Route path="/admin/relatorios/dashboard" element={<ProtectedRoute><AdminDashboardExecutivo /></ProtectedRoute>} />
           <Route path="/admin/marcas" element={<ProtectedRoute><AdminMarcas /></ProtectedRoute>} />
           <Route path="/admin/impressoras" element={<ProtectedRoute><AdminImpressoras /></ProtectedRoute>} />
-          <Route path="/admin/impressoras/:id" element={<ProtectedRoute><AdminImpressoraPainel /></ProtectedRoute>} />
+          <Route path="/admin/impressoras/:id" element={<ImpressoraIdRedirect />} />
           <Route path="/admin/impressoras/:id/cockpit" element={<ProtectedRoute><AdminImpressoraCockpit /></ProtectedRoute>} />
           <Route path="/admin/portfolio" element={<ProtectedRoute><AdminPortfolio /></ProtectedRoute>} />
           <Route path="/admin/pedidos" element={<ProtectedRoute><AdminPedidos /></ProtectedRoute>} />

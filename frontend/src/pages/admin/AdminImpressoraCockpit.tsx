@@ -85,8 +85,8 @@ export default function AdminImpressoraCockpit() {
       {/* TOP BAR sticky */}
       <div className="sticky top-0 z-30 bg-gradient-to-b from-gray-900 to-gray-900/90 backdrop-blur-md border-b border-gray-800">
         <div className="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-3 flex-wrap">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/admin/impressoras/${impressora.id}`)} className="text-gray-300 hover:text-white hover:bg-gray-800">
-            <ArrowLeft className="w-4 h-4 mr-1"/>Painel clássico
+          <Button variant="ghost" size="sm" onClick={() => navigate('/admin/impressoras')} className="text-gray-300 hover:text-white hover:bg-gray-800">
+            <ArrowLeft className="w-4 h-4 mr-1"/>Voltar
           </Button>
 
           <div className={`w-3 h-3 rounded-full ${stateColor(state)} ${isOnline ? 'animate-pulse' : ''}`} />
