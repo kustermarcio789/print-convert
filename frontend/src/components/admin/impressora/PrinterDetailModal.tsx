@@ -1,22 +1,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   X, History, Wrench, DollarSign, Camera, FileCode, Plus, Trash2, Save, Loader2,
-  HardDrive, Cpu, Play, ListOrdered, ArrowUp, ArrowDown,
+  HardDrive, Cpu, Play, ListOrdered, ArrowUp, ArrowDown, Grid3x3, Sliders,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   PrinterDevice, PrintJob, MaintenanceLog, PrinterPricing, PrinterMacro,
-  GcodeOnPrinter, SystemInfoResult, PrintQueueItem,
+  GcodeOnPrinter, SystemInfoResult, PrintQueueItem, BedMeshResult,
   listarPrintJobs, listarManutencoes, criarManutencao, deletarManutencao,
   getPricing, upsertPricing, listarMacros, salvarMacro, deletarMacro,
   lerPrinterCfg, salvarPrinterCfg, ultimoSnapshot, publicSnapshotUrl,
   enviarComando, formatDuration, atualizarImpressora,
   listarGcodesImpressora, deletarGcodeImpressora, iniciarPrintLocal,
   pegarSystemInfo, listarFila, adicionarNaFila, removerDaFila, atualizarFilaItem,
+  pegarBedMesh, definirPressureAdvance, definirVelocityLimits, klipperSaveConfig,
 } from '@/lib/printerControl';
 
-type TabId = 'history' | 'maintenance' | 'pricing' | 'webcam' | 'macros' | 'config' | 'files' | 'system' | 'queue';
+type TabId = 'history' | 'maintenance' | 'pricing' | 'webcam' | 'macros' | 'config' | 'files' | 'system' | 'queue' | 'bedmesh' | 'tuning';
 
 interface Props {
   impressora: PrinterDevice;
@@ -50,6 +51,8 @@ export default function PrinterDetailModal({ impressora, onClose }: Props) {
             { id: 'macros', label: 'Macros', icon: <Plus className="w-4 h-4" /> },
             { id: 'maintenance', label: 'Manutenção', icon: <Wrench className="w-4 h-4" /> },
             { id: 'pricing', label: 'Precificação', icon: <DollarSign className="w-4 h-4" /> },
+            { id: 'bedmesh', label: 'Bed Mesh', icon: <Grid3x3 className="w-4 h-4" /> },
+            { id: 'tuning', label: 'Tuning', icon: <Sliders className="w-4 h-4" /> },
             { id: 'system', label: 'Sistema', icon: <Cpu className="w-4 h-4" /> },
             { id: 'config', label: 'printer.cfg', icon: <FileCode className="w-4 h-4" /> },
           ].map((t) => (
@@ -78,6 +81,8 @@ export default function PrinterDetailModal({ impressora, onClose }: Props) {
           {tab === 'files' && <FilesTab impressora={impressora} />}
           {tab === 'system' && <SystemTab impressora={impressora} />}
           {tab === 'queue' && <QueueTab impressora={impressora} />}
+          {tab === 'bedmesh' && <BedMeshTab impressora={impressora} />}
+          {tab === 'tuning' && <TuningTab impressora={impressora} />}
         </div>
       </div>
     </div>
@@ -980,6 +985,221 @@ function QueueTab({ impressora }: { impressora: PrinterDevice }) {
           pela aba Arquivos. Auto-execução vem na próxima fase.
         </div>
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Bed Mesh — visualização da malha da cama
+// ============================================================
+function BedMeshTab({ impressora }: { impressora: PrinterDevice }) {
+  const [mesh, setMesh] = useState<BedMeshResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const reload = async () => {
+    setLoading(true);
+    setErr(null);
+    try {
+      setMesh(await pegarBedMesh(impressora.id));
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { reload(); }, [impressora.id]);
+
+  const matrix = mesh?.mesh_matrix || mesh?.probed_matrix;
+  const profileName = mesh?.profile_name;
+  const profiles = mesh?.profiles || {};
+
+  // Calcula min/max pra colorir
+  const flat = matrix ? matrix.flat() : [];
+  const min = flat.length ? Math.min(...flat) : 0;
+  const max = flat.length ? Math.max(...flat) : 0;
+  const range = max - min || 1;
+
+  const colorFor = (v: number) => {
+    // verde no centro, azul abaixo, vermelho acima
+    const norm = (v - min) / range; // 0..1
+    if (norm < 0.5) {
+      const t = norm * 2;
+      const r = Math.round(40 + t * 100);
+      const g = Math.round(180 + t * 50);
+      const b = Math.round(255 - t * 100);
+      return `rgb(${r},${g},${b})`;
+    }
+    const t = (norm - 0.5) * 2;
+    const r = Math.round(140 + t * 115);
+    const g = Math.round(230 - t * 130);
+    const b = Math.round(155 - t * 100);
+    return `rgb(${r},${g},${b})`;
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <div className="text-sm font-medium">Mapa de altura da cama</div>
+        <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Atualizar'}
+        </Button>
+      </div>
+      {err && <div className="text-xs text-red-700 bg-red-50 rounded p-2">{err}</div>}
+
+      <div className="flex gap-2 flex-wrap">
+        <Button size="sm" variant="outline" onClick={() => enviarComando(impressora.id, 'gcode_raw', { gcode: 'BED_MESH_CALIBRATE' })}>
+          Calibrar (BED_MESH_CALIBRATE)
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => enviarComando(impressora.id, 'gcode_raw', { gcode: 'BED_MESH_CLEAR' })}>
+          Limpar mesh ativo
+        </Button>
+      </div>
+
+      {profileName && (
+        <div className="text-xs text-gray-600">
+          Perfil ativo: <span className="font-mono">{profileName}</span>
+        </div>
+      )}
+
+      {!matrix || matrix.length === 0 ? (
+        <Empty>
+          Nenhuma malha carregada. Rode um <code>BED_MESH_CALIBRATE</code> ou
+          <code>BED_MESH_PROFILE LOAD=&lt;nome&gt;</code> pra começar.
+        </Empty>
+      ) : (
+        <div>
+          <div className="text-xs text-gray-500 mb-2">
+            {matrix.length} × {matrix[0].length} pontos · variação:
+            {' '}<span className="text-blue-700 font-mono">{min.toFixed(3)}</span>
+            {' '}até{' '}
+            <span className="text-red-700 font-mono">{max.toFixed(3)}</span> mm
+          </div>
+          <div className="border rounded p-2 bg-gray-50 overflow-x-auto">
+            <table className="border-separate" style={{ borderSpacing: 2 }}>
+              <tbody>
+                {matrix.map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((v, ci) => (
+                      <td
+                        key={ci}
+                        className="text-[10px] font-mono text-center"
+                        style={{
+                          background: colorFor(v),
+                          width: 38,
+                          height: 26,
+                          color: '#1f2937',
+                          borderRadius: 3,
+                        }}
+                        title={`(${ri}, ${ci}): ${v.toFixed(4)} mm`}
+                      >
+                        {v.toFixed(2)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex gap-3 mt-2 text-xs">
+            <span className="px-2 py-0.5 rounded" style={{ background: 'rgb(40,180,255)' }}>baixo</span>
+            <span className="px-2 py-0.5 rounded" style={{ background: 'rgb(140,230,155)' }}>perfeito</span>
+            <span className="px-2 py-0.5 rounded text-white" style={{ background: 'rgb(255,100,55)' }}>alto</span>
+          </div>
+        </div>
+      )}
+
+      {Object.keys(profiles).length > 0 && (
+        <div>
+          <div className="text-sm font-medium mb-2 mt-4">Perfis salvos</div>
+          <div className="flex gap-2 flex-wrap">
+            {Object.keys(profiles).map((name) => (
+              <Button key={name} size="sm" variant="outline"
+                onClick={() => enviarComando(impressora.id, 'gcode_raw', { gcode: `BED_MESH_PROFILE LOAD=${name}` })}>
+                {name}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Tuning — Pressure Advance + Velocity Limits + SAVE_CONFIG
+// ============================================================
+function TuningTab({ impressora }: { impressora: PrinterDevice }) {
+  const [pa, setPa] = useState<number>(0.04);
+  const [st, setSt] = useState<number>(0.04);
+  const [velocity, setVelocity] = useState<number>(300);
+  const [accel, setAccel] = useState<number>(3000);
+  const [accelDecel, setAccelDecel] = useState<number>(3000);
+  const [scv, setScv] = useState<number>(5);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const send = async (label: string, fn: () => Promise<unknown>) => {
+    setBusy(label); setErr(null);
+    try {
+      await fn();
+      setMsg(`${label} aplicado.`);
+      setTimeout(() => setMsg(null), 2500);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <div className="text-sm font-medium mb-2">Pressure Advance (extrusora)</div>
+        <div className="grid grid-cols-3 gap-2">
+          <NumberField label="ADVANCE" value={pa} onChange={setPa} />
+          <NumberField label="SMOOTH_TIME (s)" value={st} onChange={setSt} />
+          <Button onClick={() => send('Pressure Advance', () => definirPressureAdvance(impressora.id, pa, st))} disabled={busy === 'Pressure Advance'}>
+            Aplicar
+          </Button>
+        </div>
+        <div className="text-xs text-gray-500 mt-1">
+          Valores típicos: 0.02-0.08 ADVANCE, 0.04 SMOOTH_TIME (PLA com bowden mais alto, direct mais baixo).
+        </div>
+      </div>
+
+      <div>
+        <div className="text-sm font-medium mb-2">Limites de velocidade/aceleração</div>
+        <div className="grid grid-cols-2 gap-3">
+          <NumberField label="VELOCITY (mm/s)" value={velocity} onChange={setVelocity} />
+          <NumberField label="ACCEL (mm/s²)" value={accel} onChange={setAccel} />
+          <NumberField label="ACCEL_TO_DECEL" value={accelDecel} onChange={setAccelDecel} />
+          <NumberField label="SQUARE_CORNER_VELOCITY (mm/s)" value={scv} onChange={setScv} />
+        </div>
+        <Button className="mt-2" onClick={() => send('Limites', () => definirVelocityLimits(impressora.id, {
+          velocity, accel, accel_to_decel: accelDecel, square_corner_velocity: scv,
+        }))} disabled={busy === 'Limites'}>
+          Aplicar limites
+        </Button>
+      </div>
+
+      <div className="border-t pt-4">
+        <div className="text-sm font-medium mb-2">Salvar calibrações no printer.cfg</div>
+        <div className="text-xs text-gray-500 mb-2">
+          Roda <code>SAVE_CONFIG</code> do Klipper — grava ajustes (Z-offset, PA, Bed Mesh, etc.)
+          permanentemente e reinicia o firmware.
+        </div>
+        <Button variant="outline" onClick={() =>
+          window.confirm('SAVE_CONFIG vai reiniciar a impressora. Confirmar?') &&
+          send('SAVE_CONFIG', () => klipperSaveConfig(impressora.id))
+        } disabled={busy === 'SAVE_CONFIG'}>
+          <Save className="w-4 h-4 mr-1" /> SAVE_CONFIG (Klipper)
+        </Button>
+      </div>
+
+      {msg && <div className="text-xs text-green-700 bg-green-50 rounded p-2">✓ {msg}</div>}
+      {err && <div className="text-xs text-red-700 bg-red-50 rounded p-2">{err}</div>}
     </div>
   );
 }
