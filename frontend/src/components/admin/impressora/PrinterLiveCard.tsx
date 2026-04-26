@@ -1,20 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Pause, Square, AlertOctagon, RotateCcw, Upload, Thermometer, Sliders, BarChart3, Maximize2 } from 'lucide-react';
+import {
+  Pause, Play, Square, AlertOctagon, BarChart3, Rocket, Wifi, WifiOff,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   PrinterDevice,
   PrinterTelemetry,
   enviarComando,
-  formatDuration,
   getTelemetry,
   stateColor,
   stateLabel,
-  definirVelocityFactor,
-  definirExtrudeFactor,
-  definirFan,
+  ultimoSnapshot,
+  publicSnapshotUrl,
 } from '@/lib/printerControl';
-import PrinterAdvancedControls from './PrinterAdvancedControls';
 import PrinterDetailModal from './PrinterDetailModal';
 
 interface Props {
@@ -23,15 +22,16 @@ interface Props {
 }
 
 /**
- * Card com telemetria ao vivo da impressora (polling a cada 5s) e
- * botões de controle. Cada botão cria um comando na fila; o agente local
- * puxa e executa no Moonraker.
+ * Card resumido pra listagem de impressoras conectadas.
+ * Foco em: status, webcam ao vivo, e 3 ações (Cockpit / Histórico / E-Stop).
+ * Controles detalhados (jog, temp, sliders) ficam no /cockpit dedicado.
  */
-export default function PrinterLiveCard({ impressora, onOpenUpload }: Props) {
+export default function PrinterLiveCard({ impressora }: Props) {
   const [telemetry, setTelemetry] = useState<PrinterTelemetry | null>(null);
+  const [snap, setSnap] = useState<string | null>(null);
+  const [streamError, setStreamError] = useState(false);
   const [sending, setSending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -39,30 +39,31 @@ export default function PrinterLiveCard({ impressora, onOpenUpload }: Props) {
     let cancelled = false;
     const load = async () => {
       try {
-        const t = await getTelemetry(impressora.id);
-        if (!cancelled) setTelemetry(t);
+        const [t, s] = await Promise.all([
+          getTelemetry(impressora.id),
+          ultimoSnapshot(impressora.id),
+        ]);
+        if (cancelled) return;
+        setTelemetry(t);
+        if (s) setSnap(publicSnapshotUrl(s.storage_path));
       } catch (err) {
         if (!cancelled) setError((err as Error).message);
       }
     };
     load();
     const timer = window.setInterval(load, 5000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
+    return () => { cancelled = true; window.clearInterval(timer); };
   }, [impressora.id]);
 
   const handleCommand = async (
     cmd: Parameters<typeof enviarComando>[1],
     confirmMsg?: string,
-    params?: Record<string, unknown>,
   ) => {
     if (confirmMsg && !window.confirm(confirmMsg)) return;
     setSending(cmd);
     setError(null);
     try {
-      await enviarComando(impressora.id, cmd, params);
+      await enviarComando(impressora.id, cmd);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -77,172 +78,125 @@ export default function PrinterLiveCard({ impressora, onOpenUpload }: Props) {
   const updatedAgo = telemetry?.updated_at
     ? Math.max(0, Math.floor((Date.now() - new Date(telemetry.updated_at).getTime()) / 1000))
     : null;
+  const progress = telemetry?.progress ?? 0;
+
+  const publicStream = impressora.webcam_public_url
+    || (impressora.public_base_url
+      ? impressora.public_base_url.replace(/\/+$/, '') + '/webcam/?action=stream'
+      : null);
 
   return (
     <div className="bg-white rounded-2xl shadow border border-gray-200 overflow-hidden flex flex-col">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 bg-gray-50">
-        <div className={`w-3 h-3 rounded-full ${stateColor(state)} ${isOnline ? 'animate-pulse' : ''}`} />
-        <div className="flex-1">
-          <div className="font-semibold text-gray-900">{impressora.nome}</div>
-          <div className="text-xs text-gray-500">
+      {/* Header compacto */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${stateColor(state)} ${isOnline ? 'animate-pulse' : ''}`} />
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-gray-900 truncate">{impressora.nome}</div>
+          <div className="text-xs text-gray-500 truncate">
             {impressora.marca} {impressora.modelo} · {stateLabel(state)}
-            {updatedAgo !== null && <span className="ml-2">({updatedAgo}s atrás)</span>}
+            {updatedAgo !== null && <span className="ml-1">({updatedAgo}s atrás)</span>}
           </div>
         </div>
-        <span className="text-xs font-mono px-2 py-0.5 bg-blue-50 text-blue-700 rounded">
+        <span className="text-xs font-mono px-2 py-0.5 bg-blue-50 text-blue-700 rounded flex-shrink-0">
           {impressora.firmware_tipo}
         </span>
       </div>
 
-      {/* Telemetria */}
-      <div className="px-5 py-4 space-y-3">
-        {telemetry?.current_file && (
-          <div className="text-sm text-gray-700 truncate" title={telemetry.current_file}>
-            📄 <span className="font-medium">{telemetry.current_file}</span>
-          </div>
-        )}
-
-        {/* Progress */}
-        {isPrinting || isPaused ? (
-          <div>
-            <div className="flex justify-between text-xs text-gray-600 mb-1">
-              <span>Progresso</span>
-              <span className="font-semibold">{telemetry?.progress?.toFixed(1) ?? 0}%</span>
-            </div>
-            <div className="h-2 bg-gray-200 rounded overflow-hidden">
-              <div
-                className={`h-full transition-all ${isPaused ? 'bg-yellow-400' : 'bg-green-500'}`}
-                style={{ width: `${Math.max(0, Math.min(100, telemetry?.progress ?? 0))}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>{formatDuration(telemetry?.print_duration_seconds)} decorrido</span>
-              <span>~{formatDuration(telemetry?.print_time_remaining_seconds)} restantes</span>
-            </div>
-          </div>
+      {/* Webcam preview (grande, em destaque) */}
+      <div className="relative bg-black aspect-video flex items-center justify-center overflow-hidden">
+        {publicStream && !streamError ? (
+          <img
+            src={publicStream}
+            alt="Webcam ao vivo"
+            className="w-full h-full object-contain"
+            onError={() => setStreamError(true)}
+          />
+        ) : snap ? (
+          <img src={snap} alt="Snapshot" className="w-full h-full object-contain" />
         ) : (
-          <div className="text-xs text-gray-500 italic">Sem job ativo</div>
+          <div className="text-gray-500 text-sm flex flex-col items-center gap-2">
+            <WifiOff className="w-8 h-8 opacity-40" />
+            Sem imagem disponível
+          </div>
         )}
 
-        {/* Sliders ao vivo (apenas durante print) */}
-        {(isPrinting || isPaused) && (
-          <LiveSliders
-            printerId={impressora.id}
-            velocityPct={(telemetry as any)?.raw?.velocity_factor_pct ?? 100}
-            extrudePct={(telemetry as any)?.raw?.extrude_factor_pct ?? 100}
-            fanPct={(telemetry as any)?.raw?.fan_pct ?? 0}
-          />
-        )}
-
-        {/* Temperaturas */}
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <TempGauge
-            label="Bico"
-            current={telemetry?.extruder_temp}
-            target={telemetry?.extruder_target}
-          />
-          <TempGauge
-            label="Mesa"
-            current={telemetry?.bed_temp}
-            target={telemetry?.bed_target}
-          />
+        {/* Overlay status */}
+        <div className="absolute top-2 left-2 right-2 flex items-center gap-2 pointer-events-none">
+          {isOnline && publicStream && !streamError && (
+            <span className="bg-black/60 backdrop-blur text-[10px] text-white font-mono px-2 py-0.5 rounded flex items-center gap-1">
+              <span className="inline-block w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+              ao vivo
+            </span>
+          )}
+          {(isPrinting || isPaused) && (
+            <span className={`ml-auto text-[10px] font-mono px-2 py-0.5 rounded backdrop-blur ${
+              isPaused ? 'bg-yellow-500/80 text-white' : 'bg-blue-500/80 text-white'
+            }`}>
+              {progress.toFixed(0)}%
+            </span>
+          )}
         </div>
 
-        {error && <div className="text-xs text-red-600 bg-red-50 rounded p-2">{error}</div>}
+        {/* Progress bar embaixo da câmera (só se imprimindo) */}
+        {(isPrinting || isPaused) && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/40">
+            <div
+              className={`h-full transition-all ${isPaused ? 'bg-yellow-400' : 'bg-green-500'}`}
+              style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Botões de controle */}
-      <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 grid grid-cols-3 gap-2">
-        {isPrinting && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleCommand('pause')}
-            disabled={sending === 'pause'}
-          >
-            <Pause className="w-4 h-4 mr-1" /> Pausar
+      {/* Ações contextuais (pause/resume/cancel só durante print) */}
+      {(isPrinting || isPaused) && (
+        <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex gap-2">
+          {isPrinting && (
+            <Button size="sm" variant="outline" className="flex-1"
+              onClick={() => handleCommand('pause')} disabled={sending === 'pause'}>
+              <Pause className="w-3.5 h-3.5 mr-1" /> Pausar
+            </Button>
+          )}
+          {isPaused && (
+            <Button size="sm" className="flex-1"
+              onClick={() => handleCommand('resume')} disabled={sending === 'resume'}>
+              <Play className="w-3.5 h-3.5 mr-1" /> Retomar
+            </Button>
+          )}
+          <Button size="sm" variant="outline" className="flex-1"
+            onClick={() => handleCommand('cancel', 'Cancelar o print atual?')}
+            disabled={sending === 'cancel'}>
+            <Square className="w-3.5 h-3.5 mr-1" /> Cancelar
           </Button>
-        )}
-        {isPaused && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleCommand('resume')}
-            disabled={sending === 'resume'}
-          >
-            <Play className="w-4 h-4 mr-1" /> Retomar
-          </Button>
-        )}
-        {(isPrinting || isPaused) && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleCommand('cancel', 'Cancelar o print atual? Essa ação não pode ser desfeita.')}
-            disabled={sending === 'cancel'}
-          >
-            <Square className="w-4 h-4 mr-1" /> Cancelar
-          </Button>
-        )}
-        {!isPrinting && !isPaused && (
-          <Button
-            size="sm"
-            variant="default"
-            onClick={() => onOpenUpload(impressora)}
-            disabled={!isOnline}
-            className="col-span-2"
-          >
-            <Upload className="w-4 h-4 mr-1" /> Enviar GCODE & Imprimir
-          </Button>
-        )}
-        {!isPrinting && !isPaused && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleCommand('home')}
-            disabled={sending === 'home' || !isOnline}
-          >
-            <RotateCcw className="w-4 h-4 mr-1" /> Home
-          </Button>
-        )}
+        </div>
+      )}
+
+      {error && (
+        <div className="px-4 py-2 text-xs text-red-600 bg-red-50 border-b border-red-100">{error}</div>
+      )}
+
+      {/* Botões principais */}
+      <div className="px-4 py-3 space-y-2">
         <Button
-          size="sm"
-          variant="default"
-          className="col-span-3 bg-blue-600 hover:bg-blue-700"
-          onClick={() => navigate(`/admin/impressoras/${impressora.id}`)}
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 font-semibold"
+          onClick={() => navigate(`/admin/impressoras/${impressora.id}/cockpit`)}
         >
-          <Maximize2 className="w-4 h-4 mr-1" /> Abrir painel completo
+          <Rocket className="w-4 h-4 mr-2" /> Cockpit Mode
         </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="col-span-3"
-          onClick={() => setDetailOpen(true)}
-        >
-          <BarChart3 className="w-4 h-4 mr-1" /> Histórico, manutenção, ROI
+
+        <Button variant="outline" className="w-full" onClick={() => setDetailOpen(true)}>
+          <BarChart3 className="w-4 h-4 mr-2" /> Histórico, manutenção, ROI
         </Button>
+
         <Button
-          size="sm"
           variant="destructive"
-          className="col-span-3"
-          onClick={() =>
-            handleCommand(
-              'emergency_stop',
-              'EMERGENCY STOP vai travar a impressora imediatamente — confirmar?',
-            )
-          }
+          className="w-full"
+          onClick={() => handleCommand('emergency_stop', 'EMERGENCY STOP vai travar a impressora — confirmar?')}
           disabled={!isOnline || sending === 'emergency_stop'}
         >
-          <AlertOctagon className="w-4 h-4 mr-1" /> Emergency Stop
+          <AlertOctagon className="w-4 h-4 mr-2" /> Emergency Stop
         </Button>
       </div>
-
-      {advancedOpen && (
-        <PrinterAdvancedControls
-          impressora={impressora}
-          onClose={() => setAdvancedOpen(false)}
-        />
-      )}
 
       {detailOpen && (
         <PrinterDetailModal
@@ -250,87 +204,6 @@ export default function PrinterLiveCard({ impressora, onOpenUpload }: Props) {
           onClose={() => setDetailOpen(false)}
         />
       )}
-    </div>
-  );
-}
-
-function TempGauge({
-  label,
-  current,
-  target,
-}: {
-  label: string;
-  current?: number | null;
-  target?: number | null;
-}) {
-  const cur = current ?? 0;
-  const tgt = target ?? 0;
-  const heating = tgt > 0 && Math.abs(cur - tgt) > 2;
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-gray-100 px-3 py-2">
-      <Thermometer className={`w-4 h-4 ${heating ? 'text-orange-500' : 'text-gray-400'}`} />
-      <div className="text-xs">
-        <div className="text-gray-500">{label}</div>
-        <div className="font-mono text-gray-900">
-          {cur.toFixed(0)}° <span className="text-gray-400">/ {tgt.toFixed(0)}°</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function LiveSliders({
-  printerId,
-  velocityPct,
-  extrudePct,
-  fanPct,
-}: {
-  printerId: string;
-  velocityPct: number;
-  extrudePct: number;
-  fanPct: number;
-}) {
-  const [v, setV] = useState(velocityPct);
-  const [e, setE] = useState(extrudePct);
-  const [f, setF] = useState(fanPct);
-
-  // Sincroniza quando telemetria atualiza, exceto se user está mexendo agora
-  useEffect(() => { setV(velocityPct); }, [velocityPct]);
-  useEffect(() => { setE(extrudePct); }, [extrudePct]);
-  useEffect(() => { setF(fanPct); }, [fanPct]);
-
-  const debounce = (fn: () => void) => {
-    const id = window.setTimeout(fn, 400);
-    return () => window.clearTimeout(id);
-  };
-
-  return (
-    <div className="space-y-2 pt-2 border-t border-gray-100">
-      <SliderRow label="Velocidade" value={v} unit="%" min={20} max={200}
-        onChange={(val) => { setV(val); debounce(() => definirVelocityFactor(printerId, val).catch(() => {})); }} />
-      <SliderRow label="Extrusão" value={e} unit="%" min={50} max={150}
-        onChange={(val) => { setE(val); debounce(() => definirExtrudeFactor(printerId, val).catch(() => {})); }} />
-      <SliderRow label="Fan" value={f} unit="%" min={0} max={100}
-        onChange={(val) => { setF(val); debounce(() => definirFan(printerId, val).catch(() => {})); }} />
-    </div>
-  );
-}
-
-function SliderRow({ label, value, unit, min, max, onChange }: {
-  label: string; value: number; unit: string; min: number; max: number; onChange: (v: number) => void;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-gray-600 w-20">{label}</span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(ev) => onChange(parseInt(ev.target.value))}
-        className="flex-1 h-1 bg-gray-200 rounded accent-blue-600"
-      />
-      <span className="text-xs font-mono w-12 text-right">{value}{unit}</span>
     </div>
   );
 }
