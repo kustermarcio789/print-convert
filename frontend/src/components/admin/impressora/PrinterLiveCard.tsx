@@ -9,6 +9,9 @@ import {
   getTelemetry,
   stateColor,
   stateLabel,
+  definirVelocityFactor,
+  definirExtrudeFactor,
+  definirFan,
 } from '@/lib/printerControl';
 import PrinterAdvancedControls from './PrinterAdvancedControls';
 import PrinterDetailModal from './PrinterDetailModal';
@@ -118,6 +121,16 @@ export default function PrinterLiveCard({ impressora, onOpenUpload }: Props) {
           </div>
         ) : (
           <div className="text-xs text-gray-500 italic">Sem job ativo</div>
+        )}
+
+        {/* Sliders ao vivo (apenas durante print) */}
+        {(isPrinting || isPaused) && (
+          <LiveSliders
+            printerId={impressora.id}
+            velocityPct={(telemetry as any)?.raw?.velocity_factor_pct ?? 100}
+            extrudePct={(telemetry as any)?.raw?.extrude_factor_pct ?? 100}
+            fanPct={(telemetry as any)?.raw?.fan_pct ?? 0}
+          />
         )}
 
         {/* Temperaturas */}
@@ -261,6 +274,62 @@ function TempGauge({
           {cur.toFixed(0)}° <span className="text-gray-400">/ {tgt.toFixed(0)}°</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+function LiveSliders({
+  printerId,
+  velocityPct,
+  extrudePct,
+  fanPct,
+}: {
+  printerId: string;
+  velocityPct: number;
+  extrudePct: number;
+  fanPct: number;
+}) {
+  const [v, setV] = useState(velocityPct);
+  const [e, setE] = useState(extrudePct);
+  const [f, setF] = useState(fanPct);
+
+  // Sincroniza quando telemetria atualiza, exceto se user está mexendo agora
+  useEffect(() => { setV(velocityPct); }, [velocityPct]);
+  useEffect(() => { setE(extrudePct); }, [extrudePct]);
+  useEffect(() => { setF(fanPct); }, [fanPct]);
+
+  const debounce = (fn: () => void) => {
+    const id = window.setTimeout(fn, 400);
+    return () => window.clearTimeout(id);
+  };
+
+  return (
+    <div className="space-y-2 pt-2 border-t border-gray-100">
+      <SliderRow label="Velocidade" value={v} unit="%" min={20} max={200}
+        onChange={(val) => { setV(val); debounce(() => definirVelocityFactor(printerId, val).catch(() => {})); }} />
+      <SliderRow label="Extrusão" value={e} unit="%" min={50} max={150}
+        onChange={(val) => { setE(val); debounce(() => definirExtrudeFactor(printerId, val).catch(() => {})); }} />
+      <SliderRow label="Fan" value={f} unit="%" min={0} max={100}
+        onChange={(val) => { setF(val); debounce(() => definirFan(printerId, val).catch(() => {})); }} />
+    </div>
+  );
+}
+
+function SliderRow({ label, value, unit, min, max, onChange }: {
+  label: string; value: number; unit: string; min: number; max: number; onChange: (v: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-gray-600 w-20">{label}</span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(ev) => onChange(parseInt(ev.target.value))}
+        className="flex-1 h-1 bg-gray-200 rounded accent-blue-600"
+      />
+      <span className="text-xs font-mono w-12 text-right">{value}{unit}</span>
     </div>
   );
 }

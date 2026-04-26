@@ -60,7 +60,22 @@ export type PrinterCommandName =
   | 'unload_filament'
   | 'run_macro'
   | 'firmware_restart'
-  | 'klipper_restart';
+  | 'klipper_restart'
+  | 'read_config'
+  | 'save_config'
+  | 'list_macros'
+  | 'capture_snapshot'
+  | 'list_gcodes'
+  | 'delete_gcode'
+  | 'start_print_local'
+  | 'set_velocity_factor'
+  | 'set_extrude_factor'
+  | 'set_fan'
+  | 'klipper_save_config'
+  | 'system_info'
+  | 'get_bed_mesh'
+  | 'set_pressure_advance'
+  | 'set_velocity_limits';
 
 export interface PrinterCommand {
   id: string;
@@ -395,7 +410,21 @@ export async function deletarMacro(id: string): Promise<void> {
  * Long polling simples — checa a cada 1s por até 30s.
  */
 export async function lerPrinterCfg(printerId: string, timeoutSeconds = 30): Promise<string> {
-  const cmd = await enviarComando(printerId, 'read_config');
+  const r = await enviarComandoComResultado<{ content: string }>(printerId, 'read_config', undefined, timeoutSeconds);
+  return r.content;
+}
+
+/**
+ * Helper genérico: envia comando, faz long polling até o agente responder com result.
+ * Útil pra qualquer comando que retorna dados (list_gcodes, system_info, etc).
+ */
+export async function enviarComandoComResultado<T = unknown>(
+  printerId: string,
+  command: PrinterCommandName,
+  params?: Record<string, unknown>,
+  timeoutSeconds = 30,
+): Promise<T> {
+  const cmd = await enviarComando(printerId, command, params);
   const start = Date.now();
   while (Date.now() - start < timeoutSeconds * 1000) {
     await new Promise((r) => setTimeout(r, 1000));
@@ -404,14 +433,14 @@ export async function lerPrinterCfg(printerId: string, timeoutSeconds = 30): Pro
       .select('status, result, error_message')
       .eq('id', cmd.id)
       .maybeSingle();
-    if (data?.status === 'done' && (data.result as any)?.content !== undefined) {
-      return (data.result as any).content as string;
+    if (data?.status === 'done') {
+      return (data.result as T) ?? ({} as T);
     }
     if (data?.status === 'failed') {
-      throw new Error(data.error_message || 'falha ao ler printer.cfg');
+      throw new Error(data.error_message || `falha em ${command}`);
     }
   }
-  throw new Error('timeout esperando o agente responder');
+  throw new Error(`timeout esperando o agente em ${command}`);
 }
 
 export async function salvarPrinterCfg(
@@ -467,6 +496,157 @@ export async function listarKpis(): Promise<PrinterKpi[]> {
   const { data, error } = await supabase.from('printer_kpis').select('*');
   if (error) throw error;
   return data as PrinterKpi[];
+}
+
+// =====================================================
+// Fase H — Arquivos da impressora (gcodes na SD via Moonraker)
+// =====================================================
+export interface GcodeOnPrinter {
+  path: string;       // ex: "Benchy.gcode" ou "subdir/peca.gcode"
+  modified: number;   // unix timestamp
+  size: number;       // bytes
+  permissions?: string;
+}
+
+export async function listarGcodesImpressora(printerId: string): Promise<GcodeOnPrinter[]> {
+  const r = await enviarComandoComResultado<{ files: GcodeOnPrinter[] }>(
+    printerId, 'list_gcodes', undefined, 30
+  );
+  return r.files || [];
+}
+
+export async function deletarGcodeImpressora(printerId: string, filename: string): Promise<void> {
+  await enviarComandoComResultado(printerId, 'delete_gcode', { filename }, 30);
+}
+
+export async function iniciarPrintLocal(printerId: string, filename: string): Promise<void> {
+  await enviarComandoComResultado(printerId, 'start_print_local', { filename }, 60);
+}
+
+// =====================================================
+// Fase H — Sliders ao vivo (velocidade, extrusão, fan)
+// =====================================================
+export async function definirVelocityFactor(printerId: string, percent: number): Promise<void> {
+  await enviarComando(printerId, 'set_velocity_factor', { percent });
+}
+
+export async function definirExtrudeFactor(printerId: string, percent: number): Promise<void> {
+  await enviarComando(printerId, 'set_extrude_factor', { percent });
+}
+
+export async function definirFan(printerId: string, percent: number): Promise<void> {
+  await enviarComando(printerId, 'set_fan', { percent });
+}
+
+export async function klipperSaveConfig(printerId: string): Promise<void> {
+  await enviarComando(printerId, 'klipper_save_config');
+}
+
+// =====================================================
+// Fase H — Sistema (RAM, CPU, disco, services)
+// =====================================================
+export interface SystemInfoResult {
+  system?: {
+    cpu_info?: { cpu_count?: number; bits?: string; processor?: string; cpu_desc?: string; serial_number?: string; hardware_desc?: string; model?: string; total_memory?: number; memory_units?: string };
+    distribution?: { name?: string; id?: string; version?: string; like?: string; codename?: string };
+    network?: Record<string, unknown>;
+    instance_ids?: { moonraker?: string; klipper?: string };
+    service_state?: Record<string, { active_state?: string; sub_state?: string }>;
+    virtualization?: { virt_type?: string; virt_identifier?: string };
+    canonical_id?: string;
+  };
+  proc?: {
+    moonraker_stats?: { time?: number; cpu_usage?: number; memory?: number };
+    cpu_temp?: number;
+    network?: Record<string, unknown>;
+    system_cpu_usage?: { cpu?: number };
+    system_memory?: { total?: number; available?: number; used?: number };
+  };
+  updates?: Record<string, unknown>;
+}
+
+export async function pegarSystemInfo(printerId: string): Promise<SystemInfoResult> {
+  return enviarComandoComResultado<SystemInfoResult>(printerId, 'system_info', undefined, 20);
+}
+
+// =====================================================
+// Fase H — Bed mesh
+// =====================================================
+export interface BedMeshResult {
+  profile_name?: string;
+  mesh_max?: [number, number];
+  mesh_min?: [number, number];
+  probed_matrix?: number[][];
+  mesh_matrix?: number[][];
+  profiles?: Record<string, unknown>;
+}
+
+export async function pegarBedMesh(printerId: string): Promise<BedMeshResult> {
+  return enviarComandoComResultado<BedMeshResult>(printerId, 'get_bed_mesh', undefined, 15);
+}
+
+export async function definirPressureAdvance(printerId: string, advance: number, smooth_time?: number): Promise<void> {
+  await enviarComando(printerId, 'set_pressure_advance', { advance, smooth_time });
+}
+
+export async function definirVelocityLimits(printerId: string, params: { velocity?: number; accel?: number; accel_to_decel?: number; square_corner_velocity?: number }): Promise<void> {
+  await enviarComando(printerId, 'set_velocity_limits', params);
+}
+
+// =====================================================
+// Fase H — Fila de impressões (printer_print_queue)
+// =====================================================
+export interface PrintQueueItem {
+  id: string;
+  printer_id: string;
+  filename: string;
+  gcode_file_id: string | null;
+  ordem: number;
+  status: 'pending' | 'printing' | 'done' | 'cancelled' | 'failed';
+  added_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  notes: string | null;
+}
+
+export async function listarFila(printerId: string): Promise<PrintQueueItem[]> {
+  const { data, error } = await supabase
+    .from('printer_print_queue')
+    .select('*')
+    .eq('printer_id', printerId)
+    .order('ordem', { ascending: true })
+    .limit(100);
+  if (error) throw error;
+  return data as PrintQueueItem[];
+}
+
+export async function adicionarNaFila(printerId: string, filename: string, gcodeFileId?: string): Promise<PrintQueueItem> {
+  // Pega maior ordem atual
+  const { data: ult } = await supabase
+    .from('printer_print_queue')
+    .select('ordem')
+    .eq('printer_id', printerId)
+    .order('ordem', { ascending: false })
+    .limit(1);
+  const proximaOrdem = ult && ult.length > 0 ? (ult[0].ordem || 0) + 1 : 0;
+
+  const { data, error } = await supabase
+    .from('printer_print_queue')
+    .insert({ printer_id: printerId, filename, gcode_file_id: gcodeFileId ?? null, ordem: proximaOrdem })
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as PrintQueueItem;
+}
+
+export async function removerDaFila(id: string): Promise<void> {
+  const { error } = await supabase.from('printer_print_queue').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function atualizarFilaItem(id: string, patch: Partial<PrintQueueItem>): Promise<void> {
+  const { error } = await supabase.from('printer_print_queue').update(patch).eq('id', id);
+  if (error) throw error;
 }
 
 // =====================================================

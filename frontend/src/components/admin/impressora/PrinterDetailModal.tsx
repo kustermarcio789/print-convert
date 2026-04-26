@@ -1,18 +1,22 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   X, History, Wrench, DollarSign, Camera, FileCode, Plus, Trash2, Save, Loader2,
+  HardDrive, Cpu, Play, ListOrdered, ArrowUp, ArrowDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   PrinterDevice, PrintJob, MaintenanceLog, PrinterPricing, PrinterMacro,
+  GcodeOnPrinter, SystemInfoResult, PrintQueueItem,
   listarPrintJobs, listarManutencoes, criarManutencao, deletarManutencao,
   getPricing, upsertPricing, listarMacros, salvarMacro, deletarMacro,
   lerPrinterCfg, salvarPrinterCfg, ultimoSnapshot, publicSnapshotUrl,
   enviarComando, formatDuration, atualizarImpressora,
+  listarGcodesImpressora, deletarGcodeImpressora, iniciarPrintLocal,
+  pegarSystemInfo, listarFila, adicionarNaFila, removerDaFila, atualizarFilaItem,
 } from '@/lib/printerControl';
 
-type TabId = 'history' | 'maintenance' | 'pricing' | 'webcam' | 'macros' | 'config';
+type TabId = 'history' | 'maintenance' | 'pricing' | 'webcam' | 'macros' | 'config' | 'files' | 'system' | 'queue';
 
 interface Props {
   impressora: PrinterDevice;
@@ -40,10 +44,13 @@ export default function PrinterDetailModal({ impressora, onClose }: Props) {
         <div className="flex border-b text-sm overflow-x-auto">
           {[
             { id: 'history', label: 'Histórico', icon: <History className="w-4 h-4" /> },
-            { id: 'maintenance', label: 'Manutenção', icon: <Wrench className="w-4 h-4" /> },
-            { id: 'pricing', label: 'Precificação', icon: <DollarSign className="w-4 h-4" /> },
+            { id: 'files', label: 'Arquivos', icon: <HardDrive className="w-4 h-4" /> },
+            { id: 'queue', label: 'Fila', icon: <ListOrdered className="w-4 h-4" /> },
             { id: 'webcam', label: 'Webcam', icon: <Camera className="w-4 h-4" /> },
             { id: 'macros', label: 'Macros', icon: <Plus className="w-4 h-4" /> },
+            { id: 'maintenance', label: 'Manutenção', icon: <Wrench className="w-4 h-4" /> },
+            { id: 'pricing', label: 'Precificação', icon: <DollarSign className="w-4 h-4" /> },
+            { id: 'system', label: 'Sistema', icon: <Cpu className="w-4 h-4" /> },
             { id: 'config', label: 'printer.cfg', icon: <FileCode className="w-4 h-4" /> },
           ].map((t) => (
             <button
@@ -68,6 +75,9 @@ export default function PrinterDetailModal({ impressora, onClose }: Props) {
           {tab === 'webcam' && <WebcamTab impressora={impressora} />}
           {tab === 'macros' && <MacrosTab impressora={impressora} />}
           {tab === 'config' && <ConfigTab impressora={impressora} />}
+          {tab === 'files' && <FilesTab impressora={impressora} />}
+          {tab === 'system' && <SystemTab impressora={impressora} />}
+          {tab === 'queue' && <QueueTab impressora={impressora} />}
         </div>
       </div>
     </div>
@@ -693,6 +703,282 @@ function ConfigTab({ impressora }: { impressora: PrinterDevice }) {
       <div className="text-xs text-gray-500">
         ⚠️ Ao salvar, o agente sobe o arquivo via Moonraker e reinicia o firmware se a opção
         estiver marcada. Use com cautela — sintaxe errada pode travar o Klipper.
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Arquivos da impressora (gcodes na SD via Moonraker)
+// ============================================================
+function FilesTab({ impressora }: { impressora: PrinterDevice }) {
+  const [files, setFiles] = useState<GcodeOnPrinter[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+
+  const reload = async () => {
+    setLoading(true);
+    setErr(null);
+    try {
+      const list = await listarGcodesImpressora(impressora.id);
+      setFiles(list);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { reload(); }, [impressora.id]);
+
+  const filtered = search
+    ? files.filter((f) => f.path.toLowerCase().includes(search.toLowerCase()))
+    : files;
+
+  const startPrint = async (filename: string) => {
+    if (!window.confirm(`Iniciar impressão de "${filename}" agora?`)) return;
+    setBusy(filename);
+    try {
+      await iniciarPrintLocal(impressora.id, filename);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const del = async (filename: string) => {
+    if (!window.confirm(`Deletar "${filename}" da impressora?`)) return;
+    setBusy(filename);
+    try {
+      await deletarGcodeImpressora(impressora.id, filename);
+      await reload();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <Input placeholder="Filtrar por nome..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Button variant="outline" onClick={reload} disabled={loading}>
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Atualizar'}
+        </Button>
+      </div>
+      <div className="text-xs text-gray-500">
+        {files.length} arquivo(s) na impressora · ordenado pelo mais recente
+      </div>
+      {err && <div className="text-xs text-red-700 bg-red-50 rounded p-2">{err}</div>}
+      {loading && files.length === 0 ? (
+        <Loading />
+      ) : filtered.length === 0 ? (
+        <Empty>Nenhum arquivo na SD da impressora.</Empty>
+      ) : (
+        <div className="border rounded-lg divide-y max-h-[55vh] overflow-y-auto">
+          {filtered.map((f) => (
+            <div key={f.path} className="px-3 py-2 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium truncate">{f.path}</div>
+                <div className="text-xs text-gray-500">
+                  {new Date((f.modified || 0) * 1000).toLocaleString('pt-BR')} · {(f.size / 1024 / 1024).toFixed(2)} MB
+                </div>
+              </div>
+              <Button size="sm" onClick={() => startPrint(f.path)} disabled={busy === f.path}>
+                <Play className="w-3.5 h-3.5 mr-1" />Imprimir
+              </Button>
+              <button onClick={() => del(f.path)} className="text-red-500 hover:text-red-700" disabled={busy === f.path}>
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Sistema (RAM, CPU, disco, services do RPi)
+// ============================================================
+function SystemTab({ impressora }: { impressora: PrinterDevice }) {
+  const [info, setInfo] = useState<SystemInfoResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const reload = async () => {
+    setLoading(true);
+    setErr(null);
+    try {
+      const r = await pegarSystemInfo(impressora.id);
+      setInfo(r);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { reload(); }, [impressora.id]);
+
+  const cpu = info?.system?.cpu_info;
+  const dist = info?.system?.distribution;
+  const proc = info?.proc;
+  const mem = proc?.system_memory;
+  const services = info?.system?.service_state || {};
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <div className="text-sm font-medium">Status do RPi (Klipper host)</div>
+        <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Atualizar'}
+        </Button>
+      </div>
+      {err && <div className="text-xs text-red-700 bg-red-50 rounded p-2">{err}</div>}
+      {!info && loading ? <Loading /> : info ? (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <Stat label="CPU temp" value={proc?.cpu_temp ? `${proc.cpu_temp.toFixed(1)}°C` : '—'} />
+            <Stat label="CPU uso" value={proc?.system_cpu_usage?.cpu !== undefined ? `${proc.system_cpu_usage.cpu.toFixed(1)}%` : '—'} />
+            <Stat label="RAM" value={mem?.used && mem?.total
+              ? `${Math.round(mem.used / 1024)}MB / ${Math.round(mem.total / 1024)}MB`
+              : '—'} />
+            <Stat label="CPU model" value={cpu?.model || cpu?.processor || '—'} />
+            <Stat label="Cores" value={String(cpu?.cpu_count ?? '—')} />
+            <Stat label="OS" value={dist ? `${dist.name || ''} ${dist.codename || ''}` : '—'} />
+          </div>
+
+          <div>
+            <div className="text-sm font-medium mb-2 mt-4">Serviços</div>
+            <div className="border rounded-lg divide-y text-sm">
+              {Object.entries(services).slice(0, 12).map(([name, s]) => (
+                <div key={name} className="px-3 py-1.5 flex justify-between">
+                  <span className="font-mono">{name}</span>
+                  <span className={s.active_state === 'active' ? 'text-green-700' : 'text-yellow-700'}>
+                    {s.active_state || '?'} · {s.sub_state || '?'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+// ============================================================
+// Fila de impressões
+// ============================================================
+function QueueTab({ impressora }: { impressora: PrinterDevice }) {
+  const [queue, setQueue] = useState<PrintQueueItem[]>([]);
+  const [files, setFiles] = useState<GcodeOnPrinter[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState<string | null>(null);
+
+  const reload = async () => {
+    const [q, f] = await Promise.all([
+      listarFila(impressora.id),
+      listarGcodesImpressora(impressora.id).catch(() => [] as GcodeOnPrinter[]),
+    ]);
+    setQueue(q);
+    setFiles(f);
+    setLoading(false);
+  };
+  useEffect(() => { reload(); }, [impressora.id]);
+
+  const addFile = async (filename: string) => {
+    setAdding(filename);
+    try {
+      await adicionarNaFila(impressora.id, filename);
+      await reload();
+    } finally {
+      setAdding(null);
+    }
+  };
+
+  const remove = async (id: string) => {
+    await removerDaFila(id);
+    await reload();
+  };
+
+  const moveUp = async (idx: number) => {
+    if (idx === 0) return;
+    const a = queue[idx - 1];
+    const b = queue[idx];
+    await Promise.all([
+      atualizarFilaItem(a.id, { ordem: b.ordem }),
+      atualizarFilaItem(b.id, { ordem: a.ordem }),
+    ]);
+    await reload();
+  };
+
+  const moveDown = async (idx: number) => {
+    if (idx === queue.length - 1) return;
+    const a = queue[idx];
+    const b = queue[idx + 1];
+    await Promise.all([
+      atualizarFilaItem(a.id, { ordem: b.ordem }),
+      atualizarFilaItem(b.id, { ordem: a.ordem }),
+    ]);
+    await reload();
+  };
+
+  if (loading) return <Loading />;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <div className="text-sm font-medium mb-2">Fila ({queue.length})</div>
+        {queue.length === 0 ? (
+          <Empty>Fila vazia. Adicione arquivos abaixo pra rodar em sequência.</Empty>
+        ) : (
+          <div className="border rounded-lg divide-y">
+            {queue.map((item, idx) => (
+              <div key={item.id} className="px-3 py-2 flex items-center gap-2">
+                <span className="text-xs text-gray-500 w-6">{idx + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium truncate">{item.filename}</div>
+                  <div className="text-xs text-gray-500">{item.status}</div>
+                </div>
+                <button onClick={() => moveUp(idx)} disabled={idx === 0} className="text-gray-400 hover:text-gray-700 disabled:opacity-30">
+                  <ArrowUp className="w-4 h-4" />
+                </button>
+                <button onClick={() => moveDown(idx)} disabled={idx === queue.length - 1} className="text-gray-400 hover:text-gray-700 disabled:opacity-30">
+                  <ArrowDown className="w-4 h-4" />
+                </button>
+                <button onClick={() => remove(item.id)} className="text-red-500 hover:text-red-700">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <div className="text-sm font-medium mb-2">Adicionar arquivo da impressora</div>
+        {files.length === 0 ? (
+          <Empty>Nenhum arquivo encontrado. Use a aba "Arquivos" pra atualizar.</Empty>
+        ) : (
+          <div className="border rounded-lg divide-y max-h-60 overflow-y-auto">
+            {files.slice(0, 30).map((f) => (
+              <div key={f.path} className="px-3 py-1.5 flex items-center gap-2">
+                <div className="flex-1 min-w-0 text-sm truncate">{f.path}</div>
+                <Button size="sm" variant="outline" onClick={() => addFile(f.path)} disabled={adding === f.path}>
+                  <Plus className="w-3 h-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="text-xs text-gray-500 mt-2">
+          ⚠️ <strong>Por enquanto a fila é manual</strong> — você adiciona, mas precisa iniciar cada print individualmente
+          pela aba Arquivos. Auto-execução vem na próxima fase.
+        </div>
       </div>
     </div>
   );

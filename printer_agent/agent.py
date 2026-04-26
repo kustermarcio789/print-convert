@@ -107,7 +107,8 @@ def moonraker_status(api_url: str) -> dict[str, Any]:
     """Coleta um snapshot consolidado do estado da impressora."""
     objects = (
         "print_stats,display_status,extruder,heater_bed,toolhead,"
-        "virtual_sdcard,idle_timeout,pause_resume,webhooks"
+        "virtual_sdcard,idle_timeout,pause_resume,webhooks,"
+        "gcode_move,fan,motion_report"
     )
     data = moonraker_get(api_url, f"/printer/objects/query?{objects}")
     return data.get("result", {}).get("status", {})
@@ -195,6 +196,13 @@ def parse_telemetry(raw_status: dict[str, Any]) -> dict[str, Any]:
         est_total = duration / (progress / 100)
         est_remaining = max(0, int(est_total - duration))
 
+    gcode_move = raw_status.get("gcode_move", {}) or {}
+    fan = raw_status.get("fan", {}) or {}
+    velocity_factor_pct = round(float(gcode_move.get("speed_factor", 1.0)) * 100)
+    extrude_factor_pct = round(float(gcode_move.get("extrude_factor", 1.0)) * 100)
+    fan_pct = round(float(fan.get("speed", 0.0)) * 100)
+    z_offset = float(gcode_move.get("homing_origin", [0, 0, 0, 0])[2] or 0) if isinstance(gcode_move.get("homing_origin"), list) else None
+
     return {
         "state": state,
         "state_message": print_stats.get("message") or webhooks.get("state_message"),
@@ -212,6 +220,12 @@ def parse_telemetry(raw_status: dict[str, Any]) -> dict[str, Any]:
         "raw": {
             "total_duration": total_duration,
             "filename": print_stats.get("filename"),
+            "velocity_factor_pct": velocity_factor_pct,
+            "extrude_factor_pct": extrude_factor_pct,
+            "fan_pct": fan_pct,
+            "z_offset_mm": z_offset,
+            "pressure_advance": (extruder.get("pressure_advance") if isinstance(extruder, dict) else None),
+            "smooth_time": (extruder.get("smooth_time") if isinstance(extruder, dict) else None),
         },
     }
 
@@ -352,6 +366,121 @@ def cmd_list_macros(api_url: str, params: dict | None = None) -> dict:
     return {"macros": macros}
 
 
+def cmd_list_gcodes(api_url: str, params: dict | None = None) -> dict:
+    """Lista todos os arquivos .gcode no Moonraker."""
+    data = moonraker_get(api_url, "/server/files/list?root=gcodes")
+    files = data.get("result", []) or []
+    # Ordena por modificação (mais recente primeiro)
+    files.sort(key=lambda f: f.get("modified", 0), reverse=True)
+    return {"files": files[:200]}
+
+
+def cmd_delete_gcode(api_url: str, params: dict) -> dict:
+    """Deleta arquivo .gcode da SD/storage. params = { filename }"""
+    fname = params.get("filename")
+    if not fname:
+        raise ValueError("filename obrigatório")
+    r = requests.delete(f"{api_url.rstrip('/')}/server/files/gcodes/{fname}", timeout=MOONRAKER_TIMEOUT)
+    r.raise_for_status()
+    return {"deleted": fname}
+
+
+def cmd_start_print_local(api_url: str, params: dict) -> dict:
+    """Inicia print de um arquivo já existente na SD. params = { filename }"""
+    fname = params.get("filename")
+    if not fname:
+        raise ValueError("filename obrigatório")
+    r = requests.post(
+        f"{api_url.rstrip('/')}/printer/print/start",
+        params={"filename": fname},
+        timeout=MOONRAKER_COMMAND_TIMEOUT,
+    )
+    r.raise_for_status()
+    return {"started": fname}
+
+
+def cmd_set_velocity_factor(api_url: str, params: dict) -> None:
+    """Slider de velocidade % (M220 S<percent>)."""
+    pct = int(params.get("percent", 100))
+    moonraker_post(api_url, "/printer/gcode/script", params={"script": f"M220 S{pct}"})
+
+
+def cmd_set_extrude_factor(api_url: str, params: dict) -> None:
+    """Slider de extrusão % (M221 S<percent>)."""
+    pct = int(params.get("percent", 100))
+    moonraker_post(api_url, "/printer/gcode/script", params={"script": f"M221 S{pct}"})
+
+
+def cmd_set_fan(api_url: str, params: dict) -> None:
+    """Define velocidade do fan da peça. params = { percent: 0-100 } ou { fan_name: 'fan1', value: 0-1 }"""
+    if "fan_name" in params:
+        name = params["fan_name"]
+        val = float(params.get("value", 0))
+        moonraker_post(api_url, "/printer/gcode/script",
+                      params={"script": f"SET_FAN_SPEED FAN={name} SPEED={val}"})
+        return
+    pct = int(params.get("percent", 0))
+    s = round(pct * 255 / 100)
+    moonraker_post(api_url, "/printer/gcode/script", params={"script": f"M106 S{s}"})
+
+
+def cmd_save_config(api_url: str, params: dict | None = None) -> None:
+    """Klipper SAVE_CONFIG (após calibrações). Reinicia o firmware."""
+    moonraker_post(api_url, "/printer/gcode/script", params={"script": "SAVE_CONFIG"}, timeout=60)
+
+
+def cmd_system_info(api_url: str, params: dict | None = None) -> dict:
+    """Coleta info da máquina (RAM, CPU, disco, services)."""
+    info = {}
+    try:
+        sysinfo = moonraker_get(api_url, "/machine/system_info")
+        info["system"] = sysinfo.get("result", {}).get("system_info", {})
+    except Exception as e:
+        info["system_error"] = str(e)
+    try:
+        proc = moonraker_get(api_url, "/machine/proc_stats")
+        info["proc"] = proc.get("result", {})
+    except Exception as e:
+        info["proc_error"] = str(e)
+    try:
+        upd = moonraker_get(api_url, "/machine/update/status")
+        info["updates"] = upd.get("result", {})
+    except Exception as e:
+        info["updates_error"] = str(e)
+    return info
+
+
+def cmd_get_bed_mesh(api_url: str, params: dict | None = None) -> dict:
+    """Retorna o último bed mesh ativo + perfis disponíveis."""
+    data = moonraker_get(api_url,
+        "/printer/objects/query?bed_mesh")
+    bed = (data.get("result", {}).get("status", {}) or {}).get("bed_mesh", {})
+    return bed
+
+
+def cmd_set_pressure_advance(api_url: str, params: dict) -> None:
+    """SET_PRESSURE_ADVANCE ADVANCE=<v> [SMOOTH_TIME=<v>]."""
+    pa = float(params.get("advance", 0.04))
+    st = params.get("smooth_time")
+    script = f"SET_PRESSURE_ADVANCE ADVANCE={pa}"
+    if st is not None:
+        script += f" SMOOTH_TIME={float(st)}"
+    moonraker_post(api_url, "/printer/gcode/script", params={"script": script})
+
+
+def cmd_set_velocity_limits(api_url: str, params: dict) -> None:
+    """SET_VELOCITY_LIMIT VELOCITY=.. ACCEL=.. ACCEL_TO_DECEL=.. SQUARE_CORNER_VELOCITY=.."""
+    pieces = ["SET_VELOCITY_LIMIT"]
+    for k, key in (("VELOCITY", "velocity"), ("ACCEL", "accel"),
+                   ("ACCEL_TO_DECEL", "accel_to_decel"),
+                   ("SQUARE_CORNER_VELOCITY", "square_corner_velocity")):
+        if key in params and params[key] is not None:
+            pieces.append(f"{k}={float(params[key])}")
+    if len(pieces) == 1:
+        return
+    moonraker_post(api_url, "/printer/gcode/script", params={"script": " ".join(pieces)})
+
+
 def cmd_capture_snapshot(api_url: str, params: dict) -> dict:
     """Captura snapshot da webcam e devolve bytes em base64 (o site faz o upload no Storage)."""
     import base64
@@ -412,6 +541,17 @@ COMMAND_HANDLERS = {
     "save_config": lambda api, params: cmd_save_config(api, params),
     "list_macros": lambda api, params: cmd_list_macros(api, params),
     "capture_snapshot": lambda api, params: cmd_capture_snapshot(api, params),
+    "list_gcodes": lambda api, params: cmd_list_gcodes(api, params),
+    "delete_gcode": lambda api, params: cmd_delete_gcode(api, params),
+    "start_print_local": lambda api, params: cmd_start_print_local(api, params),
+    "set_velocity_factor": lambda api, params: cmd_set_velocity_factor(api, params),
+    "set_extrude_factor": lambda api, params: cmd_set_extrude_factor(api, params),
+    "set_fan": lambda api, params: cmd_set_fan(api, params),
+    "klipper_save_config": lambda api, params: cmd_save_config(api, params),
+    "system_info": lambda api, params: cmd_system_info(api, params),
+    "get_bed_mesh": lambda api, params: cmd_get_bed_mesh(api, params),
+    "set_pressure_advance": lambda api, params: cmd_set_pressure_advance(api, params),
+    "set_velocity_limits": lambda api, params: cmd_set_velocity_limits(api, params),
 }
 
 
